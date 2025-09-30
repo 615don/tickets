@@ -29,75 +29,15 @@ import {
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Contact, Client } from '@/types';
-import { Users, ArrowUpDown } from 'lucide-react';
+import { Users, ArrowUpDown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-
-// Mock data
-const mockClients: Client[] = [
-  {
-    id: 1,
-    companyName: 'Acme Corp',
-    xeroCustomerId: 'CUST-001',
-    maintenanceContractType: 'Monthly Retainer',
-    domains: ['acme.com'],
-    contactCount: 3,
-    createdAt: '2025-01-15T10:00:00Z',
-  },
-  {
-    id: 2,
-    companyName: 'Tech Solutions Inc',
-    xeroCustomerId: null,
-    maintenanceContractType: 'Hourly',
-    domains: ['techsolutions.com'],
-    contactCount: 2,
-    createdAt: '2025-02-01T14:30:00Z',
-  },
-];
-
-const mockContacts: Contact[] = [
-  {
-    id: 1,
-    name: 'John Smith',
-    email: 'john@acme.com',
-    clientId: 1,
-    clientName: 'Acme Corp',
-    isSystemContact: false,
-    createdAt: '2025-01-15T10:30:00Z',
-  },
-  {
-    id: 2,
-    name: 'Jane Doe',
-    email: 'jane@acme.com',
-    clientId: 1,
-    clientName: 'Acme Corp',
-    isSystemContact: false,
-    createdAt: '2025-01-16T11:00:00Z',
-  },
-  {
-    id: 3,
-    name: 'Bob Johnson',
-    email: 'bob@techsolutions.com',
-    clientId: 2,
-    clientName: 'Tech Solutions Inc',
-    isSystemContact: false,
-    createdAt: '2025-02-01T15:00:00Z',
-  },
-  {
-    id: 99,
-    name: '(Deleted Contact)',
-    email: 'deleted+1@system.local',
-    clientId: 1,
-    clientName: 'Acme Corp',
-    isSystemContact: true,
-    createdAt: '2025-02-05T12:00:00Z',
-  },
-];
+import { useContacts, useCreateContact, useUpdateContact, useDeleteContact } from '@/hooks/useContacts';
+import { useClients } from '@/hooks/useClients';
+import { ApiError } from '@/lib/api-client';
 
 export const ContactList = () => {
-  const [contacts, setContacts] = useState<Contact[]>(mockContacts);
-  const [clients] = useState<Client[]>(mockClients);
   const [searchQuery, setSearchQuery] = useState('');
   const [clientFilter, setClientFilter] = useState<string>('all');
   const [sortAsc, setSortAsc] = useState(true);
@@ -106,6 +46,15 @@ export const ContactList = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contactToDelete, setContactToDelete] = useState<Contact | null>(null);
   const { toast } = useToast();
+
+  // Fetch data from API
+  const { data: clients = [], isLoading: clientsLoading } = useClients();
+  const { data: contacts = [], isLoading: contactsLoading, error } = useContacts();
+  const createContact = useCreateContact();
+  const updateContact = useUpdateContact();
+  const deleteContact = useDeleteContact();
+
+  const isLoading = clientsLoading || contactsLoading;
 
   const filteredContacts = useMemo(() => {
     let filtered = contacts.filter((contact) => {
@@ -135,60 +84,84 @@ export const ContactList = () => {
     setIsFormOpen(true);
   };
 
-  const handleDeleteContact = (contact: Contact) => {
+  const handleDeleteContact = async (contact: Contact) => {
     setContactToDelete(contact);
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
-    if (contactToDelete) {
-      setContacts(contacts.filter((c) => c.id !== contactToDelete.id));
+  const confirmDelete = async () => {
+    if (!contactToDelete) return;
+
+    try {
+      await deleteContact.mutateAsync(contactToDelete.id);
       toast({
         title: 'Contact deleted',
         description: `${contactToDelete.name} has been removed.`,
       });
+      setDeleteDialogOpen(false);
+      setContactToDelete(null);
+    } catch (error) {
+      const apiError = error as ApiError;
+      toast({
+        title: 'Delete failed',
+        description: apiError.message || 'Could not delete contact',
+        variant: 'destructive',
+      });
     }
-    setDeleteDialogOpen(false);
-    setContactToDelete(null);
   };
 
-  const handleFormSubmit = (data: any) => {
-    const client = clients.find((c) => c.id === data.clientId);
-    if (!client) return;
+  const handleFormSubmit = async (data: any) => {
+    const contactData = {
+      name: data.name,
+      email: data.email,
+      clientId: data.clientId,
+    };
 
-    if (editingContact) {
-      setContacts(
-        contacts.map((c) =>
-          c.id === editingContact.id
-            ? { ...c, ...data, clientName: client.companyName }
-            : c
-        )
-      );
+    try {
+      if (editingContact) {
+        await updateContact.mutateAsync({ id: editingContact.id, data: contactData });
+        toast({
+          title: 'Contact updated',
+          description: 'Changes have been saved.',
+        });
+      } else {
+        await createContact.mutateAsync(contactData);
+        toast({
+          title: 'Contact created',
+          description: `${data.name} has been added.`,
+        });
+      }
+      setIsFormOpen(false);
+      setEditingContact(null);
+    } catch (error) {
+      const apiError = error as ApiError;
       toast({
-        title: 'Contact updated',
-        description: 'Changes have been saved.',
-      });
-    } else {
-      const newContact: Contact = {
-        id: Math.max(...contacts.map((c) => c.id)) + 1,
-        ...data,
-        clientName: client.companyName,
-        isSystemContact: false,
-        createdAt: new Date().toISOString(),
-      };
-      setContacts([...contacts, newContact]);
-      toast({
-        title: 'Contact created',
-        description: `${data.name} has been added.`,
+        title: editingContact ? 'Update failed' : 'Create failed',
+        description: apiError.message || 'An error occurred',
+        variant: 'destructive',
       });
     }
-    setIsFormOpen(false);
   };
 
   const clearFilters = () => {
     setSearchQuery('');
     setClientFilter('all');
   };
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <PageHeader title="Contacts" />
+        <EmptyState
+          icon={Users}
+          message={`Failed to load contacts: ${(error as ApiError).message}`}
+          actionLabel="Retry"
+          onAction={() => window.location.reload()}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -237,7 +210,11 @@ export const ContactList = () => {
         )}
       </div>
 
-      {filteredContacts.length === 0 && !searchQuery && clientFilter === 'all' ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : filteredContacts.length === 0 && !searchQuery && clientFilter === 'all' ? (
         <EmptyState
           icon={Users}
           message="No contacts yet. Add contacts for your clients."

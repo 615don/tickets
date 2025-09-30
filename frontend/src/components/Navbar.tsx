@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Home, Plus, Users, User, FileText, Settings, Menu } from 'lucide-react';
 import { MobileMenu } from './MobileMenu';
 import { Button } from './ui/button';
+import { useAuth } from '@/hooks/useAuth';
 
 interface NavItem {
   path: string;
@@ -23,15 +24,19 @@ const navItems: NavItem[] = [
 export const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
   };
 
-  const handleLogout = () => {
-    console.log('Logout clicked');
-    // Placeholder for logout functionality
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   const handleCloseMobileMenu = useCallback(() => {
@@ -84,7 +89,7 @@ export const Navbar = () => {
 
             {/* User Section - Desktop */}
             <div className="hidden md:flex items-center space-x-4">
-              <span className="text-sm text-muted-foreground">consultant@example.com</span>
+              <span className="text-sm text-muted-foreground">{user?.email || 'Loading...'}</span>
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 Logout
               </Button>
@@ -109,7 +114,7 @@ export const Navbar = () => {
         isOpen={isMobileMenuOpen}
         onClose={handleCloseMobileMenu}
         navItems={navItems}
-        userEmail="consultant@example.com"
+        userEmail={user?.email || 'Loading...'}
         onLogout={handleLogout}
       />
     </>

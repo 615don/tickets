@@ -4,7 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
+import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 import TicketDetailPage from "./pages/TicketDetailPage";
 import CreateTicketPage from "./pages/CreateTicketPage";
@@ -21,22 +23,106 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <div className="min-h-screen bg-background">
-          <Navbar />
-          <main className="pt-16">
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/tickets/create" element={<CreateTicketPage />} />
-              <Route path="/tickets/:id" element={<TicketDetailPage />} />
-              <Route path="/clients" element={<ClientsPage />} />
-              <Route path="/contacts" element={<ContactsPage />} />
-              <Route path="/invoices" element={<InvoiceReview />} />
-              <Route path="/settings" element={<Settings />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </main>
-        </div>
+        <Routes>
+          {/* Public route - Login */}
+          <Route path="/login" element={<LoginPage />} />
+
+          {/* Protected routes - All require authentication */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <div className="min-h-screen bg-background">
+                  <Navbar />
+                  <main className="pt-16">
+                    <Index />
+                  </main>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tickets/create"
+            element={
+              <ProtectedRoute>
+                <div className="min-h-screen bg-background">
+                  <Navbar />
+                  <main className="pt-16">
+                    <CreateTicketPage />
+                  </main>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tickets/:id"
+            element={
+              <ProtectedRoute>
+                <div className="min-h-screen bg-background">
+                  <Navbar />
+                  <main className="pt-16">
+                    <TicketDetailPage />
+                  </main>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/clients"
+            element={
+              <ProtectedRoute>
+                <div className="min-h-screen bg-background">
+                  <Navbar />
+                  <main className="pt-16">
+                    <ClientsPage />
+                  </main>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/contacts"
+            element={
+              <ProtectedRoute>
+                <div className="min-h-screen bg-background">
+                  <Navbar />
+                  <main className="pt-16">
+                    <ContactsPage />
+                  </main>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/invoices"
+            element={
+              <ProtectedRoute>
+                <div className="min-h-screen bg-background">
+                  <Navbar />
+                  <main className="pt-16">
+                    <InvoiceReview />
+                  </main>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <div className="min-h-screen bg-background">
+                  <Navbar />
+                  <main className="pt-16">
+                    <Settings />
+                  </main>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

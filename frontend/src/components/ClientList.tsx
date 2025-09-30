@@ -22,43 +22,13 @@ import {
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Client, DeleteClientData } from '@/types';
-import { Building2, ArrowUpDown } from 'lucide-react';
+import { Building2, ArrowUpDown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-
-// Mock data
-const mockClients: Client[] = [
-  {
-    id: 1,
-    companyName: 'Acme Corp',
-    xeroCustomerId: 'CUST-001',
-    maintenanceContractType: 'Monthly Retainer',
-    domains: ['acme.com', 'acmecorp.com'],
-    contactCount: 5,
-    createdAt: '2025-01-15T10:00:00Z',
-  },
-  {
-    id: 2,
-    companyName: 'Tech Solutions Inc',
-    xeroCustomerId: null,
-    maintenanceContractType: 'Hourly',
-    domains: ['techsolutions.com'],
-    contactCount: 3,
-    createdAt: '2025-02-01T14:30:00Z',
-  },
-  {
-    id: 3,
-    companyName: 'Global Dynamics',
-    xeroCustomerId: 'CUST-003',
-    maintenanceContractType: 'Project-Based',
-    domains: ['globaldynamics.com', 'gdynamics.com', 'gd.com'],
-    contactCount: 8,
-    createdAt: '2025-01-20T09:15:00Z',
-  },
-];
+import { useClients, useCreateClient, useUpdateClient, useDeleteClient } from '@/hooks/useClients';
+import { ApiError } from '@/lib/api-client';
 
 export const ClientList = () => {
-  const [clients, setClients] = useState<Client[]>(mockClients);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortAsc, setSortAsc] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -66,6 +36,12 @@ export const ClientList = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<DeleteClientData | null>(null);
   const { toast } = useToast();
+
+  // Fetch clients from API
+  const { data: clients = [], isLoading, error } = useClients();
+  const createClient = useCreateClient();
+  const updateClient = useUpdateClient();
+  const deleteClient = useDeleteClient();
 
   const filteredClients = useMemo(() => {
     let filtered = clients.filter((client) =>
@@ -90,59 +66,89 @@ export const ClientList = () => {
     setIsFormOpen(true);
   };
 
-  const handleDeleteClient = (client: Client) => {
+  const handleDeleteClient = async (client: Client) => {
+    // For now, show simplified delete dialog
+    // TODO: Fetch actual counts from backend
     setClientToDelete({
       clientId: client.id,
       companyName: client.companyName,
       contactCount: client.contactCount,
-      ticketCount: Math.floor(Math.random() * 20),
-      timeEntryCount: Math.floor(Math.random() * 50),
-      hasInvoices: Math.random() > 0.7,
+      ticketCount: 0,
+      timeEntryCount: 0,
+      hasInvoices: false,
     });
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
-    if (clientToDelete) {
-      setClients(clients.filter((c) => c.id !== clientToDelete.clientId));
+  const confirmDelete = async () => {
+    if (!clientToDelete) return;
+
+    try {
+      await deleteClient.mutateAsync(clientToDelete.clientId);
       toast({
         title: 'Client deleted',
         description: `${clientToDelete.companyName} has been removed.`,
       });
+      setDeleteDialogOpen(false);
+      setClientToDelete(null);
+    } catch (error) {
+      const apiError = error as ApiError;
+      toast({
+        title: 'Delete failed',
+        description: apiError.message || 'Could not delete client',
+        variant: 'destructive',
+      });
     }
-    setDeleteDialogOpen(false);
-    setClientToDelete(null);
   };
 
-  const handleFormSubmit = (data: any) => {
-    if (editingClient) {
-      setClients(
-        clients.map((c) =>
-          c.id === editingClient.id
-            ? { ...c, ...data, domains: data.domains.map((d: any) => d.value).filter(Boolean) }
-            : c
-        )
-      );
+  const handleFormSubmit = async (data: any) => {
+    const clientData = {
+      companyName: data.companyName,
+      xeroCustomerId: data.xeroCustomerId,
+      maintenanceContractType: data.maintenanceContractType,
+      domains: data.domains.map((d: any) => d.value).filter((v: string) => v.trim() !== ''),
+    };
+
+    try {
+      if (editingClient) {
+        await updateClient.mutateAsync({ id: editingClient.id, data: clientData });
+        toast({
+          title: 'Client updated',
+          description: 'Changes have been saved.',
+        });
+      } else {
+        await createClient.mutateAsync(clientData);
+        toast({
+          title: 'Client created',
+          description: `${data.companyName} has been added.`,
+        });
+      }
+      setIsFormOpen(false);
+      setEditingClient(null);
+    } catch (error) {
+      const apiError = error as ApiError;
       toast({
-        title: 'Client updated',
-        description: 'Changes have been saved.',
-      });
-    } else {
-      const newClient: Client = {
-        id: Math.max(...clients.map((c) => c.id)) + 1,
-        ...data,
-        domains: data.domains.map((d: any) => d.value).filter(Boolean),
-        contactCount: 0,
-        createdAt: new Date().toISOString(),
-      };
-      setClients([...clients, newClient]);
-      toast({
-        title: 'Client created',
-        description: `${data.companyName} has been added.`,
+        title: editingClient ? 'Update failed' : 'Create failed',
+        description: apiError.message || 'An error occurred',
+        variant: 'destructive',
       });
     }
-    setIsFormOpen(false);
   };
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <PageHeader title="Clients" />
+        <EmptyState
+          icon={Building2}
+          message={`Failed to load clients: ${(error as ApiError).message}`}
+          actionLabel="Retry"
+          onAction={() => window.location.reload()}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -169,7 +175,11 @@ export const ClientList = () => {
         )}
       </div>
 
-      {filteredClients.length === 0 && !searchQuery ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : filteredClients.length === 0 && !searchQuery ? (
         <EmptyState
           icon={Building2}
           message="No clients yet. Add your first client to get started."
