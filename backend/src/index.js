@@ -3,6 +3,7 @@ import session from 'express-session';
 import pgSession from 'connect-pg-simple';
 import cors from 'cors';
 import helmet from 'helmet';
+import csrf from 'csurf';
 import dotenv from 'dotenv';
 import pool, { testConnection } from './config/database.js';
 import authRoutes from './routes/auth.js';
@@ -41,6 +42,15 @@ app.use(session({
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   },
 }));
+
+// CSRF protection
+const csrfProtection = csrf({ cookie: false }); // Use session instead of cookies
+app.use(csrfProtection);
+
+// Endpoint to get CSRF token
+app.get('/api/csrf-token', (req, res) => {
+  res.json({ csrfToken: req.csrfToken() });
+});
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {

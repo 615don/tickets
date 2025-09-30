@@ -1,10 +1,23 @@
 import express from 'express';
 import { body } from 'express-validator';
+import rateLimit from 'express-rate-limit';
 import { register, login, logout, getCurrentUser } from '../controllers/authController.js';
 import { validate } from '../middleware/validation.js';
 import { requireAuth, redirectIfAuthenticated } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// Rate limiter for authentication endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per window
+  message: {
+    error: 'Too many attempts',
+    message: 'Too many login attempts, please try again later'
+  },
+  standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
+  legacyHeaders: false, // Disable `X-RateLimit-*` headers
+});
 
 // Validation rules
 const registerValidation = [
@@ -33,10 +46,10 @@ const loginValidation = [
 ];
 
 // POST /api/auth/register - Register new user
-router.post('/register', redirectIfAuthenticated, registerValidation, validate, register);
+router.post('/register', authLimiter, redirectIfAuthenticated, registerValidation, validate, register);
 
 // POST /api/auth/login - Login
-router.post('/login', redirectIfAuthenticated, loginValidation, validate, login);
+router.post('/login', authLimiter, redirectIfAuthenticated, loginValidation, validate, login);
 
 // POST /api/auth/logout - Logout
 router.post('/logout', requireAuth, logout);

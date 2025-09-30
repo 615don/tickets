@@ -17,19 +17,30 @@ export const register = async (req, res) => {
     // Create new user
     const user = await User.create(email, password, name);
 
-    // Create session
-    req.session.userId = user.id;
-    req.session.userEmail = user.email;
-
-    // Return user data (without password)
-    res.status(201).json({
-      message: 'Registration successful',
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        createdAt: user.created_at
+    // Regenerate session to prevent session fixation
+    req.session.regenerate((err) => {
+      if (err) {
+        console.error('Session regeneration error:', err);
+        return res.status(500).json({
+          error: 'Registration failed',
+          message: 'An error occurred during session creation'
+        });
       }
+
+      // Create session
+      req.session.userId = user.id;
+      req.session.userEmail = user.email;
+
+      // Return user data (without password)
+      res.status(201).json({
+        message: 'Registration successful',
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          createdAt: user.created_at
+        }
+      });
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -47,34 +58,42 @@ export const login = async (req, res) => {
 
     // Find user
     const user = await User.findByEmail(email);
-    if (!user) {
+
+    // Always perform password comparison to prevent timing attacks
+    // Use a dummy hash if user doesn't exist to maintain constant timing
+    const passwordHash = user ? user.password_hash : '$2b$10$abcdefghijklmnopqrstuv.WXYZ0123456789ABCDEFG';
+    const isValid = await User.verifyPassword(password, passwordHash);
+
+    if (!user || !isValid) {
       return res.status(401).json({
         error: 'Invalid credentials',
         message: 'Email or password is incorrect'
       });
     }
 
-    // Verify password
-    const isValid = await User.verifyPassword(password, user.password_hash);
-    if (!isValid) {
-      return res.status(401).json({
-        error: 'Invalid credentials',
-        message: 'Email or password is incorrect'
-      });
-    }
-
-    // Create session
-    req.session.userId = user.id;
-    req.session.userEmail = user.email;
-
-    // Return user data (without password)
-    res.json({
-      message: 'Login successful',
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name
+    // Regenerate session to prevent session fixation
+    req.session.regenerate((err) => {
+      if (err) {
+        console.error('Session regeneration error:', err);
+        return res.status(500).json({
+          error: 'Login failed',
+          message: 'An error occurred during session creation'
+        });
       }
+
+      // Create session
+      req.session.userId = user.id;
+      req.session.userEmail = user.email;
+
+      // Return user data (without password)
+      res.json({
+        message: 'Login successful',
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name
+        }
+      });
     });
   } catch (error) {
     console.error('Login error:', error);
