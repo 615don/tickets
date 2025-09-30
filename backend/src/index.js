@@ -5,6 +5,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import pool from './config/database.js';
+import authRoutes from './routes/auth.js';
 
 // Load environment variables
 dotenv.config();
@@ -16,7 +17,7 @@ const PgSession = pgSession(session);
 // Middleware
 app.use(helmet()); // Security headers
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL || 'http://localhost:8080',
   credentials: true,
 }));
 app.use(express.json());
@@ -59,8 +60,8 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-// Routes will be added here
-// app.use('/api/auth', authRoutes);
+// Routes
+app.use('/api/auth', authRoutes);
 // app.use('/api/clients', clientRoutes);
 // app.use('/api/contacts', contactRoutes);
 // app.use('/api/tickets', ticketRoutes);
