@@ -44,7 +44,7 @@ export const ClientList = () => {
   const deleteClient = useDeleteClient();
 
   const filteredClients = useMemo(() => {
-    let filtered = clients.filter((client) =>
+    const filtered = clients.filter((client) =>
       client.companyName.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
@@ -101,12 +101,12 @@ export const ClientList = () => {
     }
   };
 
-  const handleFormSubmit = async (data: any) => {
+  const handleFormSubmit = async (data: { companyName: string; xeroCustomerId?: string; maintenanceContractType: string; domains: Array<{ value: string }> }) => {
     const clientData = {
       companyName: data.companyName,
       xeroCustomerId: data.xeroCustomerId,
       maintenanceContractType: data.maintenanceContractType,
-      domains: data.domains.map((d: any) => d.value).filter((v: string) => v.trim() !== ''),
+      domains: data.domains.map((d) => d.value).filter((v: string) => v.trim() !== ''),
     };
 
     try {

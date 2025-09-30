@@ -94,7 +94,7 @@ export const ClientForm = ({ client, onSubmit, onCancel }: ClientFormProps) => {
         </Label>
         <Select
           value={contractType}
-          onValueChange={(value) => setValue('maintenanceContractType', value as any)}
+          onValueChange={(value) => setValue('maintenanceContractType', value as 'Hourly' | 'Monthly Retainer' | 'Project-Based' | 'None')}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select contract type" />
