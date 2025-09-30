@@ -1,0 +1,209 @@
+import pool from '../config/database.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Database migrations - Epic 1: Foundation
+const migrations = [
+  {
+    name: '001_create_users_table',
+    sql: `
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        name VARCHAR(255),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    `
+  },
+  {
+    name: '002_create_clients_table',
+    sql: `
+      CREATE TABLE IF NOT EXISTS clients (
+        id SERIAL PRIMARY KEY,
+        company_name VARCHAR(255) NOT NULL,
+        xero_customer_id VARCHAR(255),
+        maintenance_contract_type VARCHAR(50) CHECK (maintenance_contract_type IN ('Hourly', 'Monthly Retainer', 'Project-Based', 'None')),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_clients_company_name ON clients(company_name);
+    `
+  },
+  {
+    name: '003_create_client_domains_table',
+    sql: `
+      CREATE TABLE IF NOT EXISTS client_domains (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        domain VARCHAR(255) NOT NULL UNIQUE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_client_domains_client_id ON client_domains(client_id);
+      CREATE INDEX IF NOT EXISTS idx_client_domains_domain ON client_domains(domain);
+    `
+  },
+  {
+    name: '004_create_contacts_table',
+    sql: `
+      CREATE TABLE IF NOT EXISTS contacts (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        is_system_contact BOOLEAN DEFAULT FALSE,
+        deleted_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE UNIQUE INDEX IF NOT EXISTS unique_active_email ON contacts(email) WHERE deleted_at IS NULL;
+      CREATE INDEX IF NOT EXISTS idx_contacts_client_id ON contacts(client_id);
+      CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email);
+      CREATE INDEX IF NOT EXISTS idx_contacts_deleted_at ON contacts(deleted_at);
+    `
+  },
+  {
+    name: '005_create_tickets_table',
+    sql: `
+      CREATE TABLE IF NOT EXISTS tickets (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        contact_id INTEGER NOT NULL REFERENCES contacts(id),
+        description TEXT,
+        notes TEXT,
+        state VARCHAR(20) NOT NULL CHECK (state IN ('open', 'closed')) DEFAULT 'open',
+        closed_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_tickets_client_id ON tickets(client_id);
+      CREATE INDEX IF NOT EXISTS idx_tickets_contact_id ON tickets(contact_id);
+      CREATE INDEX IF NOT EXISTS idx_tickets_state ON tickets(state);
+      CREATE INDEX IF NOT EXISTS idx_tickets_closed_at ON tickets(closed_at);
+    `
+  },
+  {
+    name: '006_create_time_entries_table',
+    sql: `
+      CREATE TABLE IF NOT EXISTS time_entries (
+        id SERIAL PRIMARY KEY,
+        ticket_id INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+        work_date DATE NOT NULL,
+        duration_hours DECIMAL(5,2) NOT NULL CHECK (duration_hours > 0 AND duration_hours <= 24),
+        billable BOOLEAN NOT NULL DEFAULT TRUE,
+        deleted_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_time_entries_ticket_id ON time_entries(ticket_id);
+      CREATE INDEX IF NOT EXISTS idx_time_entries_work_date ON time_entries(work_date);
+      CREATE INDEX IF NOT EXISTS idx_time_entries_deleted_at ON time_entries(deleted_at);
+    `
+  },
+  {
+    name: '007_create_invoice_locks_table',
+    sql: `
+      CREATE TABLE IF NOT EXISTS invoice_locks (
+        id SERIAL PRIMARY KEY,
+        month DATE NOT NULL UNIQUE,
+        xero_invoice_ids JSONB,
+        locked_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_invoice_locks_month ON invoice_locks(month);
+    `
+  },
+  {
+    name: '008_create_xero_connections_table',
+    sql: `
+      CREATE TABLE IF NOT EXISTS xero_connections (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        organization_name VARCHAR(255),
+        organization_id VARCHAR(255),
+        access_token TEXT,
+        refresh_token TEXT,
+        token_expires_at TIMESTAMP WITH TIME ZONE,
+        connected_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        last_sync_at TIMESTAMP WITH TIME ZONE,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_xero_connections_user_id ON xero_connections(user_id);
+    `
+  }
+];
+
+async function runMigrations() {
+  console.log('🔄 Starting database migrations...\n');
+
+  const client = await pool.connect();
+
+  try {
+    // Create migrations table to track which migrations have run
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS migrations (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) UNIQUE NOT NULL,
+        executed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    for (const migration of migrations) {
+      // Check if migration already ran
+      const result = await client.query(
+        'SELECT id FROM migrations WHERE name = $1',
+        [migration.name]
+      );
+
+      if (result.rows.length === 0) {
+        console.log(`Running migration: ${migration.name}`);
+
+        // Run migration in a transaction
+        await client.query('BEGIN');
+        try {
+          await client.query(migration.sql);
+          await client.query(
+            'INSERT INTO migrations (name) VALUES ($1)',
+            [migration.name]
+          );
+          await client.query('COMMIT');
+          console.log(`✓ ${migration.name} completed\n`);
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        }
+      } else {
+        console.log(`⊘ ${migration.name} already ran`);
+      }
+    }
+
+    console.log('\n✅ All migrations completed successfully!');
+  } catch (error) {
+    console.error('\n❌ Migration failed:', error);
+    process.exit(1);
+  } finally {
+    client.release();
+    await pool.end();
+  }
+}
+
+// Run migrations if this file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  runMigrations();
+}
+
+export default runMigrations;

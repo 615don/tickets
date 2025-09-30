@@ -1,0 +1,105 @@
+# === Root .gitignore for Ticketing System Monorepo ===
+
+# === Environment Variables (CRITICAL - Contains secrets!) ===
+.env
+.env.local
+.env.development
+.env.production
+*.env
+backend/.env
+frontend/.env
+
+# === Dependencies ===
+node_modules/
+*/node_modules/
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# === Build Output ===
+dist/
+build/
+*/dist/
+*/build/
+.cache/
+.parcel-cache/
+
+# === Logs ===
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# === OS Files ===
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+
+# === IDE / Editor ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# === Testing ===
+coverage/
+.nyc_output/
+*.lcov
+
+# === Temporary Files ===
+tmp/
+temp/
+*.tmp
+
+# === Database ===
+*.sqlite
+*.sqlite3
+*.db
+
+# === Certificates / Keys (CRITICAL - Never commit!) ===
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+
+# === Xero OAuth Tokens (Handled by database, but just in case) ===
+xero-tokens.json
+oauth-tokens.json
+
+# === Claude Code / AI Artifacts ===
+.claude/
+.cursor/
+
+# === Mac Specific ===
+.AppleDouble
+.LSOverride
+
+# === Windows Specific ===
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# === Local Development ===
+.local/
+scratch/
+sandbox/
+
+# === Keep these files ===
+!.gitkeep
+!.env.example

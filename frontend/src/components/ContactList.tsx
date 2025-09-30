@@ -1,0 +1,359 @@
+import { useState, useMemo } from 'react';
+import { PageHeader } from './PageHeader';
+import { SearchBar } from './SearchBar';
+import { ActionButtons } from './ActionButtons';
+import { EmptyState } from './EmptyState';
+import { ContactForm } from './ContactForm';
+import { DeleteContactDialog } from './DeleteContactDialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Card } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Contact, Client } from '@/types';
+import { Users, ArrowUpDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+
+// Mock data
+const mockClients: Client[] = [
+  {
+    id: 1,
+    companyName: 'Acme Corp',
+    xeroCustomerId: 'CUST-001',
+    maintenanceContractType: 'Monthly Retainer',
+    domains: ['acme.com'],
+    contactCount: 3,
+    createdAt: '2025-01-15T10:00:00Z',
+  },
+  {
+    id: 2,
+    companyName: 'Tech Solutions Inc',
+    xeroCustomerId: null,
+    maintenanceContractType: 'Hourly',
+    domains: ['techsolutions.com'],
+    contactCount: 2,
+    createdAt: '2025-02-01T14:30:00Z',
+  },
+];
+
+const mockContacts: Contact[] = [
+  {
+    id: 1,
+    name: 'John Smith',
+    email: 'john@acme.com',
+    clientId: 1,
+    clientName: 'Acme Corp',
+    isSystemContact: false,
+    createdAt: '2025-01-15T10:30:00Z',
+  },
+  {
+    id: 2,
+    name: 'Jane Doe',
+    email: 'jane@acme.com',
+    clientId: 1,
+    clientName: 'Acme Corp',
+    isSystemContact: false,
+    createdAt: '2025-01-16T11:00:00Z',
+  },
+  {
+    id: 3,
+    name: 'Bob Johnson',
+    email: 'bob@techsolutions.com',
+    clientId: 2,
+    clientName: 'Tech Solutions Inc',
+    isSystemContact: false,
+    createdAt: '2025-02-01T15:00:00Z',
+  },
+  {
+    id: 99,
+    name: '(Deleted Contact)',
+    email: 'deleted+1@system.local',
+    clientId: 1,
+    clientName: 'Acme Corp',
+    isSystemContact: true,
+    createdAt: '2025-02-05T12:00:00Z',
+  },
+];
+
+export const ContactList = () => {
+  const [contacts, setContacts] = useState<Contact[]>(mockContacts);
+  const [clients] = useState<Client[]>(mockClients);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [clientFilter, setClientFilter] = useState<string>('all');
+  const [sortAsc, setSortAsc] = useState(true);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [contactToDelete, setContactToDelete] = useState<Contact | null>(null);
+  const { toast } = useToast();
+
+  const filteredContacts = useMemo(() => {
+    let filtered = contacts.filter((contact) => {
+      const matchesSearch =
+        contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        contact.email.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesClient =
+        clientFilter === 'all' || contact.clientId === parseInt(clientFilter);
+      return matchesSearch && matchesClient;
+    });
+
+    filtered.sort((a, b) => {
+      const comparison = a.name.localeCompare(b.name);
+      return sortAsc ? comparison : -comparison;
+    });
+
+    return filtered;
+  }, [contacts, searchQuery, clientFilter, sortAsc]);
+
+  const handleAddContact = () => {
+    setEditingContact(null);
+    setIsFormOpen(true);
+  };
+
+  const handleEditContact = (contact: Contact) => {
+    setEditingContact(contact);
+    setIsFormOpen(true);
+  };
+
+  const handleDeleteContact = (contact: Contact) => {
+    setContactToDelete(contact);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (contactToDelete) {
+      setContacts(contacts.filter((c) => c.id !== contactToDelete.id));
+      toast({
+        title: 'Contact deleted',
+        description: `${contactToDelete.name} has been removed.`,
+      });
+    }
+    setDeleteDialogOpen(false);
+    setContactToDelete(null);
+  };
+
+  const handleFormSubmit = (data: any) => {
+    const client = clients.find((c) => c.id === data.clientId);
+    if (!client) return;
+
+    if (editingContact) {
+      setContacts(
+        contacts.map((c) =>
+          c.id === editingContact.id
+            ? { ...c, ...data, clientName: client.companyName }
+            : c
+        )
+      );
+      toast({
+        title: 'Contact updated',
+        description: 'Changes have been saved.',
+      });
+    } else {
+      const newContact: Contact = {
+        id: Math.max(...contacts.map((c) => c.id)) + 1,
+        ...data,
+        clientName: client.companyName,
+        isSystemContact: false,
+        createdAt: new Date().toISOString(),
+      };
+      setContacts([...contacts, newContact]);
+      toast({
+        title: 'Contact created',
+        description: `${data.name} has been added.`,
+      });
+    }
+    setIsFormOpen(false);
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setClientFilter('all');
+  };
+
+  return (
+    <div className="container mx-auto py-8 px-4">
+      <PageHeader
+        title="Contacts"
+        count={contacts.length}
+        primaryAction={{
+          label: 'Add Contact',
+          onClick: handleAddContact,
+        }}
+      />
+
+      <div className="mb-6 space-y-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <SearchBar
+            placeholder="Search by name or email..."
+            value={searchQuery}
+            onChange={setSearchQuery}
+            onClear={() => setSearchQuery('')}
+          />
+          <div className="w-full sm:w-64">
+            <Select value={clientFilter} onValueChange={setClientFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Clients" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Clients</SelectItem>
+                {clients.map((client) => (
+                  <SelectItem key={client.id} value={client.id.toString()}>
+                    {client.companyName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {(searchQuery || clientFilter !== 'all') && (
+          <div className="flex items-center gap-4">
+            <p className="text-sm text-muted-foreground">
+              Showing {filteredContacts.length} of {contacts.length} contacts
+            </p>
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              Clear filters
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {filteredContacts.length === 0 && !searchQuery && clientFilter === 'all' ? (
+        <EmptyState
+          icon={Users}
+          message="No contacts yet. Add contacts for your clients."
+          actionLabel="Add Contact"
+          onAction={handleAddContact}
+        />
+      ) : filteredContacts.length === 0 ? (
+        <EmptyState icon={Users} message="No contacts match your filters." />
+      ) : (
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden md:block border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setSortAsc(!sortAsc)}
+                      className="flex items-center gap-1"
+                    >
+                      Name
+                      <ArrowUpDown className="h-4 w-4" />
+                    </Button>
+                  </TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredContacts.map((contact) => (
+                  <TableRow
+                    key={contact.id}
+                    className={cn(contact.isSystemContact && 'opacity-60')}
+                  >
+                    <TableCell className="font-medium">{contact.name}</TableCell>
+                    <TableCell>{contact.email}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {contact.clientName}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <ActionButtons
+                        onEdit={() => handleEditContact(contact)}
+                        onDelete={
+                          contact.isSystemContact
+                            ? undefined
+                            : () => handleDeleteContact(contact)
+                        }
+                        showDelete={!contact.isSystemContact}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4">
+            {filteredContacts.map((contact) => (
+              <Card
+                key={contact.id}
+                className={cn('p-4', contact.isSystemContact && 'opacity-60')}
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <h3 className="font-semibold text-foreground">{contact.name}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {contact.email}
+                    </p>
+                  </div>
+                  <ActionButtons
+                    onEdit={() => handleEditContact(contact)}
+                    onDelete={
+                      contact.isSystemContact
+                        ? undefined
+                        : () => handleDeleteContact(contact)
+                    }
+                    showDelete={!contact.isSystemContact}
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground">{contact.clientName}</p>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
+
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {editingContact ? 'Edit Contact' : 'Add Contact'}
+            </DialogTitle>
+          </DialogHeader>
+          <ContactForm
+            contact={editingContact || undefined}
+            clients={clients}
+            existingEmails={contacts.map((c) => c.email)}
+            onSubmit={handleFormSubmit}
+            onCancel={() => setIsFormOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {contactToDelete && (
+        <DeleteContactDialog
+          isOpen={deleteDialogOpen}
+          contactName={contactToDelete.name}
+          contactEmail={contactToDelete.email}
+          ticketCount={Math.floor(Math.random() * 10)}
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteDialogOpen(false)}
+        />
+      )}
+    </div>
+  );
+};
