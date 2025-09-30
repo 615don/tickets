@@ -6,6 +6,8 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 import pool from './config/database.js';
 import authRoutes from './routes/auth.js';
+import clientRoutes from './routes/clients.js';
+import contactRoutes from './routes/contacts.js';
 
 // Load environment variables
 dotenv.config();
@@ -62,8 +64,8 @@ app.get('/api/health', async (req, res) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
-// app.use('/api/clients', clientRoutes);
-// app.use('/api/contacts', contactRoutes);
+app.use('/api/clients', clientRoutes);
+app.use('/api/contacts', contactRoutes);
 // app.use('/api/tickets', ticketRoutes);
 // app.use('/api/invoices', invoiceRoutes);
 // app.use('/api/xero', xeroRoutes);
