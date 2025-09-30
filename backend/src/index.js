@@ -4,7 +4,7 @@ import pgSession from 'connect-pg-simple';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
-import pool from './config/database.js';
+import pool, { testConnection } from './config/database.js';
 import authRoutes from './routes/auth.js';
 import clientRoutes from './routes/clients.js';
 import contactRoutes from './routes/contacts.js';
@@ -53,11 +53,15 @@ app.get('/api/health', async (req, res) => {
       database: 'connected',
     });
   } catch (error) {
+    // Log error details for debugging, but don't expose to clients in production
+    console.error('Health check failed:', error);
+
     res.status(503).json({
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
       database: 'disconnected',
-      error: error.message,
+      // Only include error details in development
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message }),
     });
   }
 });
@@ -84,11 +88,24 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`\n🚀 Server running on port ${PORT}`);
-  console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`   Health check: http://localhost:${PORT}/api/health\n`);
-});
+// Start server with database connection retry
+async function startServer() {
+  try {
+    // Test database connection with retry logic
+    await testConnection();
+
+    app.listen(PORT, () => {
+      console.log(`\n🚀 Server running on port ${PORT}`);
+      console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`   Health check: http://localhost:${PORT}/api/health\n`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error.message);
+    console.error('Please check your database configuration and ensure PostgreSQL is running.');
+    process.exit(1);
+  }
+}
+
+startServer();
 
 export default app;
