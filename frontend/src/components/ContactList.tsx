@@ -57,7 +57,7 @@ export const ContactList = () => {
   const isLoading = clientsLoading || contactsLoading;
 
   const filteredContacts = useMemo(() => {
-    let filtered = contacts.filter((contact) => {
+    const filtered = contacts.filter((contact) => {
       const matchesSearch =
         contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         contact.email.toLowerCase().includes(searchQuery.toLowerCase());
@@ -93,10 +93,13 @@ export const ContactList = () => {
     if (!contactToDelete) return;
 
     try {
-      await deleteContact.mutateAsync(contactToDelete.id);
+      const result = await deleteContact.mutateAsync(contactToDelete.id);
+      const ticketsReassigned = result?.ticketsReassigned || 0;
       toast({
         title: 'Contact deleted',
-        description: `${contactToDelete.name} has been removed.`,
+        description: ticketsReassigned > 0
+          ? `${contactToDelete.name} has been removed. ${ticketsReassigned} ticket${ticketsReassigned === 1 ? '' : 's'} reassigned to "Deleted Contact".`
+          : `${contactToDelete.name} has been removed.`,
       });
       setDeleteDialogOpen(false);
       setContactToDelete(null);
@@ -110,7 +113,7 @@ export const ContactList = () => {
     }
   };
 
-  const handleFormSubmit = async (data: any) => {
+  const handleFormSubmit = async (data: { name: string; email: string; clientId: number }) => {
     const contactData = {
       name: data.name,
       email: data.email,
@@ -326,7 +329,7 @@ export const ContactList = () => {
           isOpen={deleteDialogOpen}
           contactName={contactToDelete.name}
           contactEmail={contactToDelete.email}
-          ticketCount={Math.floor(Math.random() * 10)}
+          ticketCount={0}
           onConfirm={confirmDelete}
           onCancel={() => setDeleteDialogOpen(false)}
         />

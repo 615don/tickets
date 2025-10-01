@@ -96,7 +96,7 @@ export const contactsApi = {
   /**
    * Delete contact (soft delete)
    */
-  delete: async (id: number): Promise<void> => {
-    await apiClient.delete(`/api/contacts/${id}`);
+  delete: async (id: number): Promise<{ message: string; ticketsReassigned: number }> => {
+    return apiClient.delete<{ message: string; ticketsReassigned: number }>(`/api/contacts/${id}`);
   },
 };
