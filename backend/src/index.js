@@ -9,6 +9,7 @@ import pool, { testConnection } from './config/database.js';
 import authRoutes from './routes/auth.js';
 import clientRoutes from './routes/clients.js';
 import contactRoutes from './routes/contacts.js';
+import ticketRoutes from './routes/tickets.js';
 
 // Load environment variables
 dotenv.config();
@@ -80,7 +81,7 @@ app.get('/api/health', async (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/contacts', contactRoutes);
-// app.use('/api/tickets', ticketRoutes);
+app.use('/api/tickets', ticketRoutes);
 // app.use('/api/invoices', invoiceRoutes);
 // app.use('/api/xero', xeroRoutes);
 
