@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useClients, useCreateClient, useUpdateClient, useDeleteClient } from '@/hooks/useClients';
 import { ApiError } from '@/lib/api-client';
+import { clientsApi } from '@/lib/api/clients';
 
 export const ClientList = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,17 +68,37 @@ export const ClientList = () => {
   };
 
   const handleDeleteClient = async (client: Client) => {
-    // For now, show simplified delete dialog
-    // TODO: Fetch actual counts from backend
-    setClientToDelete({
-      clientId: client.id,
-      companyName: client.companyName,
-      contactCount: client.contactCount,
-      ticketCount: 0,
-      timeEntryCount: 0,
-      hasInvoices: false,
-    });
-    setDeleteDialogOpen(true);
+    try {
+      // Fetch actual deletion impact counts from backend
+      const impact = await clientsApi.getDeletionImpact(client.id);
+
+      setClientToDelete({
+        clientId: client.id,
+        companyName: client.companyName,
+        contactCount: impact.counts.contacts,
+        ticketCount: impact.counts.tickets,
+        timeEntryCount: impact.counts.timeEntries,
+        hasInvoices: false,
+      });
+      setDeleteDialogOpen(true);
+    } catch (error: unknown) {
+      // Handle locked invoices error
+      const apiError = error as { data?: { hasLockedInvoices?: boolean }; message?: string };
+      if (apiError.data?.hasLockedInvoices) {
+        toast({
+          title: "Cannot Delete Client",
+          description: apiError.message || "This client has locked invoices and cannot be deleted.",
+          variant: "destructive",
+        });
+      } else {
+        console.error('Delete client error:', error);
+        toast({
+          title: "Error",
+          description: apiError.message || "Failed to fetch deletion information. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   const confirmDelete = async () => {

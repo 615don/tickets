@@ -25,9 +25,32 @@ interface RequestConfig extends RequestInit {
  */
 class ApiClient {
   private baseURL: string;
+  private csrfToken: string | null = null;
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
+  }
+
+  /**
+   * Fetch CSRF token from the server
+   */
+  private async fetchCsrfToken(): Promise<string> {
+    const response = await fetch(`${this.baseURL}/api/csrf-token`, {
+      credentials: 'include',
+    });
+    const data = await response.json();
+    this.csrfToken = data.csrfToken;
+    return this.csrfToken;
+  }
+
+  /**
+   * Get or fetch CSRF token
+   */
+  private async getCsrfToken(): Promise<string> {
+    if (!this.csrfToken) {
+      await this.fetchCsrfToken();
+    }
+    return this.csrfToken!;
   }
 
   /**
@@ -53,6 +76,13 @@ class ApiClient {
       ...fetchConfig.headers,
     };
 
+    // Add CSRF token for state-changing requests
+    const method = fetchConfig.method?.toUpperCase();
+    if (method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+      const csrfToken = await this.getCsrfToken();
+      headers['csrf-token'] = csrfToken;
+    }
+
     try {
       const response = await fetch(url.toString(), {
         ...fetchConfig,
@@ -65,6 +95,29 @@ class ApiClient {
       const hasJson = contentType?.includes('application/json');
 
       if (!response.ok) {
+        // If CSRF token is invalid, refresh and retry once
+        if (response.status === 403 && method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+          this.csrfToken = null;
+          const newCsrfToken = await this.getCsrfToken();
+          headers['csrf-token'] = newCsrfToken;
+
+          const retryResponse = await fetch(url.toString(), {
+            ...fetchConfig,
+            headers,
+            credentials: 'include',
+          });
+
+          if (retryResponse.ok) {
+            const retryContentType = retryResponse.headers.get('content-type');
+            const retryHasJson = retryContentType?.includes('application/json');
+
+            if (retryResponse.status === 204 || !retryHasJson) {
+              return null as T;
+            }
+            return await retryResponse.json();
+          }
+        }
+
         const errorData = hasJson ? await response.json() : null;
         throw new ApiError(
           response.status,

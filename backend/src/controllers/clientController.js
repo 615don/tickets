@@ -115,6 +115,39 @@ export const updateClient = async (req, res) => {
   }
 };
 
+// GET /api/clients/:id/deletion-impact - Get deletion impact counts without deleting
+export const getDeletionImpact = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const impact = await Client.getDeletionImpact(id);
+
+    res.json(impact);
+  } catch (error) {
+    console.error('Get deletion impact error:', error);
+
+    if (error.message === 'Client not found') {
+      return res.status(404).json({
+        error: 'Client not found',
+        message: `Client with ID ${req.params.id} does not exist`
+      });
+    }
+
+    if (error.message === 'Cannot delete client with generated invoices') {
+      return res.status(403).json({
+        error: 'Cannot delete client',
+        message: 'This client has generated invoices and cannot be deleted',
+        hasLockedInvoices: true
+      });
+    }
+
+    res.status(500).json({
+      error: 'Failed to fetch deletion impact',
+      message: error.message
+    });
+  }
+};
+
 // DELETE /api/clients/:id - Delete client
 export const deleteClient = async (req, res) => {
   try {

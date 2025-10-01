@@ -3,6 +3,7 @@ import { body } from 'express-validator';
 import {
   getAllClients,
   getClientById,
+  getDeletionImpact,
   createClient,
   updateClient,
   deleteClient
@@ -41,6 +42,9 @@ const clientValidation = [
 
 // GET /api/clients - List all clients (with optional search)
 router.get('/', getAllClients);
+
+// GET /api/clients/:id/deletion-impact - Get deletion impact counts (must be before /:id)
+router.get('/:id/deletion-impact', getDeletionImpact);
 
 // GET /api/clients/:id - Get client by ID
 router.get('/:id', getClientById);

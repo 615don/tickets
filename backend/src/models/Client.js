@@ -185,6 +185,48 @@ export const Client = {
     }
   },
 
+  // Get deletion impact counts without deleting
+  async getDeletionImpact(id) {
+    // Verify client exists
+    const clientCheck = await query('SELECT id FROM clients WHERE id = $1', [id]);
+    if (clientCheck.rows.length === 0) {
+      throw new Error('Client not found');
+    }
+
+    // Check if client has any invoices
+    const invoiceCheck = await query(`
+      SELECT COUNT(*) as invoice_count
+      FROM invoice_locks il
+      JOIN time_entries te ON DATE_TRUNC('month', te.work_date) = il.month
+      JOIN tickets t ON te.ticket_id = t.id
+      WHERE t.client_id = $1
+    `, [id]);
+
+    if (parseInt(invoiceCheck.rows[0].invoice_count) > 0) {
+      throw new Error('Cannot delete client with generated invoices');
+    }
+
+    // Get counts for confirmation
+    const counts = await query(`
+      SELECT
+        (SELECT COUNT(*) FROM contacts WHERE client_id = $1) as contact_count,
+        (SELECT COUNT(*) FROM tickets WHERE client_id = $1) as ticket_count,
+        (SELECT COUNT(*) FROM time_entries te
+         JOIN tickets t ON te.ticket_id = t.id
+         WHERE t.client_id = $1) as time_entry_count
+    `, [id]);
+
+    return {
+      clientId: parseInt(id),
+      canDelete: true,
+      counts: {
+        contacts: parseInt(counts.rows[0].contact_count),
+        tickets: parseInt(counts.rows[0].ticket_count),
+        timeEntries: parseInt(counts.rows[0].time_entry_count)
+      }
+    };
+  },
+
   // Delete client (cascade deletes contacts, tickets, time entries)
   async delete(id) {
     // Check if client has any invoices

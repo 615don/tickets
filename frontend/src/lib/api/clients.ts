@@ -35,6 +35,16 @@ export interface DeleteClientResponse {
   timeEntryCount: number;
 }
 
+export interface DeletionImpactResponse {
+  clientId: number;
+  canDelete: boolean;
+  counts: {
+    contacts: number;
+    tickets: number;
+    timeEntries: number;
+  };
+}
+
 /**
  * Transform backend snake_case response to frontend camelCase
  */
@@ -100,6 +110,13 @@ export const clientsApi = {
       transformClientRequest(client)
     );
     return transformClient(data);
+  },
+
+  /**
+   * Get deletion impact counts for a client
+   */
+  getDeletionImpact: async (id: number): Promise<DeletionImpactResponse> => {
+    return apiClient.get<DeletionImpactResponse>(`/api/clients/${id}/deletion-impact`);
   },
 
   /**
