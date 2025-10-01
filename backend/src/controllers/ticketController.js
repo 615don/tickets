@@ -1,7 +1,9 @@
 import { Ticket } from '../models/Ticket.js';
 import { TimeEntry } from '../models/TimeEntry.js';
 import { Contact } from '../models/Contact.js';
+import { InvoiceLock } from '../models/InvoiceLock.js';
 import { getClient } from '../config/database.js';
+import { parseTimeEntry } from '@tickets/shared';
 
 // GET /api/tickets - Get all tickets with optional filters
 export const getAllTickets = async (req, res) => {
@@ -146,6 +148,126 @@ export const createTicket = async (req, res) => {
 
   } catch (error) {
     console.error('Create ticket error:', error);
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: error.message
+    });
+  }
+};
+
+// PUT /api/tickets/:id - Update ticket
+export const updateTicket = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { description, notes, state } = req.body;
+
+    // Validate at least one field is provided
+    if (description === undefined && notes === undefined && state === undefined) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'At least one field (description, notes, state) must be provided'
+      });
+    }
+
+    // Validate state if provided
+    if (state !== undefined) {
+      const validStates = ['open', 'closed'];
+      if (!validStates.includes(state)) {
+        return res.status(400).json({
+          error: 'ValidationError',
+          message: `Invalid state: ${state}. Must be one of: ${validStates.join(', ')}`
+        });
+      }
+    }
+
+    const updates = {};
+    if (description !== undefined) updates.description = description;
+    if (notes !== undefined) updates.notes = notes;
+    if (state !== undefined) updates.state = state;
+
+    const ticket = await Ticket.update(id, updates);
+
+    res.status(200).json(ticket);
+  } catch (error) {
+    console.error('Update ticket error:', error);
+
+    // Handle "Ticket not found" error from model
+    if (error.message === 'Ticket not found') {
+      return res.status(404).json({
+        error: 'NotFound',
+        message: `Ticket with ID ${req.params.id} not found`
+      });
+    }
+
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: error.message
+    });
+  }
+};
+
+// POST /api/tickets/:id/time-entries - Add time entry to ticket
+export const addTimeEntry = async (req, res) => {
+  try {
+    const { id: ticketId } = req.params;
+    const { workDate, duration, billable = true } = req.body;
+
+    // Validate required fields
+    if (!workDate) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'workDate is required'
+      });
+    }
+
+    if (!duration) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'duration is required'
+      });
+    }
+
+    // Verify ticket exists
+    const ticket = await Ticket.findById(ticketId);
+    if (!ticket) {
+      return res.status(404).json({
+        error: 'NotFound',
+        message: `Ticket with ID ${ticketId} not found`
+      });
+    }
+
+    // Check if month is locked
+    const isLocked = await InvoiceLock.isMonthLocked(workDate);
+    if (isLocked) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'Cannot add time entries for locked month'
+      });
+    }
+
+    // Parse duration
+    const parseResult = parseTimeEntry(duration);
+    if (!parseResult.success) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: parseResult.error
+      });
+    }
+
+    // Create time entry
+    const timeEntry = await TimeEntry.create({
+      ticketId,
+      workDate,
+      duration,
+      billable
+    });
+
+    // Update ticket timestamp
+    await Ticket.touch(ticketId);
+
+    res.status(201).json(timeEntry);
+  } catch (error) {
+    console.error('Add time entry error:', error);
     res.status(500).json({
       error: 'InternalServerError',
       message: error.message

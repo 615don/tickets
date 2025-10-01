@@ -10,6 +10,7 @@ import authRoutes from './routes/auth.js';
 import clientRoutes from './routes/clients.js';
 import contactRoutes from './routes/contacts.js';
 import ticketRoutes from './routes/tickets.js';
+import timeEntryRoutes from './routes/timeEntries.js';
 
 // Load environment variables
 dotenv.config();
@@ -90,6 +91,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/tickets', ticketRoutes);
+app.use('/api/time-entries', timeEntryRoutes);
 // app.use('/api/invoices', invoiceRoutes);
 // app.use('/api/xero', xeroRoutes);
 

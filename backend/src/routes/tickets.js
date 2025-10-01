@@ -3,7 +3,9 @@ import { requireAuth } from '../middleware/auth.js';
 import {
   createTicket,
   getAllTickets,
-  getTicketById
+  getTicketById,
+  updateTicket,
+  addTimeEntry
 } from '../controllers/ticketController.js';
 
 const router = express.Router();
@@ -12,5 +14,7 @@ const router = express.Router();
 router.get('/', requireAuth, getAllTickets);
 router.get('/:id', requireAuth, getTicketById);
 router.post('/', requireAuth, createTicket);
+router.put('/:id', requireAuth, updateTicket);
+router.post('/:id/time-entries', requireAuth, addTimeEntry);
 
 export default router;

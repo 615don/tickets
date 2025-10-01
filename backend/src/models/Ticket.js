@@ -235,5 +235,18 @@ export const Ticket = {
       deletedTicketId: id,
       timeEntriesDeleted: parseInt(timeEntriesResult.rows[0].count)
     };
+  },
+
+  // Update ticket's updated_at timestamp
+  async touch(id) {
+    const result = await query(
+      `UPDATE tickets
+       SET updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1
+       RETURNING id`,
+      [id]
+    );
+
+    return result.rows[0];
   }
 };

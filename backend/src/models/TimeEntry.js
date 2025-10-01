@@ -133,6 +133,29 @@ export const TimeEntry = {
     return result.rows.map(convertToCamelCase);
   },
 
+  // Get single time entry by ID
+  async findById(id) {
+    const result = await query(`
+      SELECT
+        id,
+        ticket_id,
+        work_date,
+        duration_hours,
+        billable,
+        deleted_at,
+        created_at,
+        updated_at
+      FROM time_entries
+      WHERE id = $1
+    `, [id]);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return convertToCamelCase(result.rows[0]);
+  },
+
   // Update time entry
   async update(id, { workDate, duration, billable }) {
     // Build dynamic update query
