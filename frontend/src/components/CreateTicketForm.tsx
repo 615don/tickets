@@ -31,7 +31,9 @@ export const CreateTicketForm = ({ clients, contacts, onSubmit }: CreateTicketFo
 
   useEffect(() => {
     if (selectedClientId) {
-      const filtered = contacts.filter(c => c.clientId === selectedClientId);
+      const filtered = contacts.filter(c =>
+        c.clientId === selectedClientId && !c.isSystemContact
+      );
       setFilteredContacts(filtered);
     } else {
       setFilteredContacts([]);

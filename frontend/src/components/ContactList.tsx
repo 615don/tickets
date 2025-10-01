@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Contact, Client } from '@/types';
 import { Users, ArrowUpDown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -254,7 +255,16 @@ export const ContactList = () => {
                     key={contact.id}
                     className={cn(contact.isSystemContact && 'opacity-60')}
                   >
-                    <TableCell className="font-medium">{contact.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {contact.name}
+                        {contact.isSystemContact && (
+                          <Badge variant="secondary" className="text-xs">
+                            System
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>{contact.email}</TableCell>
                     <TableCell className="text-muted-foreground">
                       {contact.clientName}
@@ -285,8 +295,15 @@ export const ContactList = () => {
               >
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <h3 className="font-semibold text-foreground">{contact.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-foreground">{contact.name}</h3>
+                      {contact.isSystemContact && (
+                        <Badge variant="secondary" className="text-xs">
+                          System
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
                       {contact.email}
                     </p>
                   </div>
