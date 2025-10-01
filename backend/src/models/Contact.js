@@ -1,8 +1,56 @@
 import { query, getClient } from '../config/database.js';
 
+// Email format validation regex
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Validates contact name
+ * @param {string} name - Contact name to validate
+ * @throws {Error} If name is invalid
+ */
+function validateName(name) {
+  if (!name || name.trim().length === 0) {
+    throw new Error('Contact name is required');
+  }
+  if (name.length > 255) {
+    throw new Error('Contact name must be 255 characters or less');
+  }
+}
+
+/**
+ * Validates email format
+ * @param {string} email - Email to validate
+ * @throws {Error} If email format is invalid
+ */
+function validateEmail(email) {
+  if (!email || typeof email !== 'string') {
+    throw new Error('Email is required');
+  }
+  if (!EMAIL_REGEX.test(email)) {
+    throw new Error(`Invalid email format: ${email}`);
+  }
+}
+
+/**
+ * Validates that a client exists
+ * @param {number} clientId - Client ID to validate
+ * @throws {Error} If client does not exist
+ */
+async function validateClientExists(clientId) {
+  const result = await query('SELECT id FROM clients WHERE id = $1', [clientId]);
+  if (result.rows.length === 0) {
+    throw new Error(`Client with ID ${clientId} not found`);
+  }
+}
+
 export const Contact = {
   // Create a new contact
   async create({ clientId, name, email }) {
+    // Validate input
+    validateName(name);
+    validateEmail(email);
+    await validateClientExists(clientId);
+
     const result = await query(
       `INSERT INTO contacts (client_id, name, email, is_system_contact, created_at, updated_at)
        VALUES ($1, $2, $3, FALSE, NOW(), NOW())
@@ -76,6 +124,11 @@ export const Contact = {
 
   // Update contact
   async update(id, { name, email, clientId }) {
+    // Validate input
+    validateName(name);
+    validateEmail(email);
+    await validateClientExists(clientId);
+
     const result = await query(
       `UPDATE contacts
        SET name = $1,
