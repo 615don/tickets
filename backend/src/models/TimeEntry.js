@@ -1,4 +1,5 @@
 import { query } from '../config/database.js';
+import { parseTimeEntry } from '@tickets/shared';
 
 /**
  * Validates that a ticket exists
@@ -86,7 +87,16 @@ function convertToCamelCase(row) {
 
 export const TimeEntry = {
   // Create a new time entry
-  async create({ ticketId, workDate, durationHours, billable = true }) {
+  async create({ ticketId, workDate, duration, billable = true }) {
+    // Parse duration string to decimal hours
+    const parseResult = parseTimeEntry(duration);
+
+    if (!parseResult.success) {
+      throw new Error(parseResult.error);
+    }
+
+    const durationHours = parseResult.hours;
+
     // Validate input
     await validateTicketExists(ticketId);
     validateWorkDate(workDate);
@@ -124,7 +134,7 @@ export const TimeEntry = {
   },
 
   // Update time entry
-  async update(id, { workDate, durationHours, billable }) {
+  async update(id, { workDate, duration, billable }) {
     // Build dynamic update query
     const updates = [];
     const params = [];
@@ -137,7 +147,15 @@ export const TimeEntry = {
       paramCount++;
     }
 
-    if (durationHours !== undefined) {
+    if (duration !== undefined) {
+      // Parse duration string to decimal hours
+      const parseResult = parseTimeEntry(duration);
+
+      if (!parseResult.success) {
+        throw new Error(parseResult.error);
+      }
+
+      const durationHours = parseResult.hours;
       validateDurationHours(durationHours);
       updates.push(`duration_hours = $${paramCount}`);
       params.push(durationHours);

@@ -1,0 +1,13 @@
+{
+  "name": "tickets-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "packages/*"
+  ],
+  "scripts": {
+    "test:shared": "npm test --workspace=@tickets/shared"
+  }
+}
