@@ -1,8 +1,51 @@
 import { query, getClient } from '../config/database.js';
 
+// Domain format validation regex
+const DOMAIN_REGEX = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+// Valid maintenance contract types
+const VALID_CONTRACT_TYPES = ['Hourly', 'Monthly Retainer', 'Project-Based', 'None'];
+
+/**
+ * Validates domain format
+ * @param {string} domain - Domain to validate
+ * @throws {Error} If domain format is invalid
+ */
+function validateDomain(domain) {
+  if (!domain || typeof domain !== 'string') {
+    throw new Error('Domain must be a non-empty string');
+  }
+  if (!DOMAIN_REGEX.test(domain)) {
+    throw new Error(`Invalid domain format: ${domain}. Expected format: example.com`);
+  }
+}
+
+/**
+ * Validates input fields for client creation/update
+ * @param {string} companyName - Company name
+ * @param {string} maintenanceContractType - Maintenance contract type
+ * @throws {Error} If validation fails
+ */
+function validateClientInput(companyName, maintenanceContractType) {
+  if (!companyName || companyName.trim().length === 0) {
+    throw new Error('Company name is required');
+  }
+  if (!VALID_CONTRACT_TYPES.includes(maintenanceContractType)) {
+    throw new Error(`Invalid maintenance contract type: ${maintenanceContractType}. Must be one of: ${VALID_CONTRACT_TYPES.join(', ')}`);
+  }
+}
+
 export const Client = {
   // Create a new client with domains
   async create({ companyName, xeroCustomerId, maintenanceContractType, domains = [] }) {
+    // Validate input
+    validateClientInput(companyName, maintenanceContractType);
+
+    // Validate all domains before starting transaction
+    if (domains && domains.length > 0) {
+      domains.forEach(validateDomain);
+    }
+
     const client = await getClient();
 
     try {
@@ -18,14 +61,14 @@ export const Client = {
 
       const newClient = clientResult.rows[0];
 
-      // Insert domains if provided
+      // Batch insert domains if provided
       if (domains && domains.length > 0) {
-        for (const domain of domains) {
-          await client.query(
-            'INSERT INTO client_domains (client_id, domain, created_at) VALUES ($1, $2, NOW())',
-            [newClient.id, domain.toLowerCase()]
-          );
-        }
+        const values = domains.map((_, i) => `($1, $${i + 2}, NOW())`).join(', ');
+        const params = [newClient.id, ...domains.map(d => d.toLowerCase())];
+        await client.query(
+          `INSERT INTO client_domains (client_id, domain, created_at) VALUES ${values}`,
+          params
+        );
       }
 
       await client.query('COMMIT');
@@ -86,6 +129,14 @@ export const Client = {
 
   // Update client and replace domains
   async update(id, { companyName, xeroCustomerId, maintenanceContractType, domains }) {
+    // Validate input
+    validateClientInput(companyName, maintenanceContractType);
+
+    // Validate all domains before starting transaction
+    if (domains && domains.length > 0) {
+      domains.forEach(validateDomain);
+    }
+
     const client = await getClient();
 
     try {
@@ -112,14 +163,14 @@ export const Client = {
         // Delete existing domains
         await client.query('DELETE FROM client_domains WHERE client_id = $1', [id]);
 
-        // Insert new domains
+        // Batch insert new domains
         if (domains && domains.length > 0) {
-          for (const domain of domains) {
-            await client.query(
-              'INSERT INTO client_domains (client_id, domain, created_at) VALUES ($1, $2, NOW())',
-              [id, domain.toLowerCase()]
-            );
-          }
+          const values = domains.map((_, i) => `($1, $${i + 2}, NOW())`).join(', ');
+          const params = [id, ...domains.map(d => d.toLowerCase())];
+          await client.query(
+            `INSERT INTO client_domains (client_id, domain, created_at) VALUES ${values}`,
+            params
+          );
         }
       }
 
