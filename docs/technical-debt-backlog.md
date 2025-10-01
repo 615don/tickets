@@ -849,7 +849,32 @@ Extract validation helpers to separate functions or middleware.
 
 ## Completed Items
 
-### ~~TD-FIXED: Redundant Duration Parsing in Ticket Controller~~
+### ~~TD-FIXED-001: CSRF Token Catch-22 Issue~~
+**Source**: Story 3.4 Development
+**Date Completed**: 2025-10-01
+**Status**: ✅ FIXED during Story 3.4
+
+**Description**:
+CSRF protection was applied globally to ALL routes including /api/csrf-token endpoint, creating a catch-22 where you need a CSRF token to get a CSRF token. Additionally, frontend was using wrong header name ('csrf-token' instead of 'X-CSRF-Token').
+
+**Impact**:
+Login failures, "invalid csrf token" errors, rate limit errors from repeated failed attempts.
+
+**Resolution**:
+1. Modified backend to apply CSRF middleware only after csrf-token endpoint registration
+2. Fixed frontend to use correct 'X-CSRF-Token' header name (was 'csrf-token')
+3. Verified login flow works correctly with multiple attempts
+
+**Files Modified**:
+- `backend/src/index.js` (CSRF middleware ordering)
+- `frontend/src/lib/api-client.ts` (header name fix)
+
+**Testing**:
+Validated with multiple login attempts - no more CSRF errors or rate limiting issues.
+
+---
+
+### ~~TD-FIXED-002: Redundant Duration Parsing in Ticket Controller~~
 **Source**: Story 3.3 QA Review
 **Date Completed**: 2025-10-01
 **Status**: ✅ FIXED during QA review

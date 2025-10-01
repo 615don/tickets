@@ -126,7 +126,7 @@ export const Ticket = {
 
     sql += `
       GROUP BY t.id, c.company_name, co.name
-      ORDER BY t.created_at DESC
+      ORDER BY t.updated_at DESC
     `;
 
     const result = await query(sql, params);

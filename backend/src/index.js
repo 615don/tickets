@@ -44,13 +44,21 @@ app.use(session({
   },
 }));
 
-// CSRF protection
+// CSRF protection middleware
 const csrfProtection = csrf({ cookie: false }); // Use session instead of cookies
-app.use(csrfProtection);
 
-// Endpoint to get CSRF token
-app.get('/api/csrf-token', (req, res) => {
+// Endpoint to get CSRF token (must be BEFORE CSRF middleware)
+app.get('/api/csrf-token', csrfProtection, (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
+});
+
+// Apply CSRF protection to all other routes
+app.use((req, res, next) => {
+  // Skip CSRF for GET requests to csrf-token endpoint (already handled above)
+  if (req.path === '/api/csrf-token' && req.method === 'GET') {
+    return next();
+  }
+  csrfProtection(req, res, next);
 });
 
 // Health check endpoint

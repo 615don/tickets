@@ -127,7 +127,7 @@ export const TimeEntry = {
         updated_at
       FROM time_entries
       WHERE ticket_id = $1 AND deleted_at IS NULL
-      ORDER BY work_date DESC, created_at DESC
+      ORDER BY work_date ASC, created_at ASC
     `, [ticketId]);
 
     return result.rows.map(convertToCamelCase);

@@ -80,7 +80,7 @@ class ApiClient {
     const method = fetchConfig.method?.toUpperCase();
     if (method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
       const csrfToken = await this.getCsrfToken();
-      headers['csrf-token'] = csrfToken;
+      headers['X-CSRF-Token'] = csrfToken;
     }
 
     try {
@@ -99,7 +99,7 @@ class ApiClient {
         if (response.status === 403 && method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
           this.csrfToken = null;
           const newCsrfToken = await this.getCsrfToken();
-          headers['csrf-token'] = newCsrfToken;
+          headers['X-CSRF-Token'] = newCsrfToken;
 
           const retryResponse = await fetch(url.toString(), {
             ...fetchConfig,
