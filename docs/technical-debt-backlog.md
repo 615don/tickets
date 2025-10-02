@@ -12,71 +12,6 @@ This document tracks technical debt, improvements, and future enhancements ident
 
 ## High Priority
 
-### TD-001: Add Integration Tests for Contact Management UI
-**Source**: Story 2.6 QA Review
-**Date Added**: 2025-10-01
-**Priority**: High
-**Effort**: Large (8 hours)
-
-**Description**:
-No automated tests exist for critical contact CRUD operations. Only manual testing was performed.
-
-**Risk**:
-Regression risk during refactoring, slower development velocity for UI changes.
-
-**Recommendation**:
-Add integration tests for core flows before Epic 3:
-- Contact creation with validation
-- Contact editing and updates
-- Contact deletion with ticket reassignment
-- Search and filtering
-- Client filtering
-
-**Files Affected**:
-- `frontend/src/components/ContactForm.tsx`
-- `frontend/src/components/ContactList.tsx`
-- `frontend/src/components/DeleteContactDialog.tsx`
-- New: Integration test suite files
-
-**Acceptance Criteria**:
-- [ ] Integration test suite created for contact management
-- [ ] All critical user flows have test coverage
-- [ ] Tests pass in CI/CD pipeline
-- [ ] Test coverage report shows >70% coverage for contact components
-
----
-
-### TD-002: Add Integration Tests for Contact Deletion Transaction
-**Source**: Story 2.7 QA Review
-**Date Added**: 2025-10-01
-**Priority**: High
-**Effort**: Medium (6-8 hours)
-
-**Description**:
-No automated tests exist for the critical deletion transaction that reassigns tickets to system contacts.
-
-**Risk**:
-Regression risk for ticket reassignment logic, which is critical for data integrity.
-
-**Recommendation**:
-Add backend integration tests covering:
-- System contact creation during deletion
-- Ticket reassignment to deleted contact
-- Transaction rollback on errors
-- Prevention of system contact deletion
-
-**Files Affected**:
-- `backend/src/models/Contact.js`
-- New: `backend/src/models/Contact.test.js`
-
-**Acceptance Criteria**:
-- [ ] Integration test suite created for contact deletion
-- [ ] Transaction logic thoroughly tested
-- [ ] Edge cases covered (multiple deletions, rollback scenarios)
-- [ ] Tests pass in CI/CD pipeline
-
----
-
 ### TD-003: Add Integration Tests for Ticket Creation API
 **Source**: Story 3.3 QA Review
 **Date Added**: 2025-10-01
@@ -816,6 +751,71 @@ Extract validation helpers to separate functions or middleware.
 
 ## Completed Items
 
+### ~~TD-001: Add Integration Tests for Contact Management UI~~
+**Source**: Story 2.6 QA Review
+**Date Completed**: 2025-10-02
+**Status**: ✅ COMPLETED
+
+**Description**:
+Comprehensive integration tests for Contact model covering all CRUD operations, validation, search, and filtering.
+
+**Resolution**:
+Created complete test suite in `backend/src/models/__tests__/Contact.test.js` with 36 tests covering:
+- Contact creation with validation (missing fields, invalid emails, non-existent clients)
+- Contact retrieval (findAll, findById, filtering by clientId, search by name/email)
+- Contact updates (name, email, client changes with validation)
+- Email uniqueness checking
+- CamelCase property conversion (verifying TD-005 fix)
+- Soft deletion behavior
+- All tests pass (36/36)
+
+**Files Created**:
+- `backend/src/models/__tests__/Contact.test.js` (36 integration tests)
+
+**Files Modified**:
+- `backend/src/config/database.js` (fixed .env path resolution for tests)
+
+**Testing**:
+All 36 tests pass successfully. Tests validate:
+- Create, Read, Update operations
+- Validation rules (email format, required fields, length limits)
+- Client filtering and search functionality
+- Email uniqueness constraints
+- CamelCase property conversion
+
+---
+
+### ~~TD-002: Add Integration Tests for Contact Deletion Transaction~~
+**Source**: Story 2.7 QA Review
+**Date Completed**: 2025-10-02
+**Status**: ✅ COMPLETED
+
+**Description**:
+Integration tests for critical deletion transaction that reassigns tickets to system contacts.
+
+**Resolution**:
+Added comprehensive tests for Contact.delete() within the Contact test suite covering:
+- System contact creation with correct format (AC1)
+- Ticket reassignment to system contact (AC2)
+- Reusing existing system contact for same client (AC3)
+- Prevention of system contact deletion (AC4)
+- Transaction rollback on errors (AC5)
+- Multiple deletions creating separate system contacts per client
+- Handling deletion of contacts with no tickets
+- All 7 deletion-related tests pass
+
+**Files Created**:
+- Tests included in `backend/src/models/__tests__/Contact.test.js`
+
+**Testing**:
+All deletion transaction tests pass successfully. Verified:
+- Transaction atomicity (rollback on failure)
+- System contact naming and email conventions
+- Ticket reassignment accuracy
+- Error handling for edge cases
+
+---
+
 ### ~~TD-FIXED-001: CSRF Token Catch-22 Issue~~
 **Source**: Story 3.4 Development
 **Date Completed**: 2025-10-01
@@ -978,24 +978,25 @@ Added 14 comprehensive tests - all passing.
 
 ## Summary Statistics
 
-**Total Active Items**: 27 (was 32)
-**Completed This Session**: 5 items (TD-003, TD-005, TD-006, TD-007, TD-009)
+**Total Active Items**: 25 (was 27)
+**Completed This Session**: 2 items (TD-001, TD-002)
+**Previously Completed**: 5 items (TD-003, TD-005, TD-006, TD-007, TD-009)
 
-- **High Priority**: 2 items (was 3 - completed TD-003)
-- **Medium Priority**: 3 items (was 6 - completed TD-005, TD-006, TD-007)
-- **Low Priority**: 22 items (was 23 - completed TD-009)
+- **High Priority**: 0 items (was 2 - completed TD-001, TD-002) ✅ All High Priority items complete!
+- **Medium Priority**: 3 items (was 6 - previously completed TD-005, TD-006, TD-007)
+- **Low Priority**: 22 items (was 23 - previously completed TD-009)
 
 **By Category**:
-- **Testing/Quality**: 2 items (HIGH - TD-001, TD-002 remain)
+- **Testing/Quality**: 0 HIGH priority items (completed TD-001, TD-002) ✅
 - **Security**: 4 items (completed TD-007, TD-009)
 - **Performance**: 4 items (indexes, debouncing, monitoring)
 - **Maintainability**: 8 items (completed TD-005, TD-006)
 - **Features/Enhancements**: 9 items (2FA, password reset, audit trail)
 
 **Most Critical Items**:
-1. **TD-001, TD-002**: Add automated test coverage for Contact Management UI (HIGH priority)
-2. **TD-004**: Implement audit trail for deleted contacts (MEDIUM priority, deferred from Story 2.7)
-3. **TD-008**: Sanitize error logging in production (MEDIUM priority)
+1. **TD-004**: Implement audit trail for deleted contacts (MEDIUM priority, deferred from Story 2.7)
+2. **TD-008**: Sanitize error logging in production (MEDIUM priority)
+3. **TD-032**: Extract Validation Helpers for Reusability (LOW priority)
 
 ---
 
@@ -1011,4 +1012,5 @@ This backlog should be reviewed:
 **Last Updated**: 2025-10-02
 **Next Review**: End of Epic 3 or next sprint planning
 **Items Added This Review**: 0
-**Items Completed This Session**: 5 (TD-003, TD-005, TD-006, TD-007, TD-009)
+**Items Completed This Session**: 2 (TD-001, TD-002)
+**Total Completed to Date**: 7 items

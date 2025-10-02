@@ -1,7 +1,14 @@
 import pg from 'pg';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-dotenv.config();
+// Get the directory name of the current module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load .env from backend directory regardless of where the script is run from
+dotenv.config({ path: join(__dirname, '../../.env') });
 
 const { Pool } = pg;
 
