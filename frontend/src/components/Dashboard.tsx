@@ -126,6 +126,7 @@ export const Dashboard = ({
                             key={ticket.id}
                             ticket={ticket}
                             onClick={() => onTicketClick(ticket.id)}
+                            variant="desktop"
                           />
                         ))}
                       </tbody>
@@ -139,6 +140,7 @@ export const Dashboard = ({
                         key={ticket.id}
                         ticket={ticket}
                         onClick={() => onTicketClick(ticket.id)}
+                        variant="mobile"
                       />
                     ))}
                   </div>
@@ -198,6 +200,7 @@ export const Dashboard = ({
                             onClick={() => onTicketClick(ticket.id)}
                             showCloseButton
                             onReopen={onReopenTicket}
+                            variant="desktop"
                           />
                         ))}
                       </tbody>
@@ -213,6 +216,7 @@ export const Dashboard = ({
                         onClick={() => onTicketClick(ticket.id)}
                         showCloseButton
                         onReopen={onReopenTicket}
+                        variant="mobile"
                       />
                     ))}
                   </div>

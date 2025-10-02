@@ -12,10 +12,22 @@ import { ApiError } from '@/lib/api-client';
 export const ticketKeys = {
   all: ['tickets'] as const,
   lists: () => [...ticketKeys.all, 'list'] as const,
-  list: () => [...ticketKeys.lists()] as const,
+  list: (filters: string) => [...ticketKeys.lists(), filters] as const,
   details: () => [...ticketKeys.all, 'detail'] as const,
   detail: (id: number) => [...ticketKeys.details(), id] as const,
 };
+
+/**
+ * Fetch open tickets (state = 'open')
+ */
+export function useOpenTickets() {
+  return useQuery({
+    queryKey: ticketKeys.list('state=open'),
+    queryFn: () => ticketsApi.getAll({ state: 'open' }),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true,
+  });
+}
 
 /**
  * Fetch single ticket with time entries

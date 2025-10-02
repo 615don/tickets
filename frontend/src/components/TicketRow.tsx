@@ -6,17 +6,25 @@ interface TicketRowProps {
   onClick: () => void;
   showCloseButton?: boolean;
   onReopen?: (id: number) => void;
+  variant?: 'desktop' | 'mobile';
 }
 
-export const TicketRow = ({ ticket, onClick, showCloseButton, onReopen }: TicketRowProps) => {
-  const formatDate = (dateString: string) => {
-    return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+export const TicketRow = ({ ticket, onClick, showCloseButton, onReopen, variant = 'desktop' }: TicketRowProps) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid date';
+      return formatDistanceToNow(date, { addSuffix: true });
+    } catch {
+      return 'Invalid date';
+    }
   };
 
-  return (
-    <>
-      {/* Desktop View */}
-      <tr className="hidden md:table-row border-b border-border hover:bg-muted/50 cursor-pointer transition-colors">
+  // Desktop view - table row
+  if (variant === 'desktop') {
+    return (
+      <tr className="border-b border-border hover:bg-muted/50 cursor-pointer transition-colors">
         <td className="py-3 px-4 text-sm font-medium text-foreground" onClick={onClick}>
           #{ticket.id}
         </td>
@@ -33,7 +41,7 @@ export const TicketRow = ({ ticket, onClick, showCloseButton, onReopen }: Ticket
           {ticket.totalHours}h
         </td>
         <td className="py-3 px-4 text-sm text-muted-foreground" onClick={onClick}>
-          {ticket.state === 'closed' && ticket.closedAt 
+          {ticket.state === 'closed' && ticket.closedAt
             ? formatDate(ticket.closedAt)
             : formatDate(ticket.updatedAt)}
         </td>
@@ -51,42 +59,44 @@ export const TicketRow = ({ ticket, onClick, showCloseButton, onReopen }: Ticket
           </td>
         )}
       </tr>
+    );
+  }
 
-      {/* Mobile View */}
-      <div 
-        className="md:hidden bg-card border border-border rounded-lg p-4 mb-3 cursor-pointer hover:border-primary/50 transition-colors"
-        onClick={onClick}
-      >
-        <div className="flex items-start justify-between mb-2">
-          <div>
-            <p className="text-sm font-medium text-foreground">#{ticket.id}</p>
-            <p className="text-xs text-muted-foreground">{ticket.clientName}</p>
-          </div>
-          <span className="text-sm font-medium text-foreground">{ticket.totalHours}h</span>
+  // Mobile view - card
+  return (
+    <div
+      className="bg-card border border-border rounded-lg p-4 mb-3 cursor-pointer hover:border-primary/50 transition-colors"
+      onClick={onClick}
+    >
+      <div className="flex items-start justify-between mb-2">
+        <div>
+          <p className="text-sm font-medium text-foreground">#{ticket.id}</p>
+          <p className="text-xs text-muted-foreground">{ticket.clientName}</p>
         </div>
-        <p className="text-sm text-muted-foreground mb-2">{ticket.contactName}</p>
-        {ticket.description && (
-          <p className="text-sm text-foreground mb-2 line-clamp-1">{ticket.description}</p>
-        )}
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
-            {ticket.state === 'closed' && ticket.closedAt 
-              ? formatDate(ticket.closedAt)
-              : formatDate(ticket.updatedAt)}
-          </p>
-          {showCloseButton && onReopen && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onReopen(ticket.id);
-              }}
-              className="text-primary hover:text-primary/80 text-sm font-medium"
-            >
-              Re-open
-            </button>
-          )}
-        </div>
+        <span className="text-sm font-medium text-foreground">{ticket.totalHours}h</span>
       </div>
-    </>
+      <p className="text-sm text-muted-foreground mb-2">{ticket.contactName}</p>
+      {ticket.description && (
+        <p className="text-sm text-foreground mb-2 line-clamp-1">{ticket.description}</p>
+      )}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">
+          {ticket.state === 'closed' && ticket.closedAt
+            ? formatDate(ticket.closedAt)
+            : formatDate(ticket.updatedAt)}
+        </p>
+        {showCloseButton && onReopen && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onReopen(ticket.id);
+            }}
+            className="text-primary hover:text-primary/80 text-sm font-medium"
+          >
+            Re-open
+          </button>
+        )}
+      </div>
+    </div>
   );
 };

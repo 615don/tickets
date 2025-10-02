@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
+import OpenTicketsPage from "./pages/OpenTicketsPage";
 import TicketDetailPage from "./pages/TicketDetailPage";
 import CreateTicketPage from "./pages/CreateTicketPage";
 import ClientsPage from "./pages/ClientsPage";
@@ -36,6 +37,19 @@ const App = () => (
                   <Navbar />
                   <main className="pt-16">
                     <Index />
+                  </main>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tickets"
+            element={
+              <ProtectedRoute>
+                <div className="min-h-screen bg-background">
+                  <Navbar />
+                  <main className="pt-16">
+                    <OpenTicketsPage />
                   </main>
                 </div>
               </ProtectedRoute>

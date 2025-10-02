@@ -19,7 +19,6 @@ export const getAllTickets = async (req, res) => {
     }
 
     const tickets = await Ticket.findAll(filters);
-
     res.status(200).json(tickets);
   } catch (error) {
     console.error('Get tickets error:', error);

@@ -7,104 +7,71 @@ import { apiClient } from '../api-client';
 import { Ticket, TicketDetail, CreateTicketRequest, UpdateTicketRequest, TimeEntry } from '@/types';
 
 /**
- * Backend response type (snake_case)
+ * Backend response type (camelCase - backend already converts from snake_case)
  */
 export interface TicketResponse {
   id: number;
-  client_id: number;
-  client_name: string;
-  contact_id: number;
-  contact_name: string;
+  clientId: number;
+  clientName: string;
+  contactId: number;
+  contactName: string;
   description: string | null;
   notes: string | null;
   state: 'open' | 'closed';
-  closed_at: string | null;
-  can_reopen: boolean | null;
-  total_hours: number;
-  created_at: string;
-  updated_at: string;
+  closedAt: string | null;
+  canReopen: boolean | null;
+  totalHours: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /**
- * Backend time entry response type (snake_case)
+ * Backend time entry response type (camelCase - backend already converts from snake_case)
  */
 export interface TimeEntryResponse {
   id: number;
-  ticket_id: number;
-  work_date: string;
-  duration_hours: number;
+  ticketId: number;
+  workDate: string;
+  durationHours: number;
   billable: boolean;
-  is_locked: boolean;
-  created_at: string;
-  updated_at: string;
+  isLocked: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /**
- * Backend ticket detail response with time entries (snake_case)
+ * Backend ticket detail response with time entries (camelCase)
  */
 export interface TicketDetailResponse extends TicketResponse {
-  contact_email?: string;
-  time_entries: TimeEntryResponse[];
+  contactEmail?: string;
+  timeEntries: TimeEntryResponse[];
 }
 
 /**
- * Transform backend snake_case response to frontend camelCase
+ * Transform backend response to frontend format
+ * NOTE: Backend already sends camelCase, so this is now a passthrough
  */
 function transformTicket(data: TicketResponse): Ticket {
-  return {
-    id: data.id,
-    clientId: data.client_id,
-    clientName: data.client_name,
-    contactId: data.contact_id,
-    contactName: data.contact_name,
-    description: data.description,
-    notes: data.notes,
-    state: data.state,
-    closedAt: data.closed_at,
-    canReopen: data.can_reopen,
-    totalHours: data.total_hours,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
-  };
+  return data as Ticket;
 }
 
 /**
- * Transform backend time entry response to frontend camelCase
+ * Transform backend time entry response to frontend format
+ * NOTE: Backend already sends camelCase, so this is now a passthrough
  */
 function transformTimeEntry(data: TimeEntryResponse): TimeEntry {
-  return {
-    id: data.id,
-    ticketId: data.ticket_id,
-    workDate: data.work_date,
-    durationHours: data.duration_hours,
-    billable: data.billable,
-    isLocked: data.is_locked,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
-  };
+  return data as TimeEntry;
 }
 
 /**
- * Transform backend ticket detail response to frontend camelCase
+ * Transform backend ticket detail response to frontend format
+ * NOTE: Backend already sends camelCase, so this is now a passthrough
  */
 function transformTicketDetail(data: TicketDetailResponse): TicketDetail {
   return {
-    id: data.id,
-    clientId: data.client_id,
-    clientName: data.client_name,
-    contactId: data.contact_id,
-    contactName: data.contact_name,
-    contactEmail: data.contact_email,
-    description: data.description,
-    notes: data.notes,
-    state: data.state,
-    closedAt: data.closed_at,
-    canReopen: data.can_reopen,
-    totalHours: data.total_hours,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
-    timeEntries: data.time_entries.map(transformTimeEntry),
-  };
+    ...data,
+    timeEntries: data.timeEntries.map(transformTimeEntry),
+  } as TicketDetail;
 }
 
 /**
@@ -124,7 +91,32 @@ function transformCreateTicketRequest(data: CreateTicketRequest) {
   };
 }
 
+/**
+ * Query parameters for getting tickets
+ */
+export interface GetTicketsParams {
+  state?: 'open' | 'closed';
+  clientId?: number;
+}
+
 export const ticketsApi = {
+  /**
+   * Get all tickets with optional filters
+   */
+  getAll: async (params?: GetTicketsParams): Promise<Ticket[]> => {
+    const queryParams = new URLSearchParams();
+    if (params?.state) {
+      queryParams.append('state', params.state);
+    }
+    if (params?.clientId) {
+      queryParams.append('client_id', params.clientId.toString());
+    }
+
+    const url = `/api/tickets${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const data = await apiClient.get<TicketResponse[]>(url);
+    return data.map(transformTicket);
+  },
+
   /**
    * Create new ticket
    */
