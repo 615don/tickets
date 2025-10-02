@@ -6,11 +6,13 @@ import helmet from 'helmet';
 import csrf from 'csurf';
 import dotenv from 'dotenv';
 import pool, { testConnection } from './config/database.js';
+import { validateXeroConfig } from './config/xero.js';
 import authRoutes from './routes/auth.js';
 import clientRoutes from './routes/clients.js';
 import contactRoutes from './routes/contacts.js';
 import ticketRoutes from './routes/tickets.js';
 import timeEntryRoutes from './routes/timeEntries.js';
+import xeroRoutes from './routes/xero.js';
 
 // Load environment variables
 dotenv.config();
@@ -93,8 +95,8 @@ app.use('/api/clients', clientRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/time-entries', timeEntryRoutes);
+app.use('/api/xero', xeroRoutes);
 // app.use('/api/invoices', invoiceRoutes);
-// app.use('/api/xero', xeroRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -113,6 +115,17 @@ app.use((err, req, res, next) => {
 // Start server with database connection retry
 async function startServer() {
   try {
+    // Validate Xero configuration at startup
+    console.log('⚙️  Validating Xero configuration...');
+    try {
+      validateXeroConfig();
+      console.log('✓ Xero configuration valid');
+    } catch (error) {
+      console.warn('⚠️  Xero configuration invalid:', error.message);
+      console.warn('   Xero integration will not be available until configuration is fixed.');
+      // Don't fail startup - allow app to run without Xero
+    }
+
     // Test database connection with retry logic
     await testConnection();
 

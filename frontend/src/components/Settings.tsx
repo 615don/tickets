@@ -5,94 +5,133 @@ import { SettingsSection } from '@/components/SettingsSection';
 import { XeroConnectionCard } from '@/components/XeroConnectionCard';
 import { XeroConnectionStatus } from '@/types/xero';
 import { useToast } from '@/hooks/use-toast';
-
-// Mock data for development - replace with actual API calls
-const mockConnectionStatus: XeroConnectionStatus = {
-  isConnected: false,
-};
-
-const mockConnectedStatus: XeroConnectionStatus = {
-  isConnected: true,
-  organizationName: 'Acme Consulting LLC',
-  organizationId: '12345',
-  connectedAt: '2025-01-15T10:30:00Z',
-  lastSyncAt: '2025-01-31T12:20:00Z',
-  isValid: true,
-  billableRate: 150, // From Xero "Consulting Services" item
-};
+import { useXeroStatus, useDisconnectXero } from '@/hooks/useXero';
+import { xeroApi } from '@/lib/api/xero';
 
 export const Settings = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [connectionStatus, setConnectionStatus] = useState<XeroConnectionStatus>(mockConnectionStatus);
   const [isTesting, setIsTesting] = useState(false);
   const [testSuccess, setTestSuccess] = useState<boolean | null>(null);
   const { toast } = useToast();
 
+  // Fetch Xero connection status
+  const { data: xeroStatus, isLoading, refetch } = useXeroStatus();
+  const disconnectMutation = useDisconnectXero();
+
+  // Transform API response to component format
+  const connectionStatus: XeroConnectionStatus = {
+    isConnected: xeroStatus?.isConnected || false,
+    organizationName: xeroStatus?.organizationName || undefined,
+    organizationId: xeroStatus?.organizationId || undefined,
+    connectedAt: xeroStatus?.lastSyncAt || undefined,
+    lastSyncAt: xeroStatus?.lastSyncAt || undefined,
+    isValid: xeroStatus?.isConnected || false,
+  };
+
   // Handle OAuth callback
   useEffect(() => {
-    const xeroStatus = searchParams.get('xero');
-    
-    if (xeroStatus === 'success') {
+    const success = searchParams.get('success');
+    const errorParam = searchParams.get('error');
+
+    if (success === 'true') {
       toast({
-        title: 'Success',
-        description: 'Xero connected successfully!',
+        title: 'Connected to Xero',
+        description: 'Your Xero account has been successfully connected.',
       });
-      // Fetch actual connection status
-      setConnectionStatus(mockConnectedStatus);
+      // Refetch connection status
+      refetch();
       // Clear query params
-      searchParams.delete('xero');
+      searchParams.delete('success');
       setSearchParams(searchParams);
-    } else if (xeroStatus === 'error') {
+    } else if (errorParam) {
+      let errorMessage = 'Failed to connect to Xero. Please try again.';
+
+      if (errorParam === 'no_code') {
+        errorMessage = 'No authorization code received from Xero.';
+      } else if (errorParam === 'no_tenant') {
+        errorMessage = 'No Xero organization found.';
+      } else if (errorParam === 'callback_failed') {
+        errorMessage = 'Failed to complete Xero authorization.';
+      }
+
       toast({
         title: 'Connection Failed',
-        description: 'Could not connect to Xero. Please try again.',
+        description: errorMessage,
         variant: 'destructive',
       });
       // Clear query params
-      searchParams.delete('xero');
+      searchParams.delete('error');
       setSearchParams(searchParams);
     }
-  }, [searchParams, setSearchParams, toast]);
+  }, [searchParams, setSearchParams, toast, refetch]);
 
   const handleConnect = () => {
-    // In production, redirect to: GET /api/xero/connect
-    // For demo, simulate OAuth flow
-    toast({
-      title: 'Redirecting to Xero',
-      description: 'Please wait...',
-    });
-    
-    // Simulate OAuth flow
-    setTimeout(() => {
-      setSearchParams({ xero: 'success' });
-    }, 2000);
+    xeroApi.initiateConnect();
   };
 
   const handleTest = async () => {
     setIsTesting(true);
     setTestSuccess(null);
 
-    // Simulate API call
-    setTimeout(() => {
-      // Mock success
-      setTestSuccess(true);
-      setIsTesting(false);
+    try {
+      // Test by refetching status
+      const result = await refetch();
+
+      if (result.data?.isConnected) {
+        setTestSuccess(true);
+        toast({
+          title: 'Connection Test Successful',
+          description: 'Your Xero connection is active.',
+        });
+      } else {
+        setTestSuccess(false);
+        toast({
+          title: 'Connection Test Failed',
+          description: 'Unable to verify Xero connection.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      setTestSuccess(false);
       toast({
-        title: 'Connection Test Successful',
-        description: 'Your Xero connection is active.',
+        title: 'Connection Test Failed',
+        description: 'An error occurred while testing the connection.',
+        variant: 'destructive',
       });
-    }, 1500);
+    } finally {
+      setIsTesting(false);
+    }
   };
 
-  const handleDisconnect = () => {
-    // In production: POST /api/xero/disconnect
-    setConnectionStatus(mockConnectionStatus);
-    setTestSuccess(null);
-    toast({
-      title: 'Disconnected',
-      description: 'Successfully disconnected from Xero.',
-    });
+  const handleDisconnect = async () => {
+    try {
+      await disconnectMutation.mutateAsync();
+      setTestSuccess(null);
+      toast({
+        title: 'Disconnected from Xero',
+        description: 'Your Xero connection has been removed.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Disconnect Failed',
+        description: 'Could not disconnect from Xero. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <PageHeader title="Settings" />
+          <div className="flex items-center justify-center py-12">
+            <div className="text-muted-foreground">Loading settings...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -133,7 +172,7 @@ export const Settings = () => {
                       )}
                     </div>
                     <span className="text-sm font-medium text-foreground">
-                      {connectionStatus.isConnected && connectionStatus.billableRate 
+                      {connectionStatus.isConnected && connectionStatus.billableRate
                         ? `$${connectionStatus.billableRate}/hour`
                         : 'Connect Xero to sync rate'}
                     </span>

@@ -1,115 +1,102 @@
-import { validationResult } from 'express-validator';
-import { Contact } from '../models/Contact.js';
-import { Client } from '../models/Client.js';
-import { Ticket } from '../models/Ticket.js';
+/**
+ * Input validation middleware
+ * Validates and sanitizes request parameters
+ */
 
-// Middleware to check validation results
+import { validationResult } from 'express-validator';
+import xeroConfig from '../config/xero.js';
+
+/**
+ * Generic validation middleware for express-validator
+ * Processes validation results and returns errors if any
+ */
 export const validate = (req, res, next) => {
   const errors = validationResult(req);
-
   if (!errors.isEmpty()) {
-    return res.status(400).json({
-      error: 'Validation failed',
-      details: errors.array().map(err => ({
-        field: err.path,
-        message: err.msg
-      }))
-    });
+    return res.status(400).json({ errors: errors.array() });
+  }
+  next();
+};
+
+/**
+ * Validate OAuth callback parameters
+ */
+export const validateOAuthCallback = (req, res, next) => {
+  const { code, state } = req.query;
+
+  // Validate code parameter
+  if (code) {
+    // Code should be alphanumeric with possible dashes/underscores
+    if (typeof code !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(code)) {
+      return res.redirect(`${xeroConfig.frontendUrl}/settings?error=invalid_code`);
+    }
+
+    // Reasonable length check (Xero codes are typically 100-200 chars)
+    if (code.length > 500) {
+      return res.redirect(`${xeroConfig.frontendUrl}/settings?error=invalid_code`);
+    }
+  }
+
+  // Validate state parameter
+  if (state) {
+    // State should be hex string (64 chars for our 32-byte random)
+    if (typeof state !== 'string' || !/^[a-f0-9]{64}$/.test(state)) {
+      return res.redirect(`${xeroConfig.frontendUrl}/settings?error=invalid_state`);
+    }
   }
 
   next();
 };
 
 /**
- * Reusable validation middleware for common patterns
- * These can be used independently or chained together
+ * Sanitize string input
+ * Removes potentially dangerous characters
  */
+export const sanitizeString = (str, maxLength = 255) => {
+  if (typeof str !== 'string') return '';
 
-/**
- * Validates that required fields are present in request body
- * @param {string[]} fields - Array of required field names
- * @returns {Function} Express middleware function
- *
- * @example
- * router.post('/tickets', validateRequired(['clientId', 'contactId']), handler);
- */
-export const validateRequired = (fields) => {
-  return (req, res, next) => {
-    const missing = [];
+  // Trim whitespace
+  let sanitized = str.trim();
 
-    for (const field of fields) {
-      // Check nested fields (e.g., 'timeEntry.duration')
-      const parts = field.split('.');
-      let value = req.body;
+  // Limit length
+  if (sanitized.length > maxLength) {
+    sanitized = sanitized.substring(0, maxLength);
+  }
 
-      for (const part of parts) {
-        value = value?.[part];
-        if (value === undefined || value === null || value === '') {
-          missing.push(field);
-          break;
-        }
-      }
-    }
-
-    if (missing.length > 0) {
-      return res.status(400).json({
-        error: 'ValidationError',
-        message: `Missing required fields: ${missing.join(', ')}`
-      });
-    }
-
-    next();
-  };
+  return sanitized;
 };
 
 /**
- * Validates field types in request body
- * @param {Object} typeMap - Map of field names to expected types ('string', 'number', 'boolean', 'object', 'array', 'integer')
- * @returns {Function} Express middleware function
- *
- * @example
- * router.post('/tickets', validateTypes({ clientId: 'integer', description: 'string' }), handler);
+ * Validate email format
  */
-export const validateTypes = (typeMap) => {
+export const isValidEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+/**
+ * Validate required fields in request body
+ * Supports nested fields with dot notation (e.g., 'timeEntry.duration')
+ */
+export const validateRequired = (fields) => {
   return (req, res, next) => {
     const errors = [];
 
-    for (const [field, expectedType] of Object.entries(typeMap)) {
-      const value = req.body[field];
+    for (const field of fields) {
+      const keys = field.split('.');
+      let value = req.body;
 
-      // Skip validation if field is not present (use validateRequired for presence)
-      if (value === undefined || value === null) {
-        continue;
+      for (const key of keys) {
+        value = value?.[key];
       }
 
-      let actualType = typeof value;
-
-      // Special handling for arrays
-      if (expectedType === 'array') {
-        if (!Array.isArray(value)) {
-          errors.push(`${field} must be an array`);
-        }
-        continue;
-      }
-
-      // Special handling for integers
-      if (expectedType === 'integer') {
-        if (typeof value !== 'number' || !Number.isInteger(value)) {
-          errors.push(`${field} must be an integer`);
-        }
-        continue;
-      }
-
-      if (actualType !== expectedType) {
-        errors.push(`${field} must be a ${expectedType}, got ${actualType}`);
+      if (value === undefined || value === null || value === '') {
+        errors.push({ field, message: `${field} is required` });
       }
     }
 
     if (errors.length > 0) {
-      return res.status(400).json({
-        error: 'ValidationError',
-        message: errors.join('; ')
-      });
+      return res.status(400).json({ errors });
     }
 
     next();
@@ -117,154 +104,7 @@ export const validateTypes = (typeMap) => {
 };
 
 /**
- * Validates that a contact belongs to the specified client
- * Expects req.body to contain both clientId and contactId
- * Attaches validated contact object to req.validatedContact
- *
- * @example
- * router.post('/tickets', validateContactBelongsToClient, handler);
- */
-export const validateContactBelongsToClient = async (req, res, next) => {
-  try {
-    const { clientId, contactId } = req.body;
-
-    // Check if contact exists
-    const contact = await Contact.findById(contactId);
-    if (!contact) {
-      return res.status(404).json({
-        error: 'NotFound',
-        message: 'Contact not found'
-      });
-    }
-
-    // Verify contact belongs to client
-    if (contact.clientId !== clientId) {
-      return res.status(400).json({
-        error: 'ValidationError',
-        message: 'Contact does not belong to specified client'
-      });
-    }
-
-    // Attach validated contact to request for use in route handler
-    req.validatedContact = contact;
-    next();
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Validates that a client exists
- * Expects req.body.clientId or req.params.clientId
- * Attaches validated client object to req.validatedClient
- *
- * @example
- * router.post('/tickets', validateClientExists, handler);
- */
-export const validateClientExists = async (req, res, next) => {
-  try {
-    const clientId = req.body.clientId || req.params.clientId;
-
-    if (!clientId) {
-      return res.status(400).json({
-        error: 'ValidationError',
-        message: 'clientId is required'
-      });
-    }
-
-    const client = await Client.findById(clientId);
-    if (!client) {
-      return res.status(404).json({
-        error: 'NotFound',
-        message: `Client with ID ${clientId} not found`
-      });
-    }
-
-    // Attach validated client to request
-    req.validatedClient = client;
-    next();
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Validates that a contact exists
- * Expects req.body.contactId or req.params.contactId
- * Attaches validated contact object to req.validatedContact
- *
- * @example
- * router.post('/tickets', validateContactExists, handler);
- */
-export const validateContactExists = async (req, res, next) => {
-  try {
-    const contactId = req.body.contactId || req.params.contactId;
-
-    if (!contactId) {
-      return res.status(400).json({
-        error: 'ValidationError',
-        message: 'contactId is required'
-      });
-    }
-
-    const contact = await Contact.findById(contactId);
-    if (!contact) {
-      return res.status(404).json({
-        error: 'NotFound',
-        message: `Contact with ID ${contactId} not found`
-      });
-    }
-
-    // Attach validated contact to request
-    req.validatedContact = contact;
-    next();
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Validates that a ticket exists
- * Expects req.params.id or req.body.ticketId
- * Attaches validated ticket object to req.validatedTicket
- *
- * @example
- * router.put('/tickets/:id', validateTicketExists, handler);
- */
-export const validateTicketExists = async (req, res, next) => {
-  try {
-    const ticketId = req.params.id || req.body.ticketId;
-
-    if (!ticketId) {
-      return res.status(400).json({
-        error: 'ValidationError',
-        message: 'ticketId is required'
-      });
-    }
-
-    const ticket = await Ticket.findById(ticketId);
-    if (!ticket) {
-      return res.status(404).json({
-        error: 'NotFound',
-        message: `Ticket with ID ${ticketId} not found`
-      });
-    }
-
-    // Attach validated ticket to request
-    req.validatedTicket = ticket;
-    next();
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Validates numeric parameters (e.g., IDs in URL params)
- * @param {string[]} params - Array of parameter names to validate
- * @returns {Function} Express middleware function
- *
- * @example
- * router.get('/tickets/:id', validateNumericParams(['id']), handler);
+ * Validate numeric URL parameters
  */
 export const validateNumericParams = (params) => {
   return (req, res, next) => {
@@ -272,21 +112,32 @@ export const validateNumericParams = (params) => {
 
     for (const param of params) {
       const value = req.params[param];
-
-      if (value === undefined) {
-        continue;
-      }
-
-      const numValue = Number(value);
-      if (isNaN(numValue) || !Number.isInteger(numValue) || numValue <= 0) {
-        errors.push(`${param} must be a positive integer`);
+      if (value && (isNaN(value) || !Number.isInteger(Number(value)))) {
+        errors.push({ param, message: `${param} must be a valid integer` });
       }
     }
 
     if (errors.length > 0) {
+      return res.status(400).json({ errors });
+    }
+
+    next();
+  };
+};
+
+/**
+ * Validate enum values in query parameters
+ */
+export const validateEnum = (param, allowedValues) => {
+  return (req, res, next) => {
+    const value = req.query[param];
+
+    if (value && !allowedValues.includes(value)) {
       return res.status(400).json({
-        error: 'ValidationError',
-        message: errors.join('; ')
+        errors: [{
+          param,
+          message: `${param} must be one of: ${allowedValues.join(', ')}`
+        }]
       });
     }
 
@@ -295,30 +146,32 @@ export const validateNumericParams = (params) => {
 };
 
 /**
- * Validates enum values
- * @param {string} field - Field name to validate
- * @param {string[]} allowedValues - Array of allowed values
- * @returns {Function} Express middleware function
- *
- * @example
- * router.get('/tickets', validateEnum('state', ['open', 'closed']), handler);
+ * Validate that contact belongs to client
+ * Requires clientId and contactId in request body
  */
-export const validateEnum = (field, allowedValues) => {
-  return (req, res, next) => {
-    const value = req.body[field] || req.query[field];
+export const validateContactBelongsToClient = async (req, res, next) => {
+  const { clientId, contactId } = req.body;
 
-    // Skip if field not present
-    if (value === undefined || value === null) {
-      return next();
-    }
+  if (!clientId || !contactId) {
+    return next();
+  }
 
-    if (!allowedValues.includes(value)) {
+  try {
+    const { default: pool } = await import('../db.js');
+    const result = await pool.query(
+      'SELECT id FROM contacts WHERE id = $1 AND client_id = $2',
+      [contactId, clientId]
+    );
+
+    if (result.rows.length === 0) {
       return res.status(400).json({
-        error: 'ValidationError',
-        message: `${field} must be one of: ${allowedValues.join(', ')}`
+        errors: [{ message: 'Contact does not belong to the specified client' }]
       });
     }
 
     next();
-  };
+  } catch (error) {
+    console.error('Error validating contact:', error);
+    return res.status(500).json({ error: 'Validation error' });
+  }
 };
