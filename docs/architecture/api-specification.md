@@ -44,7 +44,7 @@ The system uses a RESTful API architecture for communication between the React f
 - `GET /api/tickets` - List tickets with filters (state, client)
 - `POST /api/tickets` - Create ticket with initial time entry
 - `GET /api/tickets/:id` - Get ticket with all time entries
-- `PUT /api/tickets/:id` - Update ticket (description, notes, state)
+- `PUT /api/tickets/:id` - Update ticket (description, notes, state with close/re-open logic)
 
 **Time Entries (Epic 3):**
 - `POST /api/tickets/:id/time-entries` - Add time entry to ticket
@@ -95,5 +95,97 @@ All errors follow a consistent structure:
 - After January invoice, January entries are locked; February entries remain editable
 
 See "Core Workflows" section for detailed sequence diagram.
+
+## Ticket Close & Re-open Logic
+
+### Business Rules
+
+1. **Closing Tickets:**
+   - Setting `state: "closed"` automatically sets `closed_at` to current timestamp
+   - Closing an already-closed ticket is idempotent (updates `closed_at` to current time, no error)
+
+2. **Re-opening Tickets:**
+   - Tickets can only be re-opened within 7 days of closure
+   - Re-opening eligible ticket clears `closed_at` (sets to `null`) and sets `state: "open"`
+   - Re-opening already-open ticket is idempotent (no error, no change)
+
+3. **7-Day Re-open Window:**
+   - Calculated as: `(NOW() - closed_at) <= 7 days`
+   - Exactly 7 days (168 hours) is still eligible for re-opening
+   - After 7 days, re-open attempt returns 400 error
+
+### PUT /api/tickets/:id - State Transitions
+
+**Request Body (close ticket):**
+```json
+{
+  "state": "closed"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "id": 42,
+  "clientId": 1,
+  "clientName": "Acme Corp",
+  "contactId": 5,
+  "contactName": "John Doe",
+  "description": "Fix login bug",
+  "notes": "User reported issue",
+  "state": "closed",
+  "closedAt": "2025-10-01T18:30:00.000Z",
+  "canReopen": true,
+  "totalHours": 2.5,
+  "createdAt": "2025-10-01T14:00:00.000Z",
+  "updatedAt": "2025-10-01T18:30:00.000Z"
+}
+```
+
+**Request Body (re-open ticket within 7 days):**
+```json
+{
+  "state": "open"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "id": 42,
+  "state": "open",
+  "closedAt": null,
+  "canReopen": null,
+  ...
+}
+```
+
+**Request Body (re-open ticket after 7 days):**
+```json
+{
+  "state": "open"
+}
+```
+
+**Response (400 Bad Request):**
+```json
+{
+  "error": "ValidationError",
+  "message": "Cannot re-open tickets closed more than 7 days ago"
+}
+```
+
+### canReopen Flag
+
+All ticket responses include a computed `canReopen` field:
+
+- **`true`** - Ticket is closed AND within 7-day re-open window
+- **`false`** - Ticket is closed AND outside 7-day re-open window
+- **`null`** - Ticket is open (re-open not applicable)
+
+This flag is automatically calculated in all ticket responses:
+- `GET /api/tickets` (list)
+- `GET /api/tickets/:id` (single)
+- `PUT /api/tickets/:id` (update)
 
 ---

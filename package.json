@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
-    "test:shared": "npm test --workspace=@tickets/shared"
+    "test:shared": "npm test --workspace=@tickets/shared",
+    "test:backend": "node --test backend/src/**/__tests__/*.test.js"
   }
 }

@@ -44,7 +44,7 @@ function validateState(state) {
 function convertToCamelCase(row) {
   if (!row) return null;
 
-  return {
+  const ticket = {
     id: row.id,
     clientId: row.client_id,
     clientName: row.client_name,
@@ -58,6 +58,15 @@ function convertToCamelCase(row) {
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
+
+  // Add canReopen flag for closed tickets
+  if (ticket.state === 'closed' && ticket.closedAt) {
+    ticket.canReopen = Ticket.canReopen(ticket.closedAt);
+  } else {
+    ticket.canReopen = null; // Not applicable for open tickets
+  }
+
+  return ticket;
 }
 
 export const Ticket = {
@@ -248,5 +257,69 @@ export const Ticket = {
     );
 
     return result.rows[0];
+  },
+
+  /**
+   * Close a ticket by setting state and closed_at timestamp
+   * Idempotent - can be called on already-closed tickets
+   * @param {number} id - Ticket ID
+   * @returns {Promise<Ticket>} - Updated ticket
+   */
+  async close(id) {
+    const result = await query(
+      `UPDATE tickets
+       SET
+         state = 'closed',
+         closed_at = CURRENT_TIMESTAMP,
+         updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1
+       RETURNING id`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      throw new Error('Ticket not found');
+    }
+
+    return await this.findById(id);
+  },
+
+  /**
+   * Re-open a ticket by clearing closed_at and setting state to open
+   * @param {number} id - Ticket ID
+   * @returns {Promise<Ticket>} - Updated ticket
+   */
+  async reopen(id) {
+    const result = await query(
+      `UPDATE tickets
+       SET
+         state = 'open',
+         closed_at = NULL,
+         updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1
+       RETURNING id`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      throw new Error('Ticket not found');
+    }
+
+    return await this.findById(id);
+  },
+
+  /**
+   * Check if a closed ticket can be re-opened (within 7 days)
+   * @param {Date|string} closedAt - Timestamp when ticket was closed
+   * @returns {boolean} - True if can reopen, false otherwise
+   */
+  canReopen(closedAt) {
+    if (!closedAt) return false;
+
+    const closedDate = new Date(closedAt);
+    const now = new Date();
+    const daysSinceClosed = (now - closedDate) / (1000 * 60 * 60 * 24);
+
+    return daysSinceClosed <= 7;
   }
 };

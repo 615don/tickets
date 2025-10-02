@@ -180,13 +180,48 @@ export const updateTicket = async (req, res) => {
       }
     }
 
+    // Check if ticket exists first
+    const existingTicket = await Ticket.findById(id);
+
+    if (!existingTicket) {
+      return res.status(404).json({
+        error: 'NotFound',
+        message: `Ticket with ID ${id} not found`
+      });
+    }
+
+    // Handle state transitions with close/re-open logic
+    if (state !== undefined) {
+      if (state === 'closed') {
+        // Closing: Set closed_at timestamp (idempotent)
+        await Ticket.close(id);
+      } else if (state === 'open') {
+        // Re-opening: Validate 7-day window if ticket is currently closed
+        if (existingTicket.state === 'closed') {
+          const canReopen = Ticket.canReopen(existingTicket.closedAt);
+          if (!canReopen) {
+            return res.status(400).json({
+              error: 'ValidationError',
+              message: 'Cannot re-open tickets closed more than 7 days ago'
+            });
+          }
+          await Ticket.reopen(id);
+        }
+        // If already open, no special handling needed
+      }
+    }
+
+    // Update description/notes if provided
     const updates = {};
     if (description !== undefined) updates.description = description;
     if (notes !== undefined) updates.notes = notes;
-    if (state !== undefined) updates.state = state;
 
-    const ticket = await Ticket.update(id, updates);
+    if (Object.keys(updates).length > 0) {
+      await Ticket.update(id, updates);
+    }
 
+    // Return updated ticket
+    const ticket = await Ticket.findById(id);
     res.status(200).json(ticket);
   } catch (error) {
     console.error('Update ticket error:', error);
