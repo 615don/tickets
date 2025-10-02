@@ -1,11 +1,18 @@
 import { query } from '../config/database.js';
 import bcrypt from 'bcrypt';
+import { validatePasswordStrength, getPasswordErrorMessage } from '../utils/passwordValidation.js';
 
 const SALT_ROUNDS = 10;
 
 export const User = {
   // Create a new user
   async create(email, password, name = null) {
+    // Validate password strength
+    const validation = validatePasswordStrength(password);
+    if (!validation.isValid) {
+      throw new Error(getPasswordErrorMessage(validation.errors));
+    }
+
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
     const result = await query(

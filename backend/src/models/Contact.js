@@ -43,6 +43,26 @@ async function validateClientExists(clientId) {
   }
 }
 
+/**
+ * Converts database row to camelCase object
+ * @param {Object} row - Database row with snake_case columns
+ * @returns {Object} Object with camelCase properties
+ */
+function convertToCamelCase(row) {
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    clientId: row.client_id,
+    clientName: row.client_name,
+    name: row.name,
+    email: row.email,
+    isSystemContact: row.is_system_contact,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
 export const Contact = {
   // Create a new contact
   async create({ clientId, name, email }) {
@@ -99,7 +119,7 @@ export const Contact = {
     sql += ` ORDER BY cl.company_name, c.name`;
 
     const result = await query(sql, params);
-    return result.rows;
+    return result.rows.map(convertToCamelCase);
   },
 
   // Get contact by ID
@@ -119,7 +139,7 @@ export const Contact = {
       WHERE c.id = $1 AND c.deleted_at IS NULL
     `, [id]);
 
-    return result.rows[0] || null;
+    return convertToCamelCase(result.rows[0]);
   },
 
   // Update contact

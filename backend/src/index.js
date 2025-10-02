@@ -35,6 +35,7 @@ app.use(session({
     tableName: 'session',
     createTableIfMissing: true,
   }),
+  name: process.env.SESSION_COOKIE_NAME || 'connect.sid',
   secret: process.env.SESSION_SECRET || 'change-this-secret-in-production',
   resave: false,
   saveUninitialized: false,

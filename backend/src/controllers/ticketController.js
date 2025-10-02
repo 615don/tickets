@@ -98,9 +98,8 @@ export const createTicket = async (req, res) => {
       });
     }
 
-    // Note: Contact model returns snake_case (client_id) not camelCase
-    const contactClientId = contact.clientId || contact.client_id;
-    if (contactClientId !== clientId) {
+    // Verify contact belongs to client
+    if (contact.clientId !== clientId) {
       return res.status(400).json({
         error: 'ValidationError',
         message: 'Contact does not belong to specified client'

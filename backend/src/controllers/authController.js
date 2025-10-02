@@ -116,7 +116,7 @@ export const logout = async (req, res) => {
         });
       }
 
-      res.clearCookie('connect.sid'); // Clear session cookie
+      res.clearCookie(process.env.SESSION_COOKIE_NAME || 'connect.sid'); // Clear session cookie
       res.json({
         message: 'Logout successful'
       });

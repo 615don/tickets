@@ -890,25 +890,106 @@ Removed redundant parseTimeEntry import and pre-validation from ticketController
 
 ---
 
+### ~~TD-003: Add Integration Tests for Ticket Creation API~~
+**Source**: Story 3.3 QA Review
+**Date Completed**: 2025-10-02
+**Status**: ✅ COMPLETED
+
+**Description**:
+Added comprehensive integration tests for ticket creation API covering all 9 acceptance criteria.
+
+**Resolution**:
+Created integration test suite in `backend/src/controllers/__tests__/ticketController.test.js` with tests for:
+- Successful ticket creation with minimal and full fields
+- Time entry duration parsing (2h, 90m, 1h30m, numeric strings)
+- Default values (workDate, billable)
+- Validation (contact-client mismatch, missing fields, invalid formats)
+- Edge cases (negative duration, non-existent entities)
+
+**Files Modified**:
+- `backend/src/controllers/__tests__/ticketController.test.js` (added 17 new tests)
+
+---
+
+### ~~TD-005: Standardize Contact Model to Return camelCase~~
+**Source**: Story 3.3 QA Review
+**Date Completed**: 2025-10-02
+**Status**: ✅ COMPLETED
+
+**Description**:
+Contact model now returns camelCase properties consistently with other models.
+
+**Resolution**:
+Added `convertToCamelCase()` function to Contact model (matching pattern from Ticket.js and TimeEntry.js). Updated all methods (findAll, findById) to use conversion. Removed compatibility workaround from ticketController.js.
+
+**Files Modified**:
+- `backend/src/models/Contact.js` (added convertToCamelCase function)
+- `backend/src/controllers/ticketController.js` (removed workaround)
+
+---
+
+### ~~TD-007: Add Password Strength Validation~~
+**Source**: Story 1.3 QA Review
+**Date Completed**: 2025-10-02
+**Status**: ✅ COMPLETED
+
+**Description**:
+Implemented password strength validation beyond basic length check.
+
+**Resolution**:
+Created password validation utilities for both backend and frontend:
+- Backend: Created `/backend/src/utils/passwordValidation.js` with comprehensive validation
+- Frontend: Created `/frontend/src/lib/passwordValidation.ts` with matching validation
+- Requirements: uppercase, lowercase, number, special character, not common password
+- Updated User.create() to validate passwords before hashing
+
+**Files Created**:
+- `backend/src/utils/passwordValidation.js`
+- `frontend/src/lib/passwordValidation.ts`
+
+**Files Modified**:
+- `backend/src/models/User.js` (added validation)
+
+---
+
+### ~~TD-009: Make Cookie Name Configurable~~
+**Source**: Story 1.3 QA Review
+**Date Completed**: 2025-10-02
+**Status**: ✅ COMPLETED
+
+**Description**:
+Session cookie name is now configurable via environment variable.
+
+**Resolution**:
+Added SESSION_COOKIE_NAME environment variable with default value 'connect.sid'. Updated session configuration and logout endpoint to use configurable name.
+
+**Files Modified**:
+- `backend/.env.example` (added SESSION_COOKIE_NAME)
+- `backend/src/index.js` (added name config to session)
+- `backend/src/controllers/authController.js` (updated clearCookie to use env var)
+
+---
+
 ## Summary Statistics
 
-**Total Active Items**: 32
-- **High Priority**: 3 items (all test automation)
-- **Medium Priority**: 6 items (audit trail, model consistency, security)
-- **Low Priority**: 23 items (documentation, optimizations, future enhancements)
+**Total Active Items**: 28 (was 32)
+**Completed This Session**: 4 items (TD-003, TD-005, TD-007, TD-009)
+
+- **High Priority**: 2 items (was 3 - completed TD-003)
+- **Medium Priority**: 4 items (was 6 - completed TD-005, TD-007)
+- **Low Priority**: 22 items (was 23 - completed TD-009)
 
 **By Category**:
-- **Testing/Quality**: 3 items (HIGH - test automation gaps)
-- **Security**: 5 items (password strength, logging, rate limiting)
+- **Testing/Quality**: 2 items (HIGH - TD-001, TD-002 remain)
+- **Security**: 4 items (completed TD-007, TD-009)
 - **Performance**: 4 items (indexes, debouncing, monitoring)
-- **Maintainability**: 10 items (documentation, consistency, refactoring)
-- **Features/Enhancements**: 10 items (2FA, password reset, audit trail)
+- **Maintainability**: 9 items (completed TD-005)
+- **Features/Enhancements**: 9 items (2FA, password reset, audit trail)
 
 **Most Critical Items**:
-1. **TD-001, TD-002, TD-003**: Add automated test coverage (HIGH priority)
+1. **TD-001, TD-002**: Add automated test coverage for Contact Management UI (HIGH priority)
 2. **TD-004**: Implement audit trail for deleted contacts (MEDIUM priority, deferred from Story 2.7)
-3. **TD-005**: Standardize model return format to camelCase (MEDIUM priority)
-4. **TD-007**: Add password strength validation (MEDIUM priority)
+3. **TD-006**: Extract validation logic to reusable middleware (MEDIUM priority)
 
 ---
 
@@ -920,7 +1001,8 @@ This backlog should be reviewed:
 - At the end of each epic (to prioritize accumulated debt)
 - Monthly for long-running projects
 
-**Last Reviewed**: 2025-10-01
-**Last Updated**: 2025-10-01
+**Last Reviewed**: 2025-10-02
+**Last Updated**: 2025-10-02
 **Next Review**: End of Epic 3 or next sprint planning
-**Items Added This Review**: 32 (initial comprehensive scan of Stories 1.1-3.3)
+**Items Added This Review**: 0
+**Items Completed This Session**: 4 (TD-003, TD-005, TD-007, TD-009)
