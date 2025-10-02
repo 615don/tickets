@@ -1,6 +1,6 @@
 import { TimeEntry } from '../models/TimeEntry.js';
 import { Ticket } from '../models/Ticket.js';
-import { InvoiceLock } from '../models/InvoiceLock.js';
+import { validateNotLocked } from '../utils/invoiceLock.js';
 import { parseTimeEntry } from '@tickets/shared';
 
 // PUT /api/time-entries/:id - Update time entry
@@ -34,23 +34,31 @@ export const updateTimeEntry = async (req, res) => {
       });
     }
 
-    // Check if original month is locked
-    const isOldMonthLocked = await InvoiceLock.isMonthLocked(existing.workDate);
-    if (isOldMonthLocked) {
-      return res.status(403).json({
-        error: 'Forbidden',
-        message: 'Cannot modify time entries for locked month'
-      });
+    // Validate original month is not locked
+    try {
+      await validateNotLocked(existing.workDate);
+    } catch (error) {
+      if (error.statusCode === 403) {
+        return res.status(403).json({
+          error: error.type || 'InvoiceLockError',
+          message: error.message
+        });
+      }
+      throw error;
     }
 
-    // Check if new month is locked (if workDate is changing)
+    // Validate new month is not locked (if workDate is changing)
     if (workDate && workDate !== existing.workDate) {
-      const isNewMonthLocked = await InvoiceLock.isMonthLocked(workDate);
-      if (isNewMonthLocked) {
-        return res.status(403).json({
-          error: 'Forbidden',
-          message: 'Cannot modify time entries for locked month'
-        });
+      try {
+        await validateNotLocked(workDate);
+      } catch (error) {
+        if (error.statusCode === 403) {
+          return res.status(403).json({
+            error: error.type || 'InvoiceLockError',
+            message: error.message
+          });
+        }
+        throw error;
       }
     }
 
@@ -109,13 +117,17 @@ export const deleteTimeEntry = async (req, res) => {
       });
     }
 
-    // Check if month is locked
-    const isLocked = await InvoiceLock.isMonthLocked(timeEntry.workDate);
-    if (isLocked) {
-      return res.status(403).json({
-        error: 'Forbidden',
-        message: 'Cannot delete time entries for locked month'
-      });
+    // Validate month is not locked
+    try {
+      await validateNotLocked(timeEntry.workDate);
+    } catch (error) {
+      if (error.statusCode === 403) {
+        return res.status(403).json({
+          error: error.type || 'InvoiceLockError',
+          message: error.message
+        });
+      }
+      throw error;
     }
 
     // Soft delete

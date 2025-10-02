@@ -158,6 +158,18 @@ export const updateTicket = async (req, res) => {
     // Handle state transitions with close/re-open logic
     if (state !== undefined) {
       if (state === 'closed') {
+        // Check if any time entries are in locked months before closing
+        const timeEntries = await TimeEntry.findByTicketId(id);
+        for (const entry of timeEntries) {
+          const isLocked = await InvoiceLock.isMonthLocked(entry.workDate);
+          if (isLocked) {
+            const month = entry.workDate.substring(0, 7);
+            return res.status(403).json({
+              error: 'InvoiceLockError',
+              message: `Cannot close ticket with time entries in locked month ${month}`
+            });
+          }
+        }
         // Closing: Set closed_at timestamp (idempotent)
         await Ticket.close(id);
       } else if (state === 'open') {
