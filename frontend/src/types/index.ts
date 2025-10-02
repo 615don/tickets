@@ -1,12 +1,17 @@
 export interface Ticket {
   id: number;
+  clientId: number;
   clientName: string;
+  contactId: number;
   contactName: string;
-  description?: string;
-  totalHours: number;
+  description: string | null;
+  notes: string | null;
   state: 'open' | 'closed';
+  closedAt: string | null;
+  canReopen: boolean | null;
+  totalHours: number;
+  createdAt: string;
   updatedAt: string;
-  closedAt?: string;
 }
 
 export interface Client {
@@ -59,6 +64,18 @@ export interface CreateTicketForm {
   workDate: string;
   description?: string;
   notes?: string;
+}
+
+export interface CreateTicketRequest {
+  clientId: number;
+  contactId: number;
+  description?: string;
+  notes?: string;
+  timeEntry: {
+    workDate?: string;
+    duration: string;
+    billable?: boolean;
+  };
 }
 
 export interface DashboardStats {

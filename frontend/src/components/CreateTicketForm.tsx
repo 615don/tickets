@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useImperativeHandle } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,18 +13,42 @@ interface CreateTicketFormProps {
   clients: Client[];
   contacts: Contact[];
   onSubmit: (data: FormData) => Promise<void>;
+  isSubmitting?: boolean;
+  formResetRef?: React.MutableRefObject<(() => void) | null>;
 }
 
-export const CreateTicketForm = ({ clients, contacts, onSubmit }: CreateTicketFormProps) => {
+export const CreateTicketForm = ({ clients, contacts, onSubmit, isSubmitting = false, formResetRef }: CreateTicketFormProps) => {
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [selectedContactId, setSelectedContactId] = useState<number | null>(null);
   const [filteredContacts, setFilteredContacts] = useState<Contact[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
+  const getTodayLocalDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const { register, handleSubmit, formState: { errors }, reset, setValue, watch } = useForm<FormData>({
     defaultValues: {
       billable: true,
-      workDate: new Date().toISOString().split('T')[0]
+      workDate: getTodayLocalDate()
     }
+  });
+
+  // Expose reset function to parent component
+  useImperativeHandle(formResetRef, () => () => {
+    reset({
+      billable: true,
+      workDate: getTodayLocalDate()
+    });
+    setSelectedClientId(null);
+    setSelectedContactId(null);
+    // Focus client dropdown for next entry
+    setTimeout(() => {
+      document.getElementById('client-select')?.focus();
+    }, 0);
   });
 
   const billable = watch('billable');
@@ -35,8 +59,11 @@ export const CreateTicketForm = ({ clients, contacts, onSubmit }: CreateTicketFo
         c.clientId === selectedClientId && !c.isSystemContact
       );
       setFilteredContacts(filtered);
+      // Reset contact selection when client changes
+      setSelectedContactId(null);
     } else {
       setFilteredContacts([]);
+      setSelectedContactId(null);
     }
   }, [selectedClientId, contacts]);
 
@@ -68,39 +95,28 @@ export const CreateTicketForm = ({ clients, contacts, onSubmit }: CreateTicketFo
 
   const onFormSubmit = async (data: FormData) => {
     const hours = parseTime(data.time);
-    
+
     if (!hours) {
       toast.error('Invalid time format. Use: 2h, 45m, 1.5, or 1h30m');
       return;
     }
-    
+
     if (hours <= 0 || hours > 24) {
       toast.error('Time must be between 0 and 24 hours');
       return;
     }
 
     const workDate = new Date(data.workDate);
-    if (workDate > new Date()) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    workDate.setHours(0, 0, 0, 0);
+    if (workDate > today) {
       toast.error('Work date cannot be in the future');
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      await onSubmit({ ...data, time: hours.toString() });
-      toast.success('Ticket created successfully');
-      reset({
-        billable: true,
-        workDate: new Date().toISOString().split('T')[0]
-      });
-      setSelectedClientId(null);
-      // Focus client dropdown for next entry
-      document.getElementById('client-select')?.focus();
-    } catch (error) {
-      toast.error('Failed to create ticket');
-    } finally {
-      setIsSubmitting(false);
-    }
+    await onSubmit({ ...data, time: data.time });
+    // Form reset is handled by parent component after successful mutation
   };
 
   return (
@@ -111,6 +127,7 @@ export const CreateTicketForm = ({ clients, contacts, onSubmit }: CreateTicketFo
           Client <span className="text-destructive">*</span>
         </Label>
         <Select
+          value={selectedClientId?.toString() || undefined}
           onValueChange={(value) => {
             const clientId = parseInt(value);
             setSelectedClientId(clientId);
@@ -139,8 +156,13 @@ export const CreateTicketForm = ({ clients, contacts, onSubmit }: CreateTicketFo
           Contact <span className="text-destructive">*</span>
         </Label>
         <Select
+          value={selectedContactId?.toString() || undefined}
           disabled={!selectedClientId}
-          onValueChange={(value) => setValue('contactId', parseInt(value))}
+          onValueChange={(value) => {
+            const contactId = parseInt(value);
+            setSelectedContactId(contactId);
+            setValue('contactId', contactId);
+          }}
         >
           <SelectTrigger id="contact-select" className="h-11">
             <SelectValue placeholder={selectedClientId ? "Select a contact" : "Select client first"} />
