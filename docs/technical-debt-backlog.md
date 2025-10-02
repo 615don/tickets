@@ -181,39 +181,6 @@ Add `convertToCamelCase()` function to Contact model (similar to Ticket.js:43-61
 
 ---
 
-### TD-006: Extract Validation Logic to Reusable Middleware
-**Source**: Story 3.3 QA Review
-**Date Added**: 2025-10-01
-**Priority**: Medium
-**Effort**: Medium (2-3 hours)
-
-**Description**:
-Validation logic in ticketController.js (lines 13-32) is inline and not reusable. As more endpoints are added, validation patterns will be duplicated.
-
-**Recommendation**:
-Create reusable validation middleware for common patterns:
-- Required field validation
-- Type validation (integer, string, object)
-- Custom validators (e.g., contactBelongsToClient)
-
-**Example Structure**:
-```javascript
-// backend/src/middleware/validation.js
-export const validateRequired = (fields) => (req, res, next) => { ... }
-export const validateContactBelongsToClient = async (req, res, next) => { ... }
-```
-
-**Files Affected**:
-- New: `backend/src/middleware/validation.js`
-- `backend/src/controllers/ticketController.js` (refactor to use middleware)
-- Future ticket/time entry endpoints
-
-**Acceptance Criteria**:
-- [ ] Validation middleware created with reusable functions
-- [ ] ticketController.js refactored to use middleware
-- [ ] Tests added for validation middleware
-- [ ] Documentation added for how to use validation middleware
-
 ---
 
 ### TD-007: Add Password Strength Validation (REL-102)
@@ -970,26 +937,65 @@ Added SESSION_COOKIE_NAME environment variable with default value 'connect.sid'.
 
 ---
 
+### ~~TD-006: Extract Validation Logic to Reusable Middleware~~
+**Source**: Story 3.3 QA Review
+**Date Completed**: 2025-10-02
+**Status**: ✅ COMPLETED
+
+**Description**:
+Created comprehensive reusable validation middleware to eliminate code duplication.
+
+**Resolution**:
+Extended `backend/src/middleware/validation.js` with reusable validation functions:
+- `validateRequired(fields)` - Validates required fields (supports nested fields like 'timeEntry.duration')
+- `validateTypes(typeMap)` - Validates field types (string, number, boolean, integer, array, object)
+- `validateContactBelongsToClient` - Validates contact-client relationship
+- `validateClientExists` - Validates client existence
+- `validateContactExists` - Validates contact existence
+- `validateTicketExists` - Validates ticket existence
+- `validateNumericParams(params)` - Validates URL params are positive integers
+- `validateEnum(field, values)` - Validates enum values
+
+Refactored ticket routes to use validation middleware, simplifying controller code.
+Added 14 comprehensive tests - all passing.
+
+**Files Modified**:
+- `backend/src/middleware/validation.js` (extended with 8 new validators)
+- `backend/src/routes/tickets.js` (applied validation middleware to all routes)
+- `backend/src/controllers/ticketController.js` (removed inline validation)
+
+**Files Created**:
+- `backend/src/middleware/__tests__/validation.test.js` (14 tests)
+
+**Benefits**:
+- Reduced code duplication across controllers
+- Consistent error messages
+- Easier to add new validation rules
+- Better separation of concerns
+- Self-documenting middleware with JSDoc
+
+---
+
 ## Summary Statistics
 
-**Total Active Items**: 28 (was 32)
-**Completed This Session**: 4 items (TD-003, TD-005, TD-007, TD-009)
+**Total Active Items**: 27 (was 32)
+**Completed This Session**: 5 items (TD-003, TD-005, TD-006, TD-007, TD-009)
 
 - **High Priority**: 2 items (was 3 - completed TD-003)
-- **Medium Priority**: 4 items (was 6 - completed TD-005, TD-007)
+- **Medium Priority**: 3 items (was 6 - completed TD-005, TD-006, TD-007)
 - **Low Priority**: 22 items (was 23 - completed TD-009)
 
 **By Category**:
 - **Testing/Quality**: 2 items (HIGH - TD-001, TD-002 remain)
 - **Security**: 4 items (completed TD-007, TD-009)
 - **Performance**: 4 items (indexes, debouncing, monitoring)
-- **Maintainability**: 9 items (completed TD-005)
+- **Maintainability**: 8 items (completed TD-005, TD-006)
 - **Features/Enhancements**: 9 items (2FA, password reset, audit trail)
 
 **Most Critical Items**:
 1. **TD-001, TD-002**: Add automated test coverage for Contact Management UI (HIGH priority)
 2. **TD-004**: Implement audit trail for deleted contacts (MEDIUM priority, deferred from Story 2.7)
-3. **TD-006**: Extract validation logic to reusable middleware (MEDIUM priority)
+3. **TD-008**: Sanitize error logging in production (MEDIUM priority)
 
 ---
 
@@ -1005,4 +1011,4 @@ This backlog should be reviewed:
 **Last Updated**: 2025-10-02
 **Next Review**: End of Epic 3 or next sprint planning
 **Items Added This Review**: 0
-**Items Completed This Session**: 4 (TD-003, TD-005, TD-007, TD-009)
+**Items Completed This Session**: 5 (TD-003, TD-005, TD-006, TD-007, TD-009)

@@ -63,48 +63,15 @@ export const getTicketById = async (req, res) => {
 };
 
 // POST /api/tickets - Create new ticket with initial time entry
+// NOTE: Validation middleware should be applied in routes:
+// - validateRequired(['clientId', 'contactId', 'timeEntry.duration'])
+// - validateContactBelongsToClient
 export const createTicket = async (req, res) => {
   try {
     const { clientId, contactId, description, notes, timeEntry } = req.body;
 
-    // Validate required fields
-    if (!clientId) {
-      return res.status(400).json({
-        error: 'ValidationError',
-        message: 'clientId is required'
-      });
-    }
-
-    if (!contactId) {
-      return res.status(400).json({
-        error: 'ValidationError',
-        message: 'contactId is required'
-      });
-    }
-
-    if (!timeEntry || !timeEntry.duration) {
-      return res.status(400).json({
-        error: 'ValidationError',
-        message: 'timeEntry with duration is required'
-      });
-    }
-
-    // Validate contact belongs to client
-    const contact = await Contact.findById(contactId);
-    if (!contact) {
-      return res.status(404).json({
-        error: 'NotFound',
-        message: 'Contact not found'
-      });
-    }
-
-    // Verify contact belongs to client
-    if (contact.clientId !== clientId) {
-      return res.status(400).json({
-        error: 'ValidationError',
-        message: 'Contact does not belong to specified client'
-      });
-    }
+    // Validation is handled by middleware in routes
+    // Contact is pre-validated and available in req.validatedContact
 
     // Use transaction to ensure atomic ticket + time entry creation
     const dbClient = await getClient();
