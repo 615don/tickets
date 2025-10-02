@@ -11,161 +11,142 @@ import { TimeEntryRow } from './TimeEntryRow';
 import { TimeEntryForm } from './TimeEntryForm';
 import { TicketActions } from './TicketActions';
 import { ConfirmDialog } from './ConfirmDialog';
-import { TicketDetail as TicketDetailType, TimeEntryFormData } from '@/types';
+import { TicketDetail as TicketDetailType, TimeEntryFormData, TimeEntryRequest } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { useUpdateTicket, useCloseTicket, useReopenTicket } from '@/hooks/useTickets';
+import { useCreateTimeEntry, useUpdateTimeEntry, useDeleteTimeEntry } from '@/hooks/useTimeEntries';
 
-// Mock data for demonstration
-const mockTicket: TicketDetailType = {
-  id: 42,
-  clientName: 'Acme Corp',
-  contactName: 'John Smith',
-  contactEmail: 'john@acme.com',
-  description: 'Email migration support',
-  notes: 'Migrated 50 mailboxes from Exchange to Microsoft 365',
-  state: 'open',
-  createdAt: '2025-09-27T10:30:00Z',
-  closedAt: null,
-  timeEntries: [
-    {
-      id: 101,
-      workDate: '2025-09-27',
-      durationHours: 2.5,
-      billable: true,
-      isLocked: false,
-      createdAt: '2025-09-27T10:30:00Z',
-    },
-    {
-      id: 102,
-      workDate: '2025-09-28',
-      durationHours: 3.0,
-      billable: true,
-      isLocked: false,
-      createdAt: '2025-09-28T14:15:00Z',
-    },
-  ],
-  totalHours: 5.5,
-  billableHours: 5.5,
-  canReopen: true,
-};
+interface TicketDetailProps {
+  ticket: TicketDetailType;
+}
 
-export const TicketDetail = () => {
+export const TicketDetail = ({ ticket }: TicketDetailProps) => {
   const navigate = useNavigate();
-  const [ticket, setTicket] = useState<TicketDetailType>(mockTicket);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
   const [deleteDialogEntry, setDeleteDialogEntry] = useState<number | null>(null);
   const { toast } = useToast();
+
+  const updateTicket = useUpdateTicket();
+  const closeTicket = useCloseTicket();
+  const reopenTicket = useReopenTicket();
+  const createTimeEntry = useCreateTimeEntry(ticket.id);
+  const updateTimeEntry = useUpdateTimeEntry(ticket.id);
+  const deleteTimeEntry = useDeleteTimeEntry(ticket.id);
 
   const handleBack = () => {
     navigate('/');
   };
 
   const handleSaveDescription = (value: string) => {
-    setTicket({ ...ticket, description: value });
-    toast({ title: 'Description updated' });
+    updateTicket.mutate(
+      { id: ticket.id, data: { description: value } },
+      {
+        onSuccess: () => toast({ title: 'Description updated' }),
+        onError: (error) => toast({
+          title: 'Error updating description',
+          description: error.message,
+          variant: 'destructive'
+        }),
+      }
+    );
   };
 
   const handleSaveNotes = (value: string) => {
-    setTicket({ ...ticket, notes: value });
-    toast({ title: 'Notes updated' });
+    updateTicket.mutate(
+      { id: ticket.id, data: { notes: value } },
+      {
+        onSuccess: () => toast({ title: 'Notes updated' }),
+        onError: (error) => toast({
+          title: 'Error updating notes',
+          description: error.message,
+          variant: 'destructive'
+        }),
+      }
+    );
   };
 
   const handleAddTimeEntry = (data: TimeEntryFormData) => {
-    // Parse time format
-    const hours = parseTimeToHours(data.time);
-    
-    const newEntry = {
-      id: Date.now(),
+    const request: TimeEntryRequest = {
       workDate: data.workDate,
-      durationHours: hours,
+      duration: data.time,
       billable: data.billable,
-      isLocked: false,
-      createdAt: new Date().toISOString(),
     };
 
-    const newEntries = [...ticket.timeEntries, newEntry];
-    const newTotal = newEntries.reduce((sum, e) => sum + e.durationHours, 0);
-    const newBillable = newEntries.filter(e => e.billable).reduce((sum, e) => sum + e.durationHours, 0);
-
-    setTicket({
-      ...ticket,
-      timeEntries: newEntries,
-      totalHours: newTotal,
-      billableHours: newBillable,
+    createTimeEntry.mutate(request, {
+      onSuccess: () => {
+        setShowAddForm(false);
+        toast({ title: 'Time entry added' });
+      },
+      onError: (error) => toast({
+        title: 'Error adding time entry',
+        description: error.message,
+        variant: 'destructive'
+      }),
     });
-
-    setShowAddForm(false);
-    toast({ title: 'Time entry added' });
   };
 
   const handleEditTimeEntry = (data: TimeEntryFormData) => {
-    const hours = parseTimeToHours(data.time);
-    
-    const updatedEntries = ticket.timeEntries.map(entry =>
-      entry.id === editingEntryId
-        ? { ...entry, workDate: data.workDate, durationHours: hours, billable: data.billable }
-        : entry
+    if (!editingEntryId) return;
+
+    const request: TimeEntryRequest = {
+      workDate: data.workDate,
+      duration: data.time,
+      billable: data.billable,
+    };
+
+    updateTimeEntry.mutate(
+      { id: editingEntryId, data: request },
+      {
+        onSuccess: () => {
+          setEditingEntryId(null);
+          toast({ title: 'Time entry updated' });
+        },
+        onError: (error) => toast({
+          title: 'Error updating time entry',
+          description: error.message,
+          variant: 'destructive'
+        }),
+      }
     );
-
-    const newTotal = updatedEntries.reduce((sum, e) => sum + e.durationHours, 0);
-    const newBillable = updatedEntries.filter(e => e.billable).reduce((sum, e) => sum + e.durationHours, 0);
-
-    setTicket({
-      ...ticket,
-      timeEntries: updatedEntries,
-      totalHours: newTotal,
-      billableHours: newBillable,
-    });
-
-    setEditingEntryId(null);
-    toast({ title: 'Time entry updated' });
   };
 
   const handleDeleteTimeEntry = () => {
     if (!deleteDialogEntry) return;
 
-    const updatedEntries = ticket.timeEntries.filter(e => e.id !== deleteDialogEntry);
-    const newTotal = updatedEntries.reduce((sum, e) => sum + e.durationHours, 0);
-    const newBillable = updatedEntries.filter(e => e.billable).reduce((sum, e) => sum + e.durationHours, 0);
-
-    setTicket({
-      ...ticket,
-      timeEntries: updatedEntries,
-      totalHours: newTotal,
-      billableHours: newBillable,
+    deleteTimeEntry.mutate(deleteDialogEntry, {
+      onSuccess: () => {
+        setDeleteDialogEntry(null);
+        toast({ title: 'Time entry deleted' });
+      },
+      onError: (error) => toast({
+        title: 'Error deleting time entry',
+        description: error.message,
+        variant: 'destructive'
+      }),
     });
-
-    setDeleteDialogEntry(null);
-    toast({ title: 'Time entry deleted' });
   };
 
   const handleCloseTicket = () => {
-    setTicket({
-      ...ticket,
-      state: 'closed',
-      closedAt: new Date().toISOString(),
+    closeTicket.mutate(ticket.id, {
+      onSuccess: () => toast({ title: 'Ticket closed' }),
+      onError: (error) => toast({
+        title: 'Error closing ticket',
+        description: error.message,
+        variant: 'destructive'
+      }),
     });
-    toast({ title: 'Ticket closed' });
   };
 
   const handleReopenTicket = () => {
-    setTicket({
-      ...ticket,
-      state: 'open',
-      closedAt: null,
+    reopenTicket.mutate(ticket.id, {
+      onSuccess: () => toast({ title: 'Ticket re-opened' }),
+      onError: (error) => toast({
+        title: 'Error re-opening ticket',
+        description: error.message,
+        variant: 'destructive'
+      }),
     });
-    toast({ title: 'Ticket re-opened' });
-  };
-
-  const parseTimeToHours = (timeStr: string): number => {
-    const hourMatch = timeStr.match(/(\d+(?:\.\d+)?)\s*h/);
-    const minMatch = timeStr.match(/(\d+)\s*m/);
-    
-    let hours = hourMatch ? parseFloat(hourMatch[1]) : 0;
-    const minutes = minMatch ? parseInt(minMatch[1]) : 0;
-    
-    hours += minutes / 60;
-    return Math.round(hours * 100) / 100;
   };
 
   const formatDuration = (hours: number) => {
@@ -175,6 +156,10 @@ export const TicketDetail = () => {
     if (wholeHours === 0) return `${minutes} minutes`;
     return `${wholeHours}h ${minutes}m`;
   };
+
+  const billableHours = ticket.timeEntries
+    .filter(e => e.billable)
+    .reduce((sum, e) => sum + e.durationHours, 0);
 
   const editingEntry = ticket.timeEntries.find(e => e.id === editingEntryId);
   const deleteEntry = ticket.timeEntries.find(e => e.id === deleteDialogEntry);
@@ -274,9 +259,9 @@ export const TicketDetail = () => {
             )}
           </div>
 
-          {ticket.billableHours > 0 && ticket.billableHours !== ticket.totalHours && (
+          {billableHours > 0 && billableHours !== ticket.totalHours && (
             <p className="text-sm text-muted-foreground mb-4">
-              {formatDuration(ticket.billableHours)} billable
+              {formatDuration(billableHours)} billable
             </p>
           )}
 

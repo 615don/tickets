@@ -88,27 +88,43 @@ export interface DashboardStats {
 
 export interface TimeEntry {
   id: number;
+  ticketId: number;
   workDate: string;
   durationHours: number;
   billable: boolean;
   isLocked: boolean;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface TicketDetail {
   id: number;
+  clientId: number;
   clientName: string;
+  contactId: number;
   contactName: string;
-  contactEmail: string;
+  contactEmail?: string;
   description: string | null;
   notes: string | null;
   state: 'open' | 'closed';
-  createdAt: string;
   closedAt: string | null;
-  timeEntries: TimeEntry[];
+  canReopen: boolean | null;
   totalHours: number;
-  billableHours: number;
-  canReopen: boolean;
+  createdAt: string;
+  updatedAt: string;
+  timeEntries: TimeEntry[];
+}
+
+export interface UpdateTicketRequest {
+  description?: string;
+  notes?: string;
+  state?: 'open' | 'closed';
+}
+
+export interface TimeEntryRequest {
+  workDate: string;
+  duration: string;
+  billable: boolean;
 }
 
 export interface TimeEntryFormData {
