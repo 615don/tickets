@@ -175,3 +175,48 @@ export const validateContactBelongsToClient = async (req, res, next) => {
     return res.status(500).json({ error: 'Validation error' });
   }
 };
+
+/**
+ * Validate month format YYYY-MM
+ * Validates format, month range (01-12), and year range (2020-2099)
+ */
+export const validateMonthFormat = (req, res, next) => {
+  const { month } = req.query;
+
+  // Check if month parameter exists
+  if (!month) {
+    return res.status(400).json({
+      error: 'ValidationError',
+      message: 'Month parameter is required'
+    });
+  }
+
+  // Validate format YYYY-MM
+  if (!/^\d{4}-\d{2}$/.test(month)) {
+    return res.status(400).json({
+      error: 'ValidationError',
+      message: 'Invalid month format. Expected YYYY-MM.'
+    });
+  }
+
+  // Extract year and month values
+  const [year, monthValue] = month.split('-').map(Number);
+
+  // Validate month is between 01-12
+  if (monthValue < 1 || monthValue > 12) {
+    return res.status(400).json({
+      error: 'ValidationError',
+      message: 'Month must be between 01 and 12.'
+    });
+  }
+
+  // Validate year is between 2020-2099
+  if (year < 2020 || year > 2099) {
+    return res.status(400).json({
+      error: 'ValidationError',
+      message: 'Year must be between 2020 and 2099.'
+    });
+  }
+
+  next();
+};
