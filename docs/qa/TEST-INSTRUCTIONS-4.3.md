@@ -1,0 +1,162 @@
+# Test Instructions for Story 4.3
+
+## Automated Tests Added by QA
+
+During the QA review of Story 4.3, comprehensive automated tests were added to ensure the invoice preview endpoint functions correctly and to prevent future regressions.
+
+### Test Files Created
+
+1. **Integration Tests**: `backend/src/controllers/__tests__/invoiceController.test.js`
+   - End-to-end testing with real database operations
+   - Tests all 10 acceptance criteria
+   - Covers complex scenarios with mixed billable/non-billable data
+
+2. **Unit Tests**: `backend/src/controllers/__tests__/invoiceController.groupByClient.test.js`
+   - Isolated testing of aggregation logic
+   - Tests edge cases and floating-point precision
+   - Validates complex multi-client, multi-ticket scenarios
+
+## Running the Tests
+
+### Run All Invoice Controller Tests
+
+```bash
+NODE_OPTIONS="--no-warnings" node --test backend/src/controllers/__tests__/invoiceController*.test.js
+```
+
+### Run Only Integration Tests
+
+```bash
+NODE_OPTIONS="--no-warnings" node --test backend/src/controllers/__tests__/invoiceController.test.js
+```
+
+### Run Only Unit Tests
+
+```bash
+NODE_OPTIONS="--no-warnings" node --test backend/src/controllers/__tests__/invoiceController.groupByClient.test.js
+```
+
+## Test Coverage
+
+### Integration Tests Cover:
+
+- ✓ **AC1**: API endpoint exists and responds correctly
+- ✓ **AC2**: Response groups tickets by client
+- ✓ **AC3**: Total billable hours calculated correctly
+- ✓ **AC4**: Missing descriptions flagged
+- ✓ **AC5**: Month filtering by work_date
+- ✓ **AC6**: Billable-only summation in subtotals
+- ✓ **AC7**: Non-billable ticket inclusion
+- ✓ **AC8**: Lock status validation
+- ✓ **AC9**: Structured response format
+- ✓ **AC10**: Authentication requirement
+
+### Specific Test Scenarios:
+
+1. **Mixed billable/non-billable data**
+   - Ticket with 3 billable + 1.5 non-billable hours
+   - Verifies correct aggregation: totalHours=4.5, billableHours=3.0, nonBillableHours=1.5
+
+2. **Pure billable tickets**
+   - Ticket with only billable entries
+   - Verifies billable=true, nonBillableHours=0
+
+3. **Pure non-billable tickets**
+   - Ticket with only non-billable entries
+   - Verifies billable=false, billableHours=0
+
+4. **Multiple clients**
+   - Verifies correct grouping and subtotal calculation
+   - Client 1: 7.0 billable hours
+   - Client 2: 2.5 billable hours
+   - Total: 9.5 billable hours
+
+5. **Missing descriptions**
+   - Ticket with null description
+   - Verifies missingDescription=true flag
+
+6. **Empty months**
+   - Month with no time entries
+   - Verifies empty clients array and totalBillableHours=0
+
+7. **Locked months**
+   - Month with invoice lock created
+   - Verifies isLocked=true in response
+
+8. **Month filtering**
+   - Time entries in September and October
+   - Verifies only September entries included in September preview
+
+9. **Year boundaries**
+   - December month request
+   - Verifies month boundary calculation handles year rollover
+
+10. **Error handling**
+    - Database error simulation
+    - Verifies 500 response with standard error format
+
+### Unit Tests Cover:
+
+1. Empty input handling
+2. Single client, single ticket scenarios
+3. Mixed billable/non-billable aggregation
+4. Multiple tickets per client
+5. Multiple clients
+6. Missing description flag preservation
+7. Floating-point precision
+8. Complex real-world multi-client scenarios
+
+## Expected Output
+
+When all tests pass, you should see output similar to:
+
+```
+✔ Invoice Preview Controller - Integration Tests (XXXms)
+  ✔ AC1 & AC10: API endpoint exists and requires authentication (XXms)
+  ✔ AC2, AC3, AC4, AC5, AC6, AC7, AC9: Complete invoice preview data structure (XXms)
+  ✔ AC5: Month filtering by work_date (XXms)
+  ✔ AC8: Invoice lock status validation (XXms)
+  ✔ Error handling (XXms)
+  ✔ Month boundary edge cases (XXms)
+
+✔ groupByClient - Unit Tests (XXXms)
+  ✔ Empty input handling (XXms)
+  ✔ Single client, single ticket, single entry (XXms)
+  ✔ Mixed billable/non-billable time entries (XXms)
+  ✔ Multiple tickets per client (XXms)
+  ✔ Multiple clients (XXms)
+  ✔ Missing description flag (XXms)
+  ✔ Floating point precision (XXms)
+  ✔ Complex real-world scenario (XXms)
+```
+
+## Prerequisites
+
+Before running the tests, ensure:
+
+1. PostgreSQL database is running and accessible
+2. Database schema is up to date (migrations run)
+3. Environment variables are configured (.env file)
+4. Test database has the necessary tables:
+   - clients
+   - contacts
+   - tickets
+   - time_entries
+   - invoice_locks
+
+## Notes
+
+- Tests use real database operations and will create/delete test data
+- Test data is cleaned up in `after()` hooks
+- Tests are isolated and can run in any order
+- All tests use the Node.js built-in test runner (no external dependencies)
+
+## QA Review Result
+
+**Gate Status**: ✅ **PASS**
+
+All acceptance criteria verified through automated tests. Story is production-ready.
+
+---
+
+*Generated by Quinn (Test Architect) - 2025-10-02*
