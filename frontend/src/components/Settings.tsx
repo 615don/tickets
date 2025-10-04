@@ -6,6 +6,7 @@ import { XeroConnectionCard } from '@/components/XeroConnectionCard';
 import { XeroConnectionStatus } from '@/types/xero';
 import { useToast } from '@/hooks/use-toast';
 import { useXeroStatus, useDisconnectXero } from '@/hooks/useXero';
+import { useInvoiceConfig, useUpdateInvoiceConfig } from '@/hooks/useInvoiceConfig';
 import { xeroApi } from '@/lib/api/xero';
 
 export const Settings = () => {
@@ -17,6 +18,10 @@ export const Settings = () => {
   // Fetch Xero connection status
   const { data: xeroStatus, isLoading, refetch } = useXeroStatus();
   const disconnectMutation = useDisconnectXero();
+
+  // Fetch invoice configuration
+  const { data: invoiceConfig, isLoading: isConfigLoading } = useInvoiceConfig();
+  const updateConfigMutation = useUpdateInvoiceConfig();
 
   // Transform API response to component format
   const connectionStatus: XeroConnectionStatus = {
@@ -120,6 +125,22 @@ export const Settings = () => {
     }
   };
 
+  const handleInvoiceStatusChange = async (newStatus: 'DRAFT' | 'AUTHORISED') => {
+    try {
+      await updateConfigMutation.mutateAsync({ xeroInvoiceStatus: newStatus });
+      toast({
+        title: 'Configuration Updated',
+        description: 'Invoice settings saved successfully.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Update Failed',
+        description: 'Could not update invoice configuration.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -152,6 +173,39 @@ export const Settings = () => {
               isTesting={isTesting}
               testSuccess={testSuccess}
             />
+          </SettingsSection>
+
+          {/* Invoice Configuration Section */}
+          <SettingsSection
+            title="Invoice Configuration"
+            description="Configure how invoices are created in Xero."
+          >
+            <div className="space-y-4">
+              <div className="bg-muted/50 rounded-lg p-4">
+                <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4 py-2">
+                    <div className="flex flex-col">
+                      <span className="text-sm text-muted-foreground">Xero Invoice Status</span>
+                      <span className="text-xs text-muted-foreground/70">
+                        Draft: Review in Xero before approving. Approved: Ready for payment.
+                      </span>
+                    </div>
+                    <select
+                      value={invoiceConfig?.xeroInvoiceStatus || 'DRAFT'}
+                      onChange={(e) => handleInvoiceStatusChange(e.target.value as 'DRAFT' | 'AUTHORISED')}
+                      disabled={isConfigLoading || updateConfigMutation.isPending}
+                      className="text-sm font-medium bg-background border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      <option value="DRAFT">Draft</option>
+                      <option value="AUTHORISED">Approved</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground/70 italic">
+                You can send invoices to customers manually in Xero after generation.
+              </p>
+            </div>
           </SettingsSection>
 
           {/* General Settings Section - Placeholder */}

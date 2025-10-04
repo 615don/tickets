@@ -144,6 +144,25 @@ const migrations = [
 
       CREATE INDEX IF NOT EXISTS idx_xero_connections_user_id ON xero_connections(user_id);
     `
+  },
+  {
+    name: '009_create_invoice_config_table',
+    sql: `
+      CREATE TABLE IF NOT EXISTS invoice_config (
+        id SERIAL PRIMARY KEY,
+        xero_invoice_status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT check_single_row CHECK (id = 1),
+        CONSTRAINT check_valid_status CHECK (
+          xero_invoice_status IN ('DRAFT', 'AUTHORISED')
+        )
+      );
+
+      INSERT INTO invoice_config (id, xero_invoice_status)
+      VALUES (1, 'DRAFT')
+      ON CONFLICT (id) DO NOTHING;
+    `
   }
 ];
 

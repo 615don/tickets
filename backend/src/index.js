@@ -14,6 +14,7 @@ import ticketRoutes from './routes/tickets.js';
 import timeEntryRoutes from './routes/timeEntries.js';
 import xeroRoutes from './routes/xero.js';
 import invoiceRoutes from './routes/invoices.js';
+import settingsRoutes from './routes/settings.js';
 
 // Load environment variables
 dotenv.config();
@@ -98,6 +99,7 @@ app.use('/api/tickets', ticketRoutes);
 app.use('/api/time-entries', timeEntryRoutes);
 app.use('/api/xero', xeroRoutes);
 app.use('/api/invoices', invoiceRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // 404 handler
 app.use((req, res) => {
