@@ -431,7 +431,7 @@ export const generateInvoices = async (req, res) => {
         );
 
         const xeroInvoice = response.body.invoices[0];
-        xeroInvoiceIds.push(xeroInvoice.invoiceNumber);
+        xeroInvoiceIds.push(xeroInvoice.invoiceID); // Store invoice ID (GUID) for OnlineInvoice API endpoint
       } catch (xeroError) {
         await dbClient.query('ROLLBACK');
 

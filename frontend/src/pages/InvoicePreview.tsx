@@ -5,9 +5,10 @@
 
 import { useState, useMemo } from 'react';
 import { Lock, AlertCircle, Loader2 } from 'lucide-react';
-import { useInvoicePreview } from '@/hooks/useInvoicePreview';
+import { useInvoicePreview, useGenerateInvoices } from '@/hooks/useInvoicePreview';
 import { InvoiceClientGroup } from '@/components/InvoiceClientGroup';
 import { GenerateInvoicesButton } from '@/components/GenerateInvoicesButton';
+import { InvoiceGenerationDialog } from '@/components/InvoiceGenerationDialog';
 import {
   Select,
   SelectContent,
@@ -19,7 +20,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import type { InvoiceGenerationError } from '@/types/invoice';
 
 // Helper function to generate last 12 months
 function getLast12Months(): { value: string; label: string }[] {
@@ -44,24 +45,59 @@ function getCurrentMonth(): string {
 
 export function InvoicePreview() {
   const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonth());
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { data, isLoading, isError, error, refetch } = useInvoicePreview(selectedMonth);
-  const { toast } = useToast();
+  const { mutate, isPending, isSuccess, isError: isMutationError, error: mutationError, data: mutationData, reset } = useGenerateInvoices();
 
   const months = useMemo(() => getLast12Months(), []);
 
   // Calculate missing description count
   const missingDescriptionCount = useMemo(() => {
-    if (!data) return 0;
+    if (!data || !data.summary) return 0;
     return data.summary.missingDescriptionCount;
   }, [data]);
 
   const handleGenerateInvoices = () => {
-    // Placeholder for Story 4.6 - invoice generation
-    toast({
-      title: 'Coming Soon',
-      description: 'Invoice generation will be implemented in Story 4.6',
-    });
+    setDialogOpen(true);
   };
+
+  const handleConfirmGeneration = () => {
+    mutate(selectedMonth);
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open) {
+      // Reset mutation state when dialog closes
+      reset();
+    }
+  };
+
+  // Parse mutation error
+  const parsedError: InvoiceGenerationError | null = useMemo(() => {
+    if (!mutationError) return null;
+    // ApiError from api-client has body property with error details
+    const apiError = mutationError as unknown;
+    if (
+      apiError &&
+      typeof apiError === 'object' &&
+      'body' in apiError &&
+      apiError.body &&
+      typeof apiError.body === 'object' &&
+      'error' in apiError.body &&
+      'message' in apiError.body
+    ) {
+      return {
+        error: (apiError.body as { error: string }).error,
+        message: (apiError.body as { message: string }).message,
+      };
+    }
+    // Fallback for network errors or unexpected errors
+    return {
+      error: 'NetworkError',
+      message: 'Failed to connect to server. Please check your connection and try again.',
+    };
+  }, [mutationError]);
 
   // Format month for display
   const formatMonth = (monthStr: string) => {
@@ -125,7 +161,7 @@ export function InvoicePreview() {
       )}
 
       {/* Empty State */}
-      {!isLoading && !isError && data && data.clients.length === 0 && (
+      {!isLoading && !isError && data && data.clients && data.clients.length === 0 && (
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>No billable time entries found</AlertTitle>
@@ -137,7 +173,7 @@ export function InvoicePreview() {
       )}
 
       {/* Data Loaded */}
-      {!isLoading && !isError && data && data.clients.length > 0 && (
+      {!isLoading && !isError && data && data.summary && data.clients.length > 0 && (
         <>
           {/* Summary Header */}
           <div className="bg-white rounded-lg border p-6 mb-6">
@@ -195,6 +231,19 @@ export function InvoicePreview() {
               onGenerate={handleGenerateInvoices}
             />
           </div>
+
+          {/* Invoice Generation Dialog */}
+          <InvoiceGenerationDialog
+            open={dialogOpen}
+            onOpenChange={handleDialogClose}
+            month={selectedMonth}
+            isLoading={isPending}
+            isSuccess={isSuccess}
+            isError={isMutationError}
+            error={parsedError}
+            data={mutationData || null}
+            onConfirm={handleConfirmGeneration}
+          />
         </>
       )}
     </div>

@@ -6,7 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { invoicesApi } from '@/lib/api/invoices';
 import { ticketsApi } from '@/lib/api/tickets';
-import { InvoicePreview } from '@/types/invoice';
+import { InvoicePreview, InvoiceGenerationError } from '@/types/invoice';
 import { ApiError } from '@/lib/api-client';
 
 // Query keys for cache management
@@ -102,6 +102,32 @@ export function useUpdateTicketDescription(month: string) {
     onSuccess: () => {
       // Invalidate to refetch and update missing description counts
       queryClient.invalidateQueries({ queryKey: invoicePreviewKeys.preview(month) });
+    },
+  });
+}
+
+/**
+ * Generate invoices for a specific month and push to Xero
+ */
+export function useGenerateInvoices() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (month: string) => {
+      return await invoicesApi.generateInvoices(month);
+    },
+    onSuccess: (data, month) => {
+      // Invalidate invoice preview to refresh lock status
+      queryClient.invalidateQueries({ queryKey: invoicePreviewKeys.preview(month) });
+
+      // Optional: Log successful generation for audit trail
+      console.log(
+        `Invoice generation: Month ${data.month}, Clients ${data.clientsInvoiced}, Total Hours ${data.totalBillableHours.toFixed(2)}, Timestamp ${new Date().toISOString()}`
+      );
+    },
+    onError: (error: ApiError) => {
+      // Error handled in component UI
+      console.error('Invoice generation failed:', error);
     },
   });
 }

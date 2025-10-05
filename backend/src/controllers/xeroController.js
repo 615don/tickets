@@ -190,6 +190,74 @@ export const disconnect = async (req, res) => {
 };
 
 /**
+ * Get online invoice URL for a Xero invoice
+ * GET /api/xero/invoices/:invoiceId/online-url
+ */
+export const getOnlineInvoiceUrl = async (req, res) => {
+  try {
+    const { invoiceId } = req.params;
+
+    if (!invoiceId) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Invoice ID is required'
+      });
+    }
+
+    // Get authenticated Xero client
+    const xeroClient = await createAuthenticatedXeroClient();
+    const connection = await XeroConnection.getActiveConnection();
+
+    if (!connection) {
+      return res.status(400).json({
+        error: 'XeroConnectionError',
+        message: 'Xero is not connected. Please connect to Xero in Settings.'
+      });
+    }
+
+    const tenantId = connection.organization_id;
+
+    // Fetch online invoice URL from Xero
+    const response = await xeroClient.accountingApi.getOnlineInvoice(tenantId, invoiceId);
+
+    if (!response.body || !response.body.onlineInvoices || response.body.onlineInvoices.length === 0) {
+      return res.status(404).json({
+        error: 'NotFoundError',
+        message: 'Invoice not found in Xero'
+      });
+    }
+
+    const onlineInvoiceUrl = response.body.onlineInvoices[0].onlineInvoiceUrl;
+
+    res.json({
+      onlineInvoiceUrl
+    });
+  } catch (error) {
+    console.error('Get online invoice URL error:', error);
+
+    // Handle Xero API errors
+    if (error.statusCode === 404) {
+      return res.status(404).json({
+        error: 'NotFoundError',
+        message: 'Invoice not found in Xero'
+      });
+    }
+
+    if (error.statusCode === 429) {
+      return res.status(429).set('Retry-After', '60').json({
+        error: 'XeroApiError',
+        message: 'Xero API rate limit exceeded. Please try again in 60 seconds.'
+      });
+    }
+
+    res.status(500).json({
+      error: 'XeroApiError',
+      message: 'Failed to fetch invoice URL from Xero'
+    });
+  }
+};
+
+/**
  * Refresh Xero access token
  * Internal helper function (not exposed as route)
  */

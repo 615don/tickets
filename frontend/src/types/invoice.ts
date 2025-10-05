@@ -61,3 +61,21 @@ export interface InvoiceGenerationResult {
   message?: string;
   ticketIds?: number[];
 }
+
+export interface InvoiceGenerationRequest {
+  month: string; // YYYY-MM format
+}
+
+export interface InvoiceGenerationResponse {
+  success: boolean;
+  month: string; // YYYY-MM format
+  clientsInvoiced: number;
+  totalBillableHours: number;
+  xeroInvoiceIds: string[]; // Array of Xero invoice IDs (GUIDs)
+  message: string;
+}
+
+export interface InvoiceGenerationError {
+  error: string; // Error type: ValidationError, InvoiceLockError, XeroConnectionError, etc.
+  message: string; // Human-readable error message
+}
