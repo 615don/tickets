@@ -14,6 +14,7 @@ import CreateTicketPage from "./pages/CreateTicketPage";
 import ClientsPage from "./pages/ClientsPage";
 import ContactsPage from "./pages/ContactsPage";
 import { InvoiceReview } from "./components/InvoiceReview";
+import { InvoicePreview } from "./pages/InvoicePreview";
 import { Settings } from "./components/Settings";
 
 const queryClient = new QueryClient();
@@ -115,6 +116,19 @@ const App = () => (
                   <Navbar />
                   <main className="pt-16">
                     <InvoiceReview />
+                  </main>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/invoices/preview"
+            element={
+              <ProtectedRoute>
+                <div className="min-h-screen bg-background">
+                  <Navbar />
+                  <main className="pt-16">
+                    <InvoicePreview />
                   </main>
                 </div>
               </ProtectedRoute>

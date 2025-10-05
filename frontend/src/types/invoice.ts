@@ -8,8 +8,11 @@ export interface TimeEntry {
 export interface TicketInvoiceItem {
   id: number;
   description: string | null;
+  contactId: number;
+  contactName: string;
   totalHours: number;
   billableHours: number;
+  nonBillableHours: number;
   billable: boolean;
   hasMissingDescription: boolean;
   timeEntries: TimeEntry[];

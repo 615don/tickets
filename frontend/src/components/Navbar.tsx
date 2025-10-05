@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Plus, Users, User, FileText, Settings, Menu, Ticket } from 'lucide-react';
+import { Home, Plus, Users, User, FileText, Settings, Menu, Ticket, Receipt } from 'lucide-react';
 import { MobileMenu } from './MobileMenu';
 import { Button } from './ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,6 +18,7 @@ const navItems: NavItem[] = [
   { path: '/tickets/create', label: 'Create Ticket', icon: <Plus size={18} /> },
   { path: '/clients', label: 'Clients', icon: <Users size={18} /> },
   { path: '/contacts', label: 'Contacts', icon: <User size={18} /> },
+  { path: '/invoices/preview', label: 'Invoice Preview', icon: <Receipt size={18} /> },
   { path: '/invoices', label: 'Invoices', icon: <FileText size={18} /> },
   { path: '/settings', label: 'Settings', icon: <Settings size={18} /> },
 ];
