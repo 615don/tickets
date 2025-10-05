@@ -123,7 +123,7 @@ export function InvoiceTicketItem({ ticket, month, isLocked }: InvoiceTicketItem
   return (
     <div
       className={`border rounded-lg p-4 ${
-        ticket.missingDescription ? 'border-yellow-500 bg-yellow-50' : 'border-gray-200'
+        ticket.missingDescription ? 'border-yellow-500 bg-yellow-500/10' : 'border-gray-200'
       }`}
     >
       <div className="flex items-start justify-between">

@@ -178,7 +178,7 @@ export function InvoicePreview() {
       {!isLoading && !isError && data && data.clients && data.clients.length > 0 && (
         <>
           {/* Summary Header */}
-          <div className="bg-white rounded-lg border p-6 mb-6">
+          <div className="bg-card rounded-lg border p-6 mb-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <h2 className="text-xl font-semibold mb-1">{formatMonth(selectedMonth)}</h2>
@@ -225,7 +225,7 @@ export function InvoicePreview() {
           </div>
 
           {/* Generate Invoices Button */}
-          <div className="sticky bottom-4 bg-white border-t pt-4 pb-2">
+          <div className="sticky bottom-4 bg-background border-t pt-4 pb-2">
             <GenerateInvoicesButton
               month={selectedMonth}
               isLocked={data.isLocked}
