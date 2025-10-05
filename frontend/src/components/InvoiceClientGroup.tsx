@@ -34,7 +34,7 @@ export function InvoiceClientGroup({ client, month, isLocked }: InvoiceClientGro
             <h3 className="text-lg font-semibold">{client.clientName}</h3>
           </div>
           <div className="text-sm font-medium text-gray-600">
-            {client.billableHours.toFixed(2)} billable hours
+            {client.subtotalHours.toFixed(2)} billable hours
           </div>
         </div>
       </CardHeader>
@@ -43,7 +43,7 @@ export function InvoiceClientGroup({ client, month, isLocked }: InvoiceClientGro
         <CardContent className="p-4 pt-0 space-y-3">
           {client.tickets.map((ticket) => (
             <InvoiceTicketItem
-              key={ticket.id}
+              key={ticket.ticketId}
               ticket={ticket}
               month={month}
               isLocked={isLocked}

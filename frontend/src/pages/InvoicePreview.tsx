@@ -53,8 +53,10 @@ export function InvoicePreview() {
 
   // Calculate missing description count
   const missingDescriptionCount = useMemo(() => {
-    if (!data || !data.summary) return 0;
-    return data.summary.missingDescriptionCount;
+    if (!data || !data.clients) return 0;
+    return data.clients.reduce((count, client) => {
+      return count + client.tickets.filter(ticket => ticket.missingDescription).length;
+    }, 0);
   }, [data]);
 
   const handleGenerateInvoices = () => {
@@ -173,7 +175,7 @@ export function InvoicePreview() {
       )}
 
       {/* Data Loaded */}
-      {!isLoading && !isError && data && data.summary && data.clients.length > 0 && (
+      {!isLoading && !isError && data && data.clients && data.clients.length > 0 && (
         <>
           {/* Summary Header */}
           <div className="bg-white rounded-lg border p-6 mb-6">
@@ -181,7 +183,7 @@ export function InvoicePreview() {
               <div>
                 <h2 className="text-xl font-semibold mb-1">{formatMonth(selectedMonth)}</h2>
                 <p className="text-3xl font-bold text-blue-600">
-                  {data.summary.totalBillableHours.toFixed(2)} hours
+                  {data.totalBillableHours.toFixed(2)} hours
                 </p>
                 <p className="text-sm text-gray-600 mt-1">Total billable hours</p>
               </div>

@@ -157,8 +157,8 @@ export const validateContactBelongsToClient = async (req, res, next) => {
   }
 
   try {
-    const { default: pool } = await import('../db.js');
-    const result = await pool.query(
+    const { query } = await import('../config/database.js');
+    const result = await query(
       'SELECT id FROM contacts WHERE id = $1 AND client_id = $2',
       [contactId, clientId]
     );

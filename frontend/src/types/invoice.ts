@@ -6,7 +6,7 @@ export interface TimeEntry {
 }
 
 export interface TicketInvoiceItem {
-  id: number;
+  ticketId: number;
   description: string | null;
   contactId: number;
   contactName: string;
@@ -14,7 +14,7 @@ export interface TicketInvoiceItem {
   billableHours: number;
   nonBillableHours: number;
   billable: boolean;
-  hasMissingDescription: boolean;
+  missingDescription: boolean;
   timeEntries: TimeEntry[];
 }
 
@@ -22,25 +22,14 @@ export interface ClientInvoiceGroup {
   clientId: number;
   clientName: string;
   xeroCustomerId: string | null;
-  totalHours: number;
-  billableHours: number;
-  estimatedAmount: number;
+  subtotalHours: number;
   tickets: TicketInvoiceItem[];
-}
-
-export interface InvoiceSummary {
-  totalBillableHours: number;
-  totalClients: number;
-  totalTickets: number;
-  missingDescriptionCount: number;
 }
 
 export interface InvoicePreview {
   month: string;
   isLocked: boolean;
-  lockedAt: string | null;
-  xeroInvoiceIds: string[];
-  summary: InvoiceSummary;
+  totalBillableHours: number;
   clients: ClientInvoiceGroup[];
 }
 

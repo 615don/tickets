@@ -67,14 +67,14 @@ export function InvoiceTicketItem({ ticket, month, isLocked }: InvoiceTicketItem
 
     try {
       await updateMutation.mutateAsync({
-        ticketId: ticket.id,
+        ticketId: ticket.ticketId,
         description: trimmedValue,
       });
 
       setIsEditing(false);
       toast({
         title: 'Description updated',
-        description: `Ticket #${ticket.id} updated successfully`,
+        description: `Ticket #${ticket.ticketId} updated successfully`,
       });
     } catch (error) {
       toast({
@@ -123,15 +123,15 @@ export function InvoiceTicketItem({ ticket, month, isLocked }: InvoiceTicketItem
   return (
     <div
       className={`border rounded-lg p-4 ${
-        ticket.hasMissingDescription ? 'border-yellow-500 bg-yellow-50' : 'border-gray-200'
+        ticket.missingDescription ? 'border-yellow-500 bg-yellow-50' : 'border-gray-200'
       }`}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
-            <span className="font-semibold text-sm text-gray-700">Ticket #{ticket.id}</span>
+            <span className="font-semibold text-sm text-gray-700">Ticket #{ticket.ticketId}</span>
             {getBillableStatusBadge()}
-            {ticket.hasMissingDescription && (
+            {ticket.missingDescription && (
               <div className="flex items-center gap-1 text-yellow-700" role="alert">
                 <AlertCircle className="h-4 w-4" />
                 <span className="text-xs font-medium">Description required</span>
@@ -153,7 +153,7 @@ export function InvoiceTicketItem({ ticket, month, isLocked }: InvoiceTicketItem
                 placeholder="Enter ticket description"
                 className="min-h-[80px]"
                 maxLength={500}
-                aria-label={`Edit description for ticket #${ticket.id}`}
+                aria-label={`Edit description for ticket #${ticket.ticketId}`}
               />
               <div className="flex items-center gap-2">
                 <Button size="sm" onClick={handleSave} disabled={updateMutation.isPending}>
@@ -184,7 +184,7 @@ export function InvoiceTicketItem({ ticket, month, isLocked }: InvoiceTicketItem
                   size="sm"
                   variant="ghost"
                   onClick={handleEdit}
-                  aria-label={`Edit description for ticket #${ticket.id}`}
+                  aria-label={`Edit description for ticket #${ticket.ticketId}`}
                   className="h-8 w-8 p-0"
                 >
                   <Pencil className="h-4 w-4" />

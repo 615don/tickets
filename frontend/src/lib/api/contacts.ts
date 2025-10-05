@@ -18,27 +18,27 @@ export interface UpdateContactRequest extends CreateContactRequest {
 
 export interface ContactResponse {
   id: number;
-  client_id: number;
-  client_name: string;
+  clientId: number;
+  clientName: string;
   name: string;
   email: string;
-  is_system_contact: boolean;
-  created_at: string;
-  updated_at: string;
+  isSystemContact: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /**
- * Transform backend snake_case response to frontend camelCase
+ * Transform backend response to frontend Contact type
  */
 function transformContact(data: ContactResponse): Contact {
   return {
     id: data.id,
-    clientId: data.client_id,
-    clientName: data.client_name,
+    clientId: data.clientId,
+    clientName: data.clientName,
     name: data.name,
     email: data.email,
-    isSystemContact: data.is_system_contact,
-    createdAt: data.created_at,
+    isSystemContact: data.isSystemContact,
+    createdAt: data.createdAt,
   };
 }
 

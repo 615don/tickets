@@ -59,21 +59,13 @@ export function useUpdateTicketDescription(month: string) {
           const updatedClients = old.clients.map((client) => ({
             ...client,
             tickets: client.tickets.map((ticket) => {
-              if (ticket.id === ticketId) {
-                const newHasMissingDescription = !description || description.trim().length === 0;
-                // If was missing and now isn't, decrement count
-                if (ticket.hasMissingDescription && !newHasMissingDescription) {
-                  descriptionCountDelta = -1;
-                }
-                // If wasn't missing and now is, increment count
-                else if (!ticket.hasMissingDescription && newHasMissingDescription) {
-                  descriptionCountDelta = 1;
-                }
+              if (ticket.ticketId === ticketId) {
+                const newMissingDescription = !description || description.trim().length === 0;
 
                 return {
                   ...ticket,
                   description,
-                  hasMissingDescription: newHasMissingDescription,
+                  missingDescription: newMissingDescription,
                 };
               }
               return ticket;
@@ -83,10 +75,6 @@ export function useUpdateTicketDescription(month: string) {
           return {
             ...old,
             clients: updatedClients,
-            summary: {
-              ...old.summary,
-              missingDescriptionCount: Math.max(0, old.summary.missingDescriptionCount + descriptionCountDelta),
-            },
           };
         });
       }
