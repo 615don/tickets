@@ -601,3 +601,132 @@ describe('Ticket Creation API - Integration Tests (TD-003)', () => {
     });
   });
 });
+
+describe('Dashboard Endpoints - Integration Tests', () => {
+  let testClientId;
+  let testContactId;
+
+  before(async () => {
+    // Create test client
+    const client = await Client.create({
+      companyName: 'Test Company for Dashboard',
+      maintenanceContractType: 'Hourly',
+      domains: ['test-dashboard.com']
+    });
+    testClientId = client.id;
+
+    // Create test contact
+    const contact = await Contact.create({
+      clientId: testClientId,
+      name: 'Test Contact',
+      email: 'test-dashboard@test.com'
+    });
+    testContactId = contact.id;
+  });
+
+  after(async () => {
+    // Clean up test data
+    if (testClientId) {
+      await query('DELETE FROM clients WHERE id = $1', [testClientId]);
+    }
+  });
+
+  describe('Recently closed tickets', () => {
+    it('should return tickets closed within last 7 days', async () => {
+      // Create a ticket and close it
+      const ticket1 = await Ticket.create({
+        clientId: testClientId,
+        contactId: testContactId,
+        description: 'Recently closed ticket',
+        state: 'open'
+      });
+      await Ticket.close(ticket1.id);
+
+      // Create another ticket and close it 8 days ago (should not appear)
+      const ticket2 = await Ticket.create({
+        clientId: testClientId,
+        contactId: testContactId,
+        description: 'Old closed ticket',
+        state: 'open'
+      });
+      await Ticket.close(ticket2.id);
+      await query(
+        `UPDATE tickets SET closed_at = NOW() - INTERVAL '8 days' WHERE id = $1`,
+        [ticket2.id]
+      );
+
+      // Find recently closed tickets
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const recentlyClosed = await Ticket.findAll({
+        state: 'closed',
+        closedSince: sevenDaysAgo.toISOString()
+      });
+
+      // Should include ticket1 but not ticket2
+      const foundTicket1 = recentlyClosed.find(t => t.id === ticket1.id);
+      const foundTicket2 = recentlyClosed.find(t => t.id === ticket2.id);
+
+      assert.ok(foundTicket1, 'Recently closed ticket should be in results');
+      assert.strictEqual(foundTicket2, undefined, 'Old closed ticket should not be in results');
+
+      // Cleanup
+      await Ticket.delete(ticket1.id);
+      await Ticket.delete(ticket2.id);
+    });
+  });
+
+  describe('Dashboard stats', () => {
+    it('should calculate current month hours correctly', async () => {
+      // Create a ticket with time entries for current month
+      const ticket = await Ticket.create({
+        clientId: testClientId,
+        contactId: testContactId,
+        description: 'Test ticket for stats',
+        state: 'open'
+      });
+
+      const currentMonth = new Date().toISOString().substring(0, 7) + '-01';
+
+      // Add time entries
+      await TimeEntry.create({
+        ticketId: ticket.id,
+        duration: '2h',
+        workDate: currentMonth,
+        billable: true
+      });
+
+      await TimeEntry.create({
+        ticketId: ticket.id,
+        duration: '1.5h',
+        workDate: currentMonth,
+        billable: true
+      });
+
+      // Add non-billable entry (should not count)
+      await TimeEntry.create({
+        ticketId: ticket.id,
+        duration: '1h',
+        workDate: currentMonth,
+        billable: false
+      });
+
+      // Get stats through database query (simulating controller logic)
+      const result = await query(
+        `SELECT COALESCE(SUM(duration_hours), 0) as total_hours
+         FROM time_entries
+         WHERE billable = true
+           AND deleted_at IS NULL
+           AND work_date >= $1::date
+           AND work_date < ($1::date + INTERVAL '1 month')`,
+        [currentMonth]
+      );
+
+      const totalHours = parseFloat(result.rows[0].total_hours);
+      assert.ok(totalHours >= 3.5, 'Total hours should be at least 3.5 (2 + 1.5)');
+
+      // Cleanup
+      await Ticket.delete(ticket.id);
+    });
+  });
+});

@@ -6,7 +6,7 @@ interface TicketRowProps {
   onClick: () => void;
   showCloseButton?: boolean;
   onReopen?: (id: number) => void;
-  variant?: 'desktop' | 'mobile';
+  variant?: 'desktop' | 'mobile' | 'desktop-closed';
 }
 
 export const TicketRow = ({ ticket, onClick, showCloseButton, onReopen, variant = 'desktop' }: TicketRowProps) => {
@@ -21,7 +21,27 @@ export const TicketRow = ({ ticket, onClick, showCloseButton, onReopen, variant 
     }
   };
 
-  // Desktop view - table row
+  // Desktop view for recently closed (no ticket ID column, no reopen button)
+  if (variant === 'desktop-closed') {
+    return (
+      <tr className="border-b border-border hover:bg-muted/50 cursor-pointer transition-colors" onClick={onClick}>
+        <td className="py-3 px-4 text-sm text-foreground">
+          {ticket.clientName}
+        </td>
+        <td className="py-3 px-4 text-sm text-muted-foreground">
+          {ticket.contactName}
+        </td>
+        <td className="py-3 px-4 text-sm text-muted-foreground">
+          {ticket.description || '—'}
+        </td>
+        <td className="py-3 px-4 text-sm font-medium text-foreground">
+          {ticket.totalHours}h
+        </td>
+      </tr>
+    );
+  }
+
+  // Desktop view - table row (for open tickets)
   if (variant === 'desktop') {
     return (
       <tr className="border-b border-border hover:bg-muted/50 cursor-pointer transition-colors">

@@ -15,6 +15,8 @@ export const ticketKeys = {
   list: (filters: string) => [...ticketKeys.lists(), filters] as const,
   details: () => [...ticketKeys.all, 'detail'] as const,
   detail: (id: number) => [...ticketKeys.details(), id] as const,
+  recentlyClosed: () => [...ticketKeys.all, 'recently-closed'] as const,
+  stats: () => [...ticketKeys.all, 'stats'] as const,
 };
 
 /**
@@ -24,6 +26,30 @@ export function useOpenTickets() {
   return useQuery({
     queryKey: ticketKeys.list('state=open'),
     queryFn: () => ticketsApi.getAll({ state: 'open' }),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true,
+  });
+}
+
+/**
+ * Fetch recently closed tickets (last 7 days)
+ */
+export function useRecentlyClosedTickets() {
+  return useQuery({
+    queryKey: ticketKeys.recentlyClosed(),
+    queryFn: () => ticketsApi.getRecentlyClosed(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true,
+  });
+}
+
+/**
+ * Fetch dashboard stats
+ */
+export function useDashboardStats() {
+  return useQuery({
+    queryKey: ticketKeys.stats(),
+    queryFn: () => ticketsApi.getStats(),
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: true,
   });

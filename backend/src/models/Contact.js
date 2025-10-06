@@ -96,7 +96,7 @@ export const Contact = {
         cl.company_name as client_name
       FROM contacts c
       JOIN clients cl ON c.client_id = cl.id
-      WHERE c.deleted_at IS NULL
+      WHERE c.deleted_at IS NULL AND c.is_system_contact = FALSE
     `;
 
     const params = [];

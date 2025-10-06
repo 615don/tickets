@@ -11,12 +11,30 @@ import {
   getAllTickets,
   getTicketById,
   updateTicket,
-  addTimeEntry
+  addTimeEntry,
+  getRecentlyClosedTickets,
+  getDashboardStats
 } from '../controllers/ticketController.js';
 
 const router = express.Router();
 
 // All ticket routes require authentication
+
+// Dashboard stats endpoint
+router.get(
+  '/stats',
+  requireAuth,
+  getDashboardStats
+);
+
+// Recently closed tickets endpoint
+router.get(
+  '/recently-closed',
+  requireAuth,
+  getRecentlyClosedTickets
+);
+
+// Get all tickets
 router.get(
   '/',
   requireAuth,

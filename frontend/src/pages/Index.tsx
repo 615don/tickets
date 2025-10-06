@@ -1,13 +1,15 @@
 import { useNavigate } from 'react-router-dom';
 import { Dashboard } from '@/components/Dashboard';
-import { useOpenTickets } from '@/hooks/useTickets';
+import { useOpenTickets, useRecentlyClosedTickets, useDashboardStats } from '@/hooks/useTickets';
 import { useUpdateTicket } from '@/hooks/useTickets';
 import { Loader2 } from 'lucide-react';
 import { DashboardStats } from '@/types';
 
 const Index = () => {
   const navigate = useNavigate();
-  const { data: openTickets, isLoading } = useOpenTickets();
+  const { data: openTickets, isLoading: isLoadingOpen } = useOpenTickets();
+  const { data: recentlyClosedTickets, isLoading: isLoadingClosed } = useRecentlyClosedTickets();
+  const { data: dashboardStats, isLoading: isLoadingStats } = useDashboardStats();
   const updateTicket = useUpdateTicket();
 
   const handleTicketClick = (id: number) => {
@@ -30,6 +32,8 @@ const Index = () => {
     navigate('/tickets/create');
   };
 
+  const isLoading = isLoadingOpen || isLoadingClosed || isLoadingStats;
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -38,20 +42,20 @@ const Index = () => {
     );
   }
 
-  // Calculate stats from actual data
+  // Combine stats from API with open ticket count
   const stats: DashboardStats = {
-    currentMonthHours: openTickets?.reduce((sum, ticket) => sum + ticket.totalHours, 0) || 0,
+    currentMonthHours: dashboardStats?.currentMonthHours || 0,
     openTicketCount: openTickets?.length || 0,
-    recentlyClosedCount: 0, // TODO: Add closed tickets query
-    lastInvoiceDate: '',
-    lastInvoicedMonth: 'N/A'
+    recentlyClosedCount: recentlyClosedTickets?.length || 0,
+    lastInvoiceDate: dashboardStats?.lastInvoiceDate || '',
+    lastInvoicedMonth: dashboardStats?.lastInvoicedMonth || 'N/A'
   };
 
   return (
     <Dashboard
       stats={stats}
       openTickets={openTickets || []}
-      recentlyClosedTickets={[]} // TODO: Add closed tickets query
+      recentlyClosedTickets={recentlyClosedTickets || []}
       onCreateTicket={handleCreateTicket}
       onReviewInvoices={handleReviewInvoices}
       onTicketClick={handleTicketClick}

@@ -99,6 +99,15 @@ export interface GetTicketsParams {
   clientId?: number;
 }
 
+/**
+ * Dashboard stats response from backend
+ */
+export interface DashboardStatsResponse {
+  currentMonthHours: number;
+  lastInvoiceDate: string;
+  lastInvoicedMonth: string;
+}
+
 export const ticketsApi = {
   /**
    * Get all tickets with optional filters
@@ -115,6 +124,21 @@ export const ticketsApi = {
     const url = `/api/tickets${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     const data = await apiClient.get<TicketResponse[]>(url);
     return data.map(transformTicket);
+  },
+
+  /**
+   * Get recently closed tickets (last 7 days)
+   */
+  getRecentlyClosed: async (): Promise<Ticket[]> => {
+    const data = await apiClient.get<TicketResponse[]>('/api/tickets/recently-closed');
+    return data.map(transformTicket);
+  },
+
+  /**
+   * Get dashboard statistics
+   */
+  getStats: async (): Promise<DashboardStatsResponse> => {
+    return await apiClient.get<DashboardStatsResponse>('/api/tickets/stats');
   },
 
   /**

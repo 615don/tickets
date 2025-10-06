@@ -160,9 +160,11 @@ export const Dashboard = ({
           {/* Recently Closed Tickets */}
           <section className="lg:col-span-2 hidden lg:block">
             <div className="bg-card border border-border rounded-lg overflow-hidden">
-              <div className="px-6 py-4 border-b border-border">
+              <div className="px-6 py-4 border-b border-border flex items-center gap-3">
                 <h2 className="text-lg font-semibold text-foreground">Recently Closed</h2>
-                <p className="text-sm text-muted-foreground">Last 7 days</p>
+                <span className="px-2.5 py-0.5 bg-primary/10 text-primary text-sm font-medium rounded-full">
+                  {stats.recentlyClosedCount}
+                </span>
               </div>
 
               {recentlyClosedTickets.length === 0 ? (
@@ -178,18 +180,17 @@ export const Dashboard = ({
                       <thead className="bg-muted/50">
                         <tr>
                           <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                            Ticket
+                            Client
                           </th>
                           <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                            Client
+                            Contact
+                          </th>
+                          <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Description
                           </th>
                           <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                             Hours
                           </th>
-                          <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                            Closed
-                          </th>
-                          <th className="py-3 px-4"></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -198,9 +199,7 @@ export const Dashboard = ({
                             key={ticket.id}
                             ticket={ticket}
                             onClick={() => onTicketClick(ticket.id)}
-                            showCloseButton
-                            onReopen={onReopenTicket}
-                            variant="desktop"
+                            variant="desktop-closed"
                           />
                         ))}
                       </tbody>

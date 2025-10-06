@@ -218,6 +218,70 @@ export const updateTicket = async (req, res) => {
   }
 };
 
+// GET /api/tickets/recently-closed - Get recently closed tickets (last 7 days)
+export const getRecentlyClosedTickets = async (req, res) => {
+  try {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const tickets = await Ticket.findAll({
+      state: 'closed',
+      closedSince: sevenDaysAgo.toISOString()
+    });
+
+    res.status(200).json(tickets);
+  } catch (error) {
+    console.error('Get recently closed tickets error:', error);
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: error.message
+    });
+  }
+};
+
+// GET /api/tickets/stats - Get dashboard statistics
+export const getDashboardStats = async (req, res) => {
+  try {
+    const dbClient = await getClient();
+
+    // Get current month hours (billable only)
+    const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
+    const currentMonthResult = await dbClient.query(
+      `SELECT COALESCE(SUM(duration_hours), 0) as total_hours
+       FROM time_entries
+       WHERE billable = true
+         AND deleted_at IS NULL
+         AND work_date >= $1::date
+         AND work_date < ($1::date + INTERVAL '1 month')`,
+      [currentMonth + '-01']
+    );
+
+    // Get last invoice month
+    const lastInvoiceResult = await dbClient.query(
+      `SELECT month, locked_at
+       FROM invoice_locks
+       ORDER BY month DESC
+       LIMIT 1`
+    );
+
+    const stats = {
+      currentMonthHours: parseFloat(currentMonthResult.rows[0]?.total_hours || 0),
+      lastInvoiceDate: lastInvoiceResult.rows[0]?.locked_at || '',
+      lastInvoicedMonth: lastInvoiceResult.rows[0]?.month
+        ? lastInvoiceResult.rows[0].month.toISOString().substring(0, 7)
+        : 'N/A'
+    };
+
+    res.status(200).json(stats);
+  } catch (error) {
+    console.error('Get dashboard stats error:', error);
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: error.message
+    });
+  }
+};
+
 // POST /api/tickets/:id/time-entries - Add time entry to ticket
 export const addTimeEntry = async (req, res) => {
   try {

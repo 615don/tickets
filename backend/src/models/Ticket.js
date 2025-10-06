@@ -129,6 +129,13 @@ export const Ticket = {
       paramCount++;
     }
 
+    // Filter by closed_at date (for recently closed)
+    if (filters.closedSince) {
+      conditions.push(`t.closed_at >= $${paramCount}`);
+      params.push(filters.closedSince);
+      paramCount++;
+    }
+
     if (conditions.length > 0) {
       sql += ' WHERE ' + conditions.join(' AND ');
     }
