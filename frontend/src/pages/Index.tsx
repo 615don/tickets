@@ -32,6 +32,10 @@ const Index = () => {
     navigate('/tickets/create');
   };
 
+  const handleViewAllClosed = () => {
+    navigate('/tickets?state=recently-closed');
+  };
+
   const isLoading = isLoadingOpen || isLoadingClosed || isLoadingStats;
 
   if (isLoading) {
@@ -60,6 +64,7 @@ const Index = () => {
       onReviewInvoices={handleReviewInvoices}
       onTicketClick={handleTicketClick}
       onReopenTicket={handleReopenTicket}
+      onViewAllClosed={handleViewAllClosed}
     />
   );
 };

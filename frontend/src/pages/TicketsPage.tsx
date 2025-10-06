@@ -1,10 +1,12 @@
 /**
- * Open Tickets Page - Displays all currently open tickets
+ * Tickets Page - Displays tickets with filtering by state
  */
 
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useOpenTickets } from '@/hooks/useTickets';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { ticketsApi } from '@/lib/api/tickets';
+import { ticketKeys } from '@/hooks/useTickets';
 import { PageHeader } from '@/components/PageHeader';
 import { SearchBar } from '@/components/SearchBar';
 import { EmptyState } from '@/components/EmptyState';
@@ -16,6 +18,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Ticket, ArrowUpDown, Loader2 } from 'lucide-react';
@@ -23,11 +32,40 @@ import { formatDistanceToNow } from 'date-fns';
 import type { Ticket as TicketType } from '@/types';
 import { ApiError } from '@/lib/api-client';
 
-const OpenTicketsPage = () => {
+type FilterState = 'open' | 'recently-closed' | 'closed';
+
+const TicketsPage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortAsc, setSortAsc] = useState(true);
-  const { data: tickets = [], isLoading, error } = useOpenTickets();
+
+  // Get filter from URL query param, default to 'open'
+  const urlFilter = searchParams.get('state') as FilterState | null;
+  const [filterState, setFilterState] = useState<FilterState>(urlFilter || 'open');
+
+  // Update filter when URL changes
+  useEffect(() => {
+    const urlState = searchParams.get('state') as FilterState | null;
+    if (urlState && ['open', 'recently-closed', 'closed'].includes(urlState)) {
+      setFilterState(urlState);
+    }
+  }, [searchParams]);
+
+  // Fetch tickets based on filter
+  const { data: tickets = [], isLoading, error } = useQuery({
+    queryKey: filterState === 'recently-closed'
+      ? ticketKeys.recentlyClosed()
+      : ticketKeys.list(`state=${filterState === 'open' ? 'open' : 'closed'}`),
+    queryFn: () => {
+      if (filterState === 'recently-closed') {
+        return ticketsApi.getRecentlyClosed();
+      }
+      return ticketsApi.getAll({ state: filterState === 'open' ? 'open' : 'closed' });
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true,
+  });
 
   const filteredTickets = useMemo(() => {
     const filtered = tickets.filter((ticket) =>
@@ -48,6 +86,16 @@ const OpenTicketsPage = () => {
     navigate(`/tickets/${id}`);
   };
 
+  const handleFilterChange = (value: FilterState) => {
+    setFilterState(value);
+    // Update URL to reflect filter state
+    if (value === 'open') {
+      setSearchParams({}); // Remove query param for default state
+    } else {
+      setSearchParams({ state: value });
+    }
+  };
+
   const formatHours = (hours: number) => {
     return `${hours.toFixed(1)}h`;
   };
@@ -56,11 +104,35 @@ const OpenTicketsPage = () => {
     return formatDistanceToNow(new Date(dateString), { addSuffix: true });
   };
 
+  const getEmptyMessage = () => {
+    switch (filterState) {
+      case 'open':
+        return 'No open tickets. All work is complete!';
+      case 'recently-closed':
+        return 'No tickets closed in the last 7 days.';
+      case 'closed':
+        return 'No closed tickets found.';
+      default:
+        return 'No tickets found.';
+    }
+  };
+
+  const getPageTitle = () => {
+    switch (filterState) {
+      case 'recently-closed':
+        return 'Recently Closed Tickets';
+      case 'closed':
+        return 'Closed Tickets';
+      default:
+        return 'Tickets';
+    }
+  };
+
   // Show error state
   if (error) {
     return (
       <div className="container mx-auto py-8 px-4">
-        <PageHeader title="Open Tickets" />
+        <PageHeader title="Tickets" />
         <EmptyState
           icon={Ticket}
           message={`Failed to load tickets: ${(error as ApiError).message}`}
@@ -74,7 +146,7 @@ const OpenTicketsPage = () => {
   return (
     <div className="container mx-auto py-8 px-4">
       <PageHeader
-        title="Open Tickets"
+        title={getPageTitle()}
         count={tickets.length}
         primaryAction={{
           label: 'Create Ticket',
@@ -82,15 +154,33 @@ const OpenTicketsPage = () => {
         }}
       />
 
-      <div className="mb-6">
-        <SearchBar
-          placeholder="Search by client, contact, or ticket ID..."
-          value={searchQuery}
-          onChange={setSearchQuery}
-          onClear={() => setSearchQuery('')}
-        />
+      <div className="mb-6 space-y-4">
+        {/* Filter dropdown */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="w-full sm:w-64">
+            <Select value={filterState} onValueChange={handleFilterChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by state" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="open">Open Tickets</SelectItem>
+                <SelectItem value="recently-closed">Recently Closed (7 days)</SelectItem>
+                <SelectItem value="closed">All Closed Tickets</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex-1">
+            <SearchBar
+              placeholder="Search by client, contact, or ticket ID..."
+              value={searchQuery}
+              onChange={setSearchQuery}
+              onClear={() => setSearchQuery('')}
+            />
+          </div>
+        </div>
+
         {searchQuery && (
-          <p className="text-sm text-muted-foreground mt-2">
+          <p className="text-sm text-muted-foreground">
             Showing {filteredTickets.length} of {tickets.length} tickets
           </p>
         )}
@@ -103,7 +193,7 @@ const OpenTicketsPage = () => {
       ) : filteredTickets.length === 0 && !searchQuery ? (
         <EmptyState
           icon={Ticket}
-          message="No open tickets. All work is complete!"
+          message={getEmptyMessage()}
           actionLabel="Create Ticket"
           onAction={() => navigate('/tickets/create')}
         />
@@ -194,4 +284,4 @@ const OpenTicketsPage = () => {
   );
 };
 
-export default OpenTicketsPage;
+export default TicketsPage;

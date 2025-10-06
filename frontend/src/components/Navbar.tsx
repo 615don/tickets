@@ -14,7 +14,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { path: '/', label: 'Dashboard', icon: <Home size={18} /> },
-  { path: '/tickets', label: 'Open Tickets', icon: <Ticket size={18} /> },
+  { path: '/tickets', label: 'Tickets', icon: <Ticket size={18} /> },
   { path: '/tickets/create', label: 'Create Ticket', icon: <Plus size={18} /> },
   { path: '/clients', label: 'Clients', icon: <Users size={18} /> },
   { path: '/contacts', label: 'Contacts', icon: <User size={18} /> },

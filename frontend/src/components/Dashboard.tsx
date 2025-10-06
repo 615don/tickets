@@ -13,6 +13,7 @@ interface DashboardProps {
   onReviewInvoices: () => void;
   onTicketClick: (id: number) => void;
   onReopenTicket: (id: number) => void;
+  onViewAllClosed: () => void;
 }
 
 export const Dashboard = ({
@@ -22,7 +23,8 @@ export const Dashboard = ({
   onCreateTicket,
   onReviewInvoices,
   onTicketClick,
-  onReopenTicket
+  onReopenTicket,
+  onViewAllClosed
 }: DashboardProps) => {
   
   const getHoursIndicator = (hours: number): 'success' | 'warning' | 'error' => {
@@ -219,6 +221,17 @@ export const Dashboard = ({
                       />
                     ))}
                   </div>
+
+                  {recentlyClosedTickets.length > 10 && (
+                    <div className="px-6 py-4 border-t border-border text-center">
+                      <button
+                        onClick={onViewAllClosed}
+                        className="text-primary hover:text-primary/80 text-sm font-medium"
+                      >
+                        View All ({recentlyClosedTickets.length})
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>
