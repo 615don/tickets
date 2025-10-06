@@ -204,8 +204,7 @@ export const getOnlineInvoiceUrl = async (req, res) => {
       });
     }
 
-    // Get authenticated Xero client
-    const xeroClient = await createAuthenticatedXeroClient();
+    // Get active Xero connection
     const connection = await XeroConnection.getActiveConnection();
 
     if (!connection) {
@@ -214,6 +213,12 @@ export const getOnlineInvoiceUrl = async (req, res) => {
         message: 'Xero is not connected. Please connect to Xero in Settings.'
       });
     }
+
+    // Create authenticated Xero client
+    const xeroClient = await createAuthenticatedXeroClient({
+      access_token: connection.access_token,
+      refresh_token: connection.refresh_token
+    });
 
     const tenantId = connection.organization_id;
 

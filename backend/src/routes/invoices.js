@@ -1,7 +1,7 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { validateMonthFormat } from '../middleware/validation.js';
-import { previewInvoice, generateInvoices, getInvoiceHistory, deleteInvoiceLock } from '../controllers/invoiceController.js';
+import { previewInvoice, generateInvoices, getInvoiceHistory, deleteInvoiceLock, deleteInvoiceFromLock } from '../controllers/invoiceController.js';
 import { body } from 'express-validator';
 
 const router = express.Router();
@@ -29,7 +29,14 @@ router.post(
   generateInvoices
 );
 
-// DELETE /api/invoices/:id
+// DELETE /api/invoices/:id/invoice/:invoiceId - Delete individual invoice from lock
+router.delete(
+  '/:id/invoice/:invoiceId',
+  requireAuth,
+  deleteInvoiceFromLock
+);
+
+// DELETE /api/invoices/:id - Delete entire invoice lock
 router.delete(
   '/:id',
   requireAuth,

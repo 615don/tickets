@@ -51,3 +51,29 @@ export function useDeleteInvoiceLock() {
     },
   });
 }
+
+/**
+ * Delete an individual invoice from a lock
+ */
+export function useDeleteInvoiceFromLock() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ lockId, invoiceId }: { lockId: number; invoiceId: string }) => {
+      return await invoicesApi.deleteInvoiceFromLock(lockId, invoiceId);
+    },
+    onSuccess: (data) => {
+      // Invalidate and refetch invoice history
+      queryClient.invalidateQueries({ queryKey: invoiceHistoryKeys.list() });
+
+      // Log successful deletion for audit trail
+      console.log(
+        `Invoice deleted from lock: ${data.message}, Timestamp ${new Date().toISOString()}`
+      );
+    },
+    onError: (error: ApiError) => {
+      // Error handled in component UI
+      console.error('Invoice deletion failed:', error);
+    },
+  });
+}

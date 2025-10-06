@@ -43,9 +43,19 @@ export async function deleteInvoiceLock(id: number): Promise<DeleteInvoiceLockRe
   return apiClient.delete<DeleteInvoiceLockResponse>(`/api/invoices/${id}`);
 }
 
+/**
+ * Delete an individual invoice from a lock
+ * @param lockId - Invoice lock ID
+ * @param invoiceId - Xero invoice ID to remove
+ */
+export async function deleteInvoiceFromLock(lockId: number, invoiceId: string): Promise<DeleteInvoiceLockResponse> {
+  return apiClient.delete<DeleteInvoiceLockResponse>(`/api/invoices/${lockId}/invoice/${invoiceId}`);
+}
+
 export const invoicesApi = {
   getInvoicePreview,
   generateInvoices,
   getInvoiceHistory,
   deleteInvoiceLock,
+  deleteInvoiceFromLock,
 };

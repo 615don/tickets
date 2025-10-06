@@ -421,9 +421,13 @@ export const generateInvoices = async (req, res) => {
     await dbClient.query('BEGIN');
 
     const xeroInvoiceIds = [];
+    const invoiceMetadata = [];
 
     // Push invoices to Xero
-    for (const invoice of xeroInvoices) {
+    for (let i = 0; i < xeroInvoices.length; i++) {
+      const invoice = xeroInvoices[i];
+      const clientData = clients[i]; // Corresponding client data
+
       try {
         const response = await xeroClient.accountingApi.createInvoices(
           tenantId,
@@ -432,6 +436,15 @@ export const generateInvoices = async (req, res) => {
 
         const xeroInvoice = response.body.invoices[0];
         xeroInvoiceIds.push(xeroInvoice.invoiceID); // Store invoice ID (GUID) for OnlineInvoice API endpoint
+
+        // Store metadata for this invoice
+        invoiceMetadata.push({
+          clientId: clientData.clientId,
+          clientName: clientData.clientName,
+          xeroInvoiceId: xeroInvoice.invoiceID,
+          hours: clientData.subtotalHours,
+          lineItemCount: invoice.lineItems.length
+        });
       } catch (xeroError) {
         await dbClient.query('ROLLBACK');
 
@@ -463,7 +476,7 @@ export const generateInvoices = async (req, res) => {
 
     // Create invoice lock
     try {
-      await InvoiceLock.create(`${month}-01`, xeroInvoiceIds);
+      await InvoiceLock.create(`${month}-01`, xeroInvoiceIds, invoiceMetadata);
       await dbClient.query('COMMIT');
     } catch (lockError) {
       await dbClient.query('ROLLBACK');
@@ -503,22 +516,15 @@ export const generateInvoices = async (req, res) => {
  */
 export const getInvoiceHistory = async (req, res) => {
   try {
-    // Query invoice locks with aggregated data
+    // Query invoice locks with metadata
     const result = await query(
       `SELECT
         il.id,
         il.month,
         il.locked_at,
         il.xero_invoice_ids,
-        COALESCE(SUM(CASE WHEN te.billable = true THEN te.duration_hours ELSE 0 END), 0) AS total_billable_hours,
-        COUNT(DISTINCT t.client_id) AS client_count
+        il.invoice_metadata
       FROM invoice_locks il
-      LEFT JOIN time_entries te ON
-        te.work_date >= il.month
-        AND te.work_date < (il.month + INTERVAL '1 month')
-        AND te.deleted_at IS NULL
-      LEFT JOIN tickets t ON te.ticket_id = t.id
-      GROUP BY il.id, il.month, il.locked_at, il.xero_invoice_ids
       ORDER BY il.month DESC`
     );
 
@@ -528,8 +534,7 @@ export const getInvoiceHistory = async (req, res) => {
       month: row.month.toISOString().substring(0, 7), // Convert YYYY-MM-DD to YYYY-MM
       lockedAt: row.locked_at,
       xeroInvoiceIds: row.xero_invoice_ids || [], // JSONB already parsed by pg library
-      totalBillableHours: parseFloat(row.total_billable_hours || 0),
-      clientCount: parseInt(row.client_count || 0, 10)
+      invoices: row.invoice_metadata || [] // Individual invoice details
     }));
 
     res.json(history);
@@ -538,6 +543,64 @@ export const getInvoiceHistory = async (req, res) => {
     res.status(500).json({
       error: 'DatabaseError',
       message: 'Failed to retrieve invoice history'
+    });
+  }
+};
+
+/**
+ * DELETE /api/invoices/:id/invoice/:invoiceId
+ * Removes a specific invoice from a lock
+ */
+export const deleteInvoiceFromLock = async (req, res) => {
+  try {
+    const { id, invoiceId } = req.params;
+
+    // Validate IDs
+    const lockId = parseInt(id, 10);
+    if (isNaN(lockId)) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Invalid lock ID'
+      });
+    }
+
+    if (!invoiceId || typeof invoiceId !== 'string') {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Invalid invoice ID'
+      });
+    }
+
+    // Remove invoice from lock
+    const result = await InvoiceLock.removeInvoiceFromLock(lockId, invoiceId);
+
+    if (!result) {
+      return res.status(404).json({
+        error: 'NotFoundError',
+        message: 'Invoice lock not found'
+      });
+    }
+
+    if (result.deleted) {
+      // Entire lock was deleted because no invoices remained
+      res.json({
+        success: true,
+        lockDeleted: true,
+        message: 'Last invoice removed. Invoice lock has been deleted.'
+      });
+    } else {
+      // Lock was updated with remaining invoices
+      res.json({
+        success: true,
+        lockDeleted: false,
+        message: 'Invoice removed from lock successfully'
+      });
+    }
+  } catch (error) {
+    console.error('Error removing invoice from lock:', error);
+    res.status(500).json({
+      error: 'DatabaseError',
+      message: 'Failed to remove invoice from lock'
     });
   }
 };

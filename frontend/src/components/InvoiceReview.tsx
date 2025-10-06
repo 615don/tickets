@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Clock, Users, AlertCircle, Trash2, ExternalLink } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Clock, Users, AlertCircle, Trash2, ExternalLink, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from './PageHeader';
 import { Button } from './ui/button';
@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
-import { useInvoiceHistory, useDeleteInvoiceLock } from '@/hooks/useInvoiceHistory';
+import { useInvoiceHistory, useDeleteInvoiceLock, useDeleteInvoiceFromLock } from '@/hooks/useInvoiceHistory';
 import { InvoiceHistoryItem } from '@/types/invoice';
 import { Skeleton } from './ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -54,12 +54,46 @@ function formatDate(dateStr: string): string {
 function InvoiceHistoryCard({
   item,
   onDelete,
+  onDeleteInvoice,
 }: {
   item: InvoiceHistoryItem;
   onDelete: (item: InvoiceHistoryItem) => void;
+  onDeleteInvoice: (lockId: number, xeroInvoiceId: string, clientName: string) => void;
 }) {
   const monthDisplay = formatMonthDisplay(item.month);
   const lockedAtDisplay = formatDate(item.lockedAt);
+  const [invoiceUrls, setInvoiceUrls] = useState<Map<string, string>>(new Map());
+  const [loadingUrls, setLoadingUrls] = useState(false);
+
+  // Fetch Xero invoice URLs
+  useEffect(() => {
+    if (item.invoices && item.invoices.length > 0) {
+      const fetchInvoiceUrls = async () => {
+        setLoadingUrls(true);
+        const urlMap = new Map<string, string>();
+
+        for (const invoice of item.invoices) {
+          try {
+            const response = await fetch(
+              `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/xero/invoices/${invoice.xeroInvoiceId}/online-url`,
+              { credentials: 'include' }
+            );
+            if (response.ok) {
+              const urlData = await response.json();
+              urlMap.set(invoice.xeroInvoiceId, urlData.onlineInvoiceUrl);
+            }
+          } catch (err) {
+            console.error(`Failed to fetch URL for invoice ${invoice.xeroInvoiceId}:`, err);
+          }
+        }
+
+        setInvoiceUrls(urlMap);
+        setLoadingUrls(false);
+      };
+
+      fetchInvoiceUrls();
+    }
+  }, [item.invoices]);
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -81,33 +115,71 @@ function InvoiceHistoryCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <div className="font-medium">{item.totalBillableHours.toFixed(1)} hours</div>
-              <div className="text-xs text-muted-foreground">Billable</div>
-            </div>
+        {/* Individual Invoices */}
+        {item.invoices && item.invoices.length > 0 ? (
+          <div className="space-y-2">
+            {item.invoices.map((invoice, index) => {
+              const url = invoiceUrls.get(invoice.xeroInvoiceId);
+              return (
+                <div
+                  key={invoice.xeroInvoiceId || index}
+                  className="flex items-center justify-between p-3 bg-muted/50 rounded-md"
+                >
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <div className="font-medium">{invoice.clientName}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {invoice.hours.toFixed(1)} hours · {invoice.lineItemCount} {invoice.lineItemCount === 1 ? 'item' : 'items'}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {loadingUrls ? (
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm">Loading...</span>
+                      </div>
+                    ) : url ? (
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        <span className="text-sm">View in Xero</span>
+                      </a>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">URL unavailable</span>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onDeleteInvoice(item.id, invoice.xeroInvoiceId, invoice.clientName)}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8"
+                      title={`Delete invoice for ${invoice.clientName}`}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <div className="font-medium">
-                {item.clientCount} {item.clientCount === 1 ? 'client' : 'clients'}
+        ) : (
+          // Fallback for old records without metadata
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <ExternalLink className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <div className="font-medium">
+                  {item.xeroInvoiceIds.length} {item.xeroInvoiceIds.length === 1 ? 'invoice' : 'invoices'}
+                </div>
+                <div className="text-xs text-muted-foreground">In Xero</div>
               </div>
-              <div className="text-xs text-muted-foreground">Invoiced</div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <ExternalLink className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <div className="font-medium">
-                {item.xeroInvoiceIds.length} {item.xeroInvoiceIds.length === 1 ? 'invoice' : 'invoices'}
-              </div>
-              <div className="text-xs text-muted-foreground">In Xero</div>
-            </div>
-          </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -144,9 +216,13 @@ function InvoiceHistoryLoadingSkeleton() {
 export const InvoiceReview = () => {
   const { data: invoiceHistory, isLoading, error } = useInvoiceHistory();
   const deleteMutation = useDeleteInvoiceLock();
+  const deleteInvoiceMutation = useDeleteInvoiceFromLock();
   const { toast } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteInvoiceDialogOpen, setDeleteInvoiceDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceHistoryItem | null>(null);
+  const [selectedXeroInvoiceId, setSelectedXeroInvoiceId] = useState<string | null>(null);
+  const [selectedClientName, setSelectedClientName] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
 
   // Extract unique months from invoice history and sort descending
@@ -168,6 +244,16 @@ export const InvoiceReview = () => {
     setDeleteDialogOpen(true);
   };
 
+  const handleDeleteInvoiceClick = (lockId: number, xeroInvoiceId: string, clientName: string) => {
+    const lock = invoiceHistory?.find(item => item.id === lockId);
+    if (lock) {
+      setSelectedInvoice(lock);
+      setSelectedXeroInvoiceId(xeroInvoiceId);
+      setSelectedClientName(clientName);
+      setDeleteInvoiceDialogOpen(true);
+    }
+  };
+
   const handleDeleteConfirm = async () => {
     if (!selectedInvoice) return;
 
@@ -183,6 +269,33 @@ export const InvoiceReview = () => {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred while deleting the invoice lock.';
       toast({
         title: 'Failed to delete invoice lock',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeleteInvoiceConfirm = async () => {
+    if (!selectedInvoice || !selectedXeroInvoiceId) return;
+
+    try {
+      await deleteInvoiceMutation.mutateAsync({
+        lockId: selectedInvoice.id,
+        invoiceId: selectedXeroInvoiceId,
+      });
+
+      toast({
+        title: 'Invoice deleted',
+        description: `Invoice for ${selectedClientName} has been removed. Time entries can now be edited.`,
+      });
+      setDeleteInvoiceDialogOpen(false);
+      setSelectedInvoice(null);
+      setSelectedXeroInvoiceId(null);
+      setSelectedClientName(null);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred while deleting the invoice.';
+      toast({
+        title: 'Failed to delete invoice',
         description: errorMessage,
         variant: 'destructive',
       });
@@ -270,7 +383,12 @@ export const InvoiceReview = () => {
           <div className="space-y-4">
             {filteredInvoices.length > 0 ? (
               filteredInvoices.map((item) => (
-                <InvoiceHistoryCard key={item.id} item={item} onDelete={handleDeleteClick} />
+                <InvoiceHistoryCard
+                  key={item.id}
+                  item={item}
+                  onDelete={handleDeleteClick}
+                  onDeleteInvoice={handleDeleteInvoiceClick}
+                />
               ))
             ) : (
               <Card>
@@ -289,7 +407,7 @@ export const InvoiceReview = () => {
         )}
       </div>
 
-      {/* Delete confirmation dialog */}
+      {/* Delete month confirmation dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -309,6 +427,31 @@ export const InvoiceReview = () => {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete individual invoice confirmation dialog */}
+      <AlertDialog open={deleteInvoiceDialogOpen} onOpenChange={setDeleteInvoiceDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete invoice for {selectedClientName}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove this invoice from the lock and allow time entries for {selectedClientName} in{' '}
+              {selectedInvoice ? formatMonthDisplay(selectedInvoice.month) : ''} to be edited and re-invoiced.
+              This does NOT delete the invoice in Xero. You must manually void or delete the invoice in Xero if needed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteInvoiceConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

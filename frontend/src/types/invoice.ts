@@ -69,13 +69,20 @@ export interface InvoiceGenerationError {
   message: string; // Human-readable error message
 }
 
+export interface InvoiceMetadata {
+  clientId: number;
+  clientName: string;
+  xeroInvoiceId: string;
+  hours: number;
+  lineItemCount: number;
+}
+
 export interface InvoiceHistoryItem {
   id: number;
   month: string; // YYYY-MM format
   lockedAt: string; // ISO timestamp
   xeroInvoiceIds: string[]; // Array of Xero invoice IDs (GUIDs)
-  totalBillableHours: number;
-  clientCount: number;
+  invoices: InvoiceMetadata[]; // Individual invoice details
 }
 
 export interface DeleteInvoiceLockResponse {
