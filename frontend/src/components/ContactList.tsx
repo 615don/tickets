@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   Table,
@@ -330,6 +331,11 @@ export const ContactList = () => {
             <DialogTitle>
               {editingContact ? 'Edit Contact' : 'Add Contact'}
             </DialogTitle>
+            <DialogDescription>
+              {editingContact
+                ? 'Update contact information and client association.'
+                : 'Add a new contact and associate them with a client.'}
+            </DialogDescription>
           </DialogHeader>
           <ContactForm
             contact={editingContact || undefined}

@@ -163,6 +163,24 @@ const migrations = [
       VALUES (1, 'DRAFT')
       ON CONFLICT (id) DO NOTHING;
     `
+  },
+  {
+    name: '010_update_client_contract_types',
+    sql: `
+      -- Drop old CHECK constraint
+      ALTER TABLE clients DROP CONSTRAINT IF EXISTS clients_maintenance_contract_type_check;
+
+      -- Update existing values
+      UPDATE clients SET maintenance_contract_type = 'On Demand'
+      WHERE maintenance_contract_type IN ('Hourly', 'Project-Based', 'None');
+
+      UPDATE clients SET maintenance_contract_type = 'Regular Maintenance'
+      WHERE maintenance_contract_type = 'Monthly Retainer';
+
+      -- Add new CHECK constraint
+      ALTER TABLE clients ADD CONSTRAINT clients_maintenance_contract_type_check
+      CHECK (maintenance_contract_type IN ('On Demand', 'Regular Maintenance'));
+    `
   }
 ];
 

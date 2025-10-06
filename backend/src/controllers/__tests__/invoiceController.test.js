@@ -22,14 +22,14 @@ describe('Invoice Preview Controller - Integration Tests', () => {
     // Create test clients
     const client1 = await Client.create({
       companyName: 'Test Client Alpha',
-      maintenanceContractType: 'Hourly',
+      maintenanceContractType: 'On Demand',
       domains: ['alpha-test.com']
     });
     testClientId1 = client1.id;
 
     const client2 = await Client.create({
       companyName: 'Test Client Beta',
-      maintenanceContractType: 'Hourly',
+      maintenanceContractType: 'On Demand',
       domains: ['beta-test.com']
     });
     testClientId2 = client2.id;

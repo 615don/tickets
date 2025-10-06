@@ -15,7 +15,7 @@ describe('Ticket Close/Re-open Logic - Integration Tests', () => {
     // Create test client
     const client = await Client.create({
       companyName: 'Test Company for Ticket Close/Reopen',
-      maintenanceContractType: 'Hourly',
+      maintenanceContractType: 'On Demand',
       domains: ['test-close-reopen.com']
     });
     testClientId = client.id;
@@ -272,7 +272,7 @@ describe('Ticket Creation API - Integration Tests (TD-003)', () => {
     // Create test client 1
     const client1 = await Client.create({
       companyName: 'Test Company for Creation',
-      maintenanceContractType: 'Hourly',
+      maintenanceContractType: 'On Demand',
       domains: ['test-creation.com']
     });
     testClientId = client1.id;
@@ -288,7 +288,7 @@ describe('Ticket Creation API - Integration Tests (TD-003)', () => {
     // Create test client 2
     const client2 = await Client.create({
       companyName: 'Other Test Company',
-      maintenanceContractType: 'Hourly',
+      maintenanceContractType: 'On Demand',
       domains: ['other-test.com']
     });
     otherClientId = client2.id;
@@ -610,7 +610,7 @@ describe('Dashboard Endpoints - Integration Tests', () => {
     // Create test client
     const client = await Client.create({
       companyName: 'Test Company for Dashboard',
-      maintenanceContractType: 'Hourly',
+      maintenanceContractType: 'On Demand',
       domains: ['test-dashboard.com']
     });
     testClientId = client.id;

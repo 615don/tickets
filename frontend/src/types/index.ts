@@ -18,7 +18,7 @@ export interface Client {
   id: number;
   companyName: string;
   xeroCustomerId: string | null;
-  maintenanceContractType: 'Hourly' | 'Monthly Retainer' | 'Project-Based' | 'None';
+  maintenanceContractType: 'On Demand' | 'Regular Maintenance';
   domains: string[];
   contactCount: number;
   createdAt: string;

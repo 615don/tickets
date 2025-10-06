@@ -13,7 +13,7 @@ describe('Contact Model - Integration Tests', () => {
     // Create test clients
     const client1 = await Client.create({
       companyName: 'Test Company for Contacts',
-      maintenanceContractType: 'Hourly',
+      maintenanceContractType: 'On Demand',
       domains: ['test-contacts.com']
     });
     testClientId = client1.id;

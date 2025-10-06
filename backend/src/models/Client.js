@@ -4,7 +4,7 @@ import { query, getClient } from '../config/database.js';
 const DOMAIN_REGEX = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 // Valid maintenance contract types
-const VALID_CONTRACT_TYPES = ['Hourly', 'Monthly Retainer', 'Project-Based', 'None'];
+const VALID_CONTRACT_TYPES = ['On Demand', 'Regular Maintenance'];
 
 /**
  * Validates domain format

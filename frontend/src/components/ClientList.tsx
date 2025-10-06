@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   Table,
@@ -231,7 +232,7 @@ export const ClientList = () => {
                   </TableHead>
                   <TableHead>Domains</TableHead>
                   <TableHead>Xero ID</TableHead>
-                  <TableHead>Contract Type</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -311,6 +312,11 @@ export const ClientList = () => {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingClient ? 'Edit Client' : 'Add Client'}</DialogTitle>
+            <DialogDescription>
+              {editingClient
+                ? 'Update client information and email domains.'
+                : 'Add a new client with their company details and email domains.'}
+            </DialogDescription>
           </DialogHeader>
           <ClientForm
             client={editingClient || undefined}

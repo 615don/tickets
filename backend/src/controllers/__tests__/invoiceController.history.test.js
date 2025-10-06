@@ -23,14 +23,14 @@ describe('Invoice History Controller - Integration Tests', () => {
     const timestamp = Date.now();
     const client1 = await Client.create({
       companyName: 'Test Client Alpha History',
-      maintenanceContractType: 'Hourly',
+      maintenanceContractType: 'On Demand',
       domains: [`alpha-history-${timestamp}.com`]
     });
     testClientId1 = client1.id;
 
     const client2 = await Client.create({
       companyName: 'Test Client Beta History',
-      maintenanceContractType: 'Hourly',
+      maintenanceContractType: 'On Demand',
       domains: [`beta-history-${timestamp}.com`]
     });
     testClientId2 = client2.id;

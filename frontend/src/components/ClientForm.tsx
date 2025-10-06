@@ -19,7 +19,7 @@ const domainRegex = /^[a-z0-9-]+\.[a-z]{2,}$/i;
 const clientSchema = z.object({
   companyName: z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name must be less than 100 characters'),
   xeroCustomerId: z.string().optional(),
-  maintenanceContractType: z.enum(['Hourly', 'Monthly Retainer', 'Project-Based', 'None']),
+  maintenanceContractType: z.enum(['On Demand', 'Regular Maintenance']),
   domains: z.array(z.object({
     value: z.string().regex(domainRegex, 'Invalid domain format (e.g., example.com)').optional().or(z.literal(''))
   }))
@@ -47,7 +47,7 @@ export const ClientForm = ({ client, onSubmit, onCancel }: ClientFormProps) => {
     defaultValues: {
       companyName: client?.companyName || '',
       xeroCustomerId: client?.xeroCustomerId || '',
-      maintenanceContractType: client?.maintenanceContractType || 'Hourly',
+      maintenanceContractType: client?.maintenanceContractType || 'On Demand',
       domains: client?.domains.map(d => ({ value: d })) || [{ value: '' }],
     },
   });
@@ -90,20 +90,18 @@ export const ClientForm = ({ client, onSubmit, onCancel }: ClientFormProps) => {
 
       <div className="space-y-2">
         <Label htmlFor="maintenanceContractType">
-          Contract Type <span className="text-destructive">*</span>
+          Type <span className="text-destructive">*</span>
         </Label>
         <Select
           value={contractType}
-          onValueChange={(value) => setValue('maintenanceContractType', value as 'Hourly' | 'Monthly Retainer' | 'Project-Based' | 'None')}
+          onValueChange={(value) => setValue('maintenanceContractType', value as 'On Demand' | 'Regular Maintenance')}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select contract type" />
+            <SelectValue placeholder="Select type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="Hourly">Hourly</SelectItem>
-            <SelectItem value="Monthly Retainer">Monthly Retainer</SelectItem>
-            <SelectItem value="Project-Based">Project-Based</SelectItem>
-            <SelectItem value="None">None</SelectItem>
+            <SelectItem value="On Demand">On Demand</SelectItem>
+            <SelectItem value="Regular Maintenance">Regular Maintenance</SelectItem>
           </SelectContent>
         </Select>
         {errors.maintenanceContractType && (

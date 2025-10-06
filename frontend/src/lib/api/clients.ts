@@ -9,7 +9,7 @@ import { Client } from '@/types';
 export interface CreateClientRequest {
   companyName: string;
   xeroCustomerId?: string;
-  maintenanceContractType: 'Hourly' | 'Monthly Retainer' | 'Project-Based' | 'None';
+  maintenanceContractType: 'On Demand' | 'Regular Maintenance';
   domains: string[];
 }
 
@@ -21,7 +21,7 @@ export interface ClientResponse {
   id: number;
   company_name: string;
   xero_customer_id: string | null;
-  maintenance_contract_type: 'Hourly' | 'Monthly Retainer' | 'Project-Based' | 'None';
+  maintenance_contract_type: 'On Demand' | 'Regular Maintenance';
   domains: string[];
   contact_count: number;
   created_at: string;

@@ -20,7 +20,7 @@ describe('Time Entry Lock Validation - Integration Tests', () => {
     // Create test client
     testClient = await Client.create({
       companyName: 'Lock Test Company',
-      maintenanceContractType: 'Hourly',
+      maintenanceContractType: 'On Demand',
       domains: ['locktest.com']
     });
 
