@@ -9,6 +9,7 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public data?: any
   ) {
     super(message);
@@ -156,6 +157,7 @@ class ApiClient {
   /**
    * POST request
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async post<T>(endpoint: string, data?: any): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'POST',
@@ -166,6 +168,7 @@ class ApiClient {
   /**
    * PUT request
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async put<T>(endpoint: string, data?: any): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'PUT',

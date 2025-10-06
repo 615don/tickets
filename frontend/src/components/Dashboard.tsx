@@ -14,6 +14,7 @@ interface DashboardProps {
   onTicketClick: (id: number) => void;
   onReopenTicket: (id: number) => void;
   onViewAllClosed: () => void;
+  onViewAllOpen: () => void;
 }
 
 export const Dashboard = ({
@@ -24,7 +25,8 @@ export const Dashboard = ({
   onReviewInvoices,
   onTicketClick,
   onReopenTicket,
-  onViewAllClosed
+  onViewAllClosed,
+  onViewAllOpen
 }: DashboardProps) => {
   
   const getHoursIndicator = (hours: number): 'success' | 'warning' | 'error' => {
@@ -120,6 +122,9 @@ export const Dashboard = ({
                           <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                             Updated
                           </th>
+                          <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Actions
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -128,6 +133,7 @@ export const Dashboard = ({
                             key={ticket.id}
                             ticket={ticket}
                             onClick={() => onTicketClick(ticket.id)}
+                            onEdit={onTicketClick}
                             variant="desktop"
                           />
                         ))}
@@ -142,6 +148,7 @@ export const Dashboard = ({
                         key={ticket.id}
                         ticket={ticket}
                         onClick={() => onTicketClick(ticket.id)}
+                        onEdit={onTicketClick}
                         variant="mobile"
                       />
                     ))}
@@ -149,7 +156,10 @@ export const Dashboard = ({
 
                   {openTickets.length > 20 && (
                     <div className="px-6 py-4 border-t border-border text-center">
-                      <button className="text-primary hover:text-primary/80 text-sm font-medium">
+                      <button
+                        onClick={onViewAllOpen}
+                        className="text-primary hover:text-primary/80 text-sm font-medium"
+                      >
                         View All ({openTickets.length})
                       </button>
                     </div>

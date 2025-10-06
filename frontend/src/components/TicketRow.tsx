@@ -1,15 +1,17 @@
 import { Ticket } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
+import { Pencil } from 'lucide-react';
 
 interface TicketRowProps {
   ticket: Ticket;
   onClick: () => void;
   showCloseButton?: boolean;
   onReopen?: (id: number) => void;
+  onEdit?: (id: number) => void;
   variant?: 'desktop' | 'mobile' | 'desktop-closed';
 }
 
-export const TicketRow = ({ ticket, onClick, showCloseButton, onReopen, variant = 'desktop' }: TicketRowProps) => {
+export const TicketRow = ({ ticket, onClick, showCloseButton, onReopen, onEdit, variant = 'desktop' }: TicketRowProps) => {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
     try {
@@ -65,6 +67,20 @@ export const TicketRow = ({ ticket, onClick, showCloseButton, onReopen, variant 
             ? formatDate(ticket.closedAt)
             : formatDate(ticket.updatedAt)}
         </td>
+        {onEdit && (
+          <td className="py-3 px-4">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(ticket.id);
+              }}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Edit ticket"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+          </td>
+        )}
         {showCloseButton && onReopen && (
           <td className="py-3 px-4">
             <button
@@ -93,7 +109,21 @@ export const TicketRow = ({ ticket, onClick, showCloseButton, onReopen, variant 
           <p className="text-sm font-medium text-foreground">#{ticket.id}</p>
           <p className="text-xs text-muted-foreground">{ticket.clientName}</p>
         </div>
-        <span className="text-sm font-medium text-foreground">{ticket.totalHours}h</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-foreground">{ticket.totalHours}h</span>
+          {onEdit && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(ticket.id);
+              }}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Edit ticket"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
       <p className="text-sm text-muted-foreground mb-2">{ticket.contactName}</p>
       {ticket.description && (

@@ -54,7 +54,7 @@ export function useUpdateTicketDescription(month: string) {
           if (!old) return old;
 
           // Track if this update changes missing description status
-          let descriptionCountDelta = 0;
+          const descriptionCountDelta = 0;
 
           const updatedClients = old.clients.map((client) => ({
             ...client,

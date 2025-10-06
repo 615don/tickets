@@ -65,6 +65,7 @@ export function validatePasswordStrength(password: string): PasswordValidationRe
   }
 
   // Check for special character
+  // eslint-disable-next-line no-useless-escape
   if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
     errors.push('Password must contain at least one special character (!@#$%^&*()_+-=[]{};\':"|,.<>/?)');
   }
@@ -111,6 +112,7 @@ export function getPasswordStrength(password: string): number {
     /[A-Z]/.test(password),
     /[a-z]/.test(password),
     /[0-9]/.test(password),
+    // eslint-disable-next-line no-useless-escape
     /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
     !COMMON_PASSWORDS.has(password.toLowerCase()),
     password.length >= 12, // Bonus for longer passwords
