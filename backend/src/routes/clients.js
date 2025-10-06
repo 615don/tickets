@@ -28,7 +28,7 @@ const clientValidation = [
     .isLength({ max: 255 })
     .withMessage('Xero customer ID must be less than 255 characters'),
   body('maintenanceContractType')
-    .isIn(['Hourly', 'Monthly Retainer', 'Project-Based', 'None'])
+    .isIn(['On Demand', 'Regular Maintenance'])
     .withMessage('Invalid maintenance contract type'),
   body('domains')
     .optional()

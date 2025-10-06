@@ -80,6 +80,7 @@ export function useUpdateClient() {
     },
     onError: (error: ApiError) => {
       console.error('Update client failed:', error.message);
+      console.error('Full error:', error);
     },
   });
 }
