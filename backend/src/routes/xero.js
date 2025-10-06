@@ -4,7 +4,8 @@ import {
   handleCallback,
   getStatus,
   disconnect,
-  getOnlineInvoiceUrl
+  getOnlineInvoiceUrl,
+  getContacts
 } from '../controllers/xeroController.js';
 import { requireAuth } from '../middleware/auth.js';
 import { oauthRateLimiter } from '../middleware/rateLimiter.js';
@@ -23,6 +24,9 @@ router.get('/status', requireAuth, getStatus);
 
 // POST /api/xero/disconnect - Disconnect Xero (requires auth)
 router.post('/disconnect', requireAuth, disconnect);
+
+// GET /api/xero/contacts - Get all Xero contacts/customers (requires auth)
+router.get('/contacts', requireAuth, getContacts);
 
 // GET /api/xero/invoices/:invoiceId/online-url - Get online invoice URL (requires auth)
 router.get('/invoices/:invoiceId/online-url', requireAuth, getOnlineInvoiceUrl);

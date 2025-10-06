@@ -78,20 +78,21 @@ export function InvoicePreview() {
   // Parse mutation error
   const parsedError: InvoiceGenerationError | null = useMemo(() => {
     if (!mutationError) return null;
-    // ApiError from api-client has body property with error details
+
+    // ApiError from api-client has data property with error details
     const apiError = mutationError as unknown;
     if (
       apiError &&
       typeof apiError === 'object' &&
-      'body' in apiError &&
-      apiError.body &&
-      typeof apiError.body === 'object' &&
-      'error' in apiError.body &&
-      'message' in apiError.body
+      'data' in apiError &&
+      apiError.data &&
+      typeof apiError.data === 'object' &&
+      'error' in apiError.data &&
+      'message' in apiError.data
     ) {
       return {
-        error: (apiError.body as { error: string }).error,
-        message: (apiError.body as { message: string }).message,
+        error: (apiError.data as { error: string }).error,
+        message: (apiError.data as { message: string }).message,
       };
     }
     // Fallback for network errors or unexpected errors

@@ -136,4 +136,27 @@ so that **I can authenticate the application with my Xero account**.
 8. Error messages displayed for connection failures (invalid credentials, network errors)
 9. Help text explains why Xero connection is required
 
+## Story 4.8: Invoice History List
+
+As a **user**,
+I want **to view a list of all generated invoices with the ability to delete individual invoices**,
+so that **I can track my invoicing history and correct mistakes by re-invoicing if needed**.
+
+### Acceptance Criteria
+
+1. Invoice Review page (`/invoices`) displays real data from `invoice_locks` table instead of mock data
+2. Page shows list of all months that have been invoiced, grouped by month
+3. Each invoice entry displays: month name, lock date/time, number of Xero invoice IDs, total billable hours for that month
+4. "Generate Invoices" button removed from the invoice list page (functionality already exists in `/invoices/preview`)
+5. Each invoice entry has a "Delete" action button/icon
+6. Clicking "Delete" shows confirmation dialog: "Delete invoice lock for [Month YYYY]? This will allow time entries for this month to be edited and re-invoiced. This does NOT delete the invoice in Xero."
+7. User confirms deletion, system calls delete API endpoint
+8. Successful deletion removes the invoice_lock record from database
+9. After deletion, month becomes editable again and can be re-invoiced via `/invoices/preview`
+10. Delete action requires authentication
+11. Error handling for delete failures (database errors, network errors)
+12. Page shows empty state when no invoices have been generated yet
+13. Loading state shown while fetching invoice data
+14. List sorted by month descending (most recent first)
+
 ---

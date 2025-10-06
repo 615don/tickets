@@ -496,3 +496,94 @@ export const generateInvoices = async (req, res) => {
     dbClient.release();
   }
 };
+
+/**
+ * GET /api/invoices/history
+ * Returns list of all invoice locks with aggregated billable hours
+ */
+export const getInvoiceHistory = async (req, res) => {
+  try {
+    // Query invoice locks with aggregated data
+    const result = await query(
+      `SELECT
+        il.id,
+        il.month,
+        il.locked_at,
+        il.xero_invoice_ids,
+        COALESCE(SUM(CASE WHEN te.billable = true THEN te.duration_hours ELSE 0 END), 0) AS total_billable_hours,
+        COUNT(DISTINCT t.client_id) AS client_count
+      FROM invoice_locks il
+      LEFT JOIN time_entries te ON
+        te.work_date >= il.month
+        AND te.work_date < (il.month + INTERVAL '1 month')
+        AND te.deleted_at IS NULL
+      LEFT JOIN tickets t ON te.ticket_id = t.id
+      GROUP BY il.id, il.month, il.locked_at, il.xero_invoice_ids
+      ORDER BY il.month DESC`
+    );
+
+    // Transform data to match frontend expectations
+    const history = result.rows.map(row => ({
+      id: row.id,
+      month: row.month.toISOString().substring(0, 7), // Convert YYYY-MM-DD to YYYY-MM
+      lockedAt: row.locked_at,
+      xeroInvoiceIds: row.xero_invoice_ids || [], // JSONB already parsed by pg library
+      totalBillableHours: parseFloat(row.total_billable_hours || 0),
+      clientCount: parseInt(row.client_count || 0, 10)
+    }));
+
+    res.json(history);
+  } catch (error) {
+    console.error('Error fetching invoice history:', error);
+    res.status(500).json({
+      error: 'DatabaseError',
+      message: 'Failed to retrieve invoice history'
+    });
+  }
+};
+
+/**
+ * DELETE /api/invoices/:id
+ * Deletes an invoice lock to allow re-invoicing
+ */
+export const deleteInvoiceLock = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate ID
+    const invoiceId = parseInt(id, 10);
+    if (isNaN(invoiceId)) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Invalid invoice ID'
+      });
+    }
+
+    // Delete the invoice lock
+    const result = await query(
+      'DELETE FROM invoice_locks WHERE id = $1 RETURNING id, month',
+      [invoiceId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: 'NotFoundError',
+        message: 'Invoice lock not found'
+      });
+    }
+
+    const deletedLock = result.rows[0];
+    const monthStr = deletedLock.month.toISOString().substring(0, 7);
+
+    res.json({
+      success: true,
+      message: `Invoice lock for ${monthStr} deleted successfully`
+    });
+  } catch (error) {
+    console.error('Error deleting invoice lock:', error);
+    res.status(500).json({
+      error: 'DatabaseError',
+      message: 'Failed to delete invoice lock'
+    });
+  }
+};

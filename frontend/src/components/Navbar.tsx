@@ -30,10 +30,12 @@ export const Navbar = () => {
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
-    // Exact match for specific routes to prevent conflicts
-    // e.g., /invoices/preview should not match /invoices
-    return location.pathname === path ||
-           (location.pathname.startsWith(path + '/') && path !== '/invoices');
+    // Exact match first
+    if (location.pathname === path) return true;
+    // Prevent parent routes from matching child routes
+    // e.g., /tickets should not match /tickets/create
+    // e.g., /invoices should not match /invoices/preview
+    return false;
   };
 
   const handleLogout = async () => {

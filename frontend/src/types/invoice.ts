@@ -68,3 +68,17 @@ export interface InvoiceGenerationError {
   error: string; // Error type: ValidationError, InvoiceLockError, XeroConnectionError, etc.
   message: string; // Human-readable error message
 }
+
+export interface InvoiceHistoryItem {
+  id: number;
+  month: string; // YYYY-MM format
+  lockedAt: string; // ISO timestamp
+  xeroInvoiceIds: string[]; // Array of Xero invoice IDs (GUIDs)
+  totalBillableHours: number;
+  clientCount: number;
+}
+
+export interface DeleteInvoiceLockResponse {
+  success: boolean;
+  message: string;
+}

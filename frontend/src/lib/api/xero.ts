@@ -24,6 +24,16 @@ export interface DisconnectResponse {
   message: string;
 }
 
+export interface XeroContact {
+  contactID: string;
+  name: string;
+  firstName?: string;
+  lastName?: string;
+  emailAddress?: string;
+  isCustomer: boolean;
+  isSupplier: boolean;
+}
+
 /**
  * Transform backend snake_case response to frontend camelCase
  */
@@ -57,5 +67,12 @@ export const xeroApi = {
    */
   disconnect: async (): Promise<DisconnectResponse> => {
     return apiClient.post<DisconnectResponse>('/api/xero/disconnect', {});
+  },
+
+  /**
+   * Get all Xero contacts/customers
+   */
+  getContacts: async (): Promise<{ contacts: XeroContact[] }> => {
+    return apiClient.get<{ contacts: XeroContact[] }>('/api/xero/contacts');
   },
 };

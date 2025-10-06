@@ -258,6 +258,69 @@ export const getOnlineInvoiceUrl = async (req, res) => {
 };
 
 /**
+ * Get all Xero contacts/customers
+ * GET /api/xero/contacts
+ */
+export const getContacts = async (req, res) => {
+  try {
+    // Get active Xero connection
+    const connection = await XeroConnection.getActiveConnection();
+
+    if (!connection) {
+      return res.status(400).json({
+        error: 'XeroConnectionError',
+        message: 'Xero is not connected. Please connect to Xero in Settings.'
+      });
+    }
+
+    // Create authenticated Xero client
+    const xeroClient = await createAuthenticatedXeroClient({
+      access_token: connection.access_token,
+      refresh_token: connection.refresh_token
+    });
+
+    const tenantId = connection.organization_id;
+
+    // Fetch all contacts from Xero
+    const contactsResponse = await xeroClient.accountingApi.getContacts(tenantId);
+
+    // Map to simpler format
+    const contacts = contactsResponse.body.contacts.map(contact => ({
+      contactID: contact.contactID,
+      name: contact.name,
+      firstName: contact.firstName,
+      lastName: contact.lastName,
+      emailAddress: contact.emailAddress,
+      isCustomer: contact.isCustomer,
+      isSupplier: contact.isSupplier,
+    }));
+
+    res.json({ contacts });
+  } catch (error) {
+    console.error('Error fetching Xero contacts:', error);
+
+    if (error.statusCode === 401) {
+      return res.status(401).json({
+        error: 'XeroAuthError',
+        message: 'Xero authentication expired. Please reconnect in Settings.'
+      });
+    }
+
+    if (error.statusCode === 429) {
+      return res.status(429).set('Retry-After', '60').json({
+        error: 'XeroApiError',
+        message: 'Xero API rate limit exceeded. Please try again in 60 seconds.'
+      });
+    }
+
+    res.status(500).json({
+      error: 'XeroApiError',
+      message: 'Failed to fetch contacts from Xero'
+    });
+  }
+};
+
+/**
  * Refresh Xero access token
  * Internal helper function (not exposed as route)
  */

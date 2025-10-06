@@ -3,16 +3,19 @@ import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/components/PageHeader';
 import { SettingsSection } from '@/components/SettingsSection';
 import { XeroConnectionCard } from '@/components/XeroConnectionCard';
+import { XeroContactsDialog } from '@/components/XeroContactsDialog';
 import { XeroConnectionStatus } from '@/types/xero';
 import { useToast } from '@/hooks/use-toast';
 import { useXeroStatus, useDisconnectXero } from '@/hooks/useXero';
 import { useInvoiceConfig, useUpdateInvoiceConfig } from '@/hooks/useInvoiceConfig';
 import { xeroApi } from '@/lib/api/xero';
+import { Button } from '@/components/ui/button';
 
 export const Settings = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isTesting, setIsTesting] = useState(false);
   const [testSuccess, setTestSuccess] = useState<boolean | null>(null);
+  const [contactsDialogOpen, setContactsDialogOpen] = useState(false);
   const { toast } = useToast();
 
   // Fetch Xero connection status
@@ -173,6 +176,20 @@ export const Settings = () => {
               isTesting={isTesting}
               testSuccess={testSuccess}
             />
+            {connectionStatus.isConnected && (
+              <div className="mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setContactsDialogOpen(true)}
+                  className="w-full sm:w-auto"
+                >
+                  View Xero Customer IDs
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Copy customer IDs to map them to your clients
+                </p>
+              </div>
+            )}
           </SettingsSection>
 
           {/* Invoice Configuration Section */}
@@ -248,6 +265,12 @@ export const Settings = () => {
           </SettingsSection>
         </div>
       </div>
+
+      {/* Xero Contacts Dialog */}
+      <XeroContactsDialog
+        open={contactsDialogOpen}
+        onOpenChange={setContactsDialogOpen}
+      />
     </div>
   );
 };

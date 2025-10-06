@@ -63,10 +63,14 @@ export function InvoiceGenerationDialog({
 
         for (const invoiceId of data.xeroInvoiceIds) {
           try {
-            const response = await fetch(`/api/xero/invoices/${invoiceId}/online-url`);
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/xero/invoices/${invoiceId}/online-url`, {
+              credentials: 'include',
+            });
             if (response.ok) {
               const urlData = await response.json();
               urlMap.set(invoiceId, urlData.onlineInvoiceUrl);
+            } else {
+              console.error(`Failed to fetch URL for invoice ${invoiceId}: ${response.status} ${response.statusText}`);
             }
           } catch (err) {
             console.error(`Failed to fetch URL for invoice ${invoiceId}:`, err);
@@ -231,7 +235,10 @@ export function InvoiceGenerationDialog({
 
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>
+          <AlertDialogAction onClick={(e) => {
+            e.preventDefault();
+            onConfirm();
+          }}>
             Generate Invoices
           </AlertDialogAction>
         </AlertDialogFooter>
