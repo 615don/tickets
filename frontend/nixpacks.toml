@@ -1,3 +1,9 @@
+[variables]
+NIXPACKS_NO_MUSL = "1"
+
+[providers]
+disabled = ["staticfile"]
+
 [phases.setup]
 nixPkgs = ["nodejs_20"]
 
