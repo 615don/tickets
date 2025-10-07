@@ -1,5 +1,5 @@
 import { query } from '../config/database.js';
-import { parseTimeEntry } from '@tickets/shared';
+import { parseTimeEntry } from '../shared/utils/parseTimeEntry.js';
 
 /**
  * Validates that a ticket exists

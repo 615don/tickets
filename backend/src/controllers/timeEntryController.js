@@ -1,7 +1,7 @@
 import { TimeEntry } from '../models/TimeEntry.js';
 import { Ticket } from '../models/Ticket.js';
 import { validateNotLocked } from '../utils/invoiceLock.js';
-import { parseTimeEntry } from '@tickets/shared';
+import { parseTimeEntry } from '../shared/utils/parseTimeEntry.js';
 
 // PUT /api/time-entries/:id - Update time entry
 export const updateTimeEntry = async (req, res) => {

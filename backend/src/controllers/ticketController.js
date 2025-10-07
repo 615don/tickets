@@ -3,7 +3,7 @@ import { TimeEntry } from '../models/TimeEntry.js';
 import { Contact } from '../models/Contact.js';
 import { InvoiceLock } from '../models/InvoiceLock.js';
 import { getClient } from '../config/database.js';
-import { parseTimeEntry } from '@tickets/shared';
+import { parseTimeEntry } from '../shared/utils/parseTimeEntry.js';
 
 // GET /api/tickets - Get all tickets with optional filters
 export const getAllTickets = async (req, res) => {
