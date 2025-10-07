@@ -58,6 +58,10 @@ const csrfProtection = csrf({ cookie: false }); // Use session instead of cookie
 
 // Endpoint to get CSRF token (must be BEFORE CSRF middleware)
 app.get('/api/csrf-token', csrfProtection, (req, res) => {
+  // Force session creation by setting a dummy value if session doesn't exist
+  if (!req.session.csrfInit) {
+    req.session.csrfInit = true;
+  }
   res.json({ csrfToken: req.csrfToken() });
 });
 
