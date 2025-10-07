@@ -1,9 +1,3 @@
-[variables]
-NIXPACKS_NO_MUSL = "1"
-
-[providers]
-disabled = ["staticfile"]
-
 [phases.setup]
 nixPkgs = ["nodejs_20"]
 
@@ -14,4 +8,4 @@ cmds = ["npm install"]
 cmds = ["npm run build"]
 
 [start]
-cmd = "npm run start"
+cmd = "node server.js"
