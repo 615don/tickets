@@ -73,7 +73,21 @@ app.get('/api/csrf-token', (req, res, next) => {
       }
 
       console.log('CSRF token issued, session ID:', req.sessionID);
-      res.json({ csrfToken: req.csrfToken() });
+      console.log('Session cookie config:', {
+        name: req.session.cookie.name || 'connect.sid',
+        domain: req.session.cookie.domain,
+        secure: req.session.cookie.secure,
+        httpOnly: req.session.cookie.httpOnly,
+        sameSite: req.session.cookie.sameSite,
+      });
+
+      // Send response
+      const response = res.json({ csrfToken: req.csrfToken() });
+
+      // Log response headers after sending
+      console.log('Response headers:', res.getHeaders());
+
+      return response;
     });
   });
 });
