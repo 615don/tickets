@@ -1,6 +1,7 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { generateBackup } from '../controllers/backupController.js';
+import multer from 'multer';
+import { generateBackup, restoreBackup } from '../controllers/backupController.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -22,7 +23,18 @@ const backupRateLimiter = rateLimit({
   }
 });
 
+// Multer middleware for ZIP file upload (100MB limit)
+const upload = multer({
+  dest: '/tmp/uploads/',
+  limits: {
+    fileSize: 100 * 1024 * 1024 // 100MB
+  }
+});
+
 // POST /api/backup/generate - Generate and download backup ZIP file
 router.post('/generate', requireAuth, backupRateLimiter, generateBackup);
+
+// POST /api/backup/restore - Restore database from backup ZIP file
+router.post('/restore', requireAuth, upload.single('backup'), restoreBackup);
 
 export default router;

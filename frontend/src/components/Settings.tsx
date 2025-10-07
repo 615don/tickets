@@ -5,6 +5,7 @@ import { SettingsSection } from '@/components/SettingsSection';
 import { XeroConnectionCard } from '@/components/XeroConnectionCard';
 import { XeroContactsDialog } from '@/components/XeroContactsDialog';
 import { BackupSection } from '@/components/BackupSection';
+import { RestoreSection } from '@/components/RestoreSection';
 import { XeroConnectionStatus } from '@/types/xero';
 import { useToast } from '@/hooks/use-toast';
 import { useXeroStatus, useDisconnectXero } from '@/hooks/useXero';
@@ -227,7 +228,21 @@ export const Settings = () => {
           </SettingsSection>
 
           {/* Backup & Restore Section */}
-          <BackupSection />
+          <SettingsSection
+            title="Backup & Restore"
+            description="Download backups of your database and restore from previous backups."
+          >
+            <div className="space-y-6">
+              {/* Backup download */}
+              <BackupSection />
+
+              {/* Divider */}
+              <div className="border-t border-border" />
+
+              {/* Restore upload */}
+              <RestoreSection />
+            </div>
+          </SettingsSection>
 
           {/* General Settings Section - Placeholder */}
           <SettingsSection

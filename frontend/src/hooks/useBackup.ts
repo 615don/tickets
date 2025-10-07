@@ -9,3 +9,12 @@ export const useGenerateBackup = () => {
     },
   });
 };
+
+export const useRestoreBackup = () => {
+  return useMutation({
+    mutationFn: backupApi.restoreBackup,
+    onError: (error) => {
+      console.error('Restore failed:', error);
+    },
+  });
+};
