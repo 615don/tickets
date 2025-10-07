@@ -1,0 +1,111 @@
+# Quality Gate: 6.1 Backend Backup Generation API
+
+schema: 1
+story: "6.1"
+story_title: "Backend Backup Generation API"
+gate: CONCERNS
+status_reason: "Implementation is functionally complete with excellent error handling. AC7 wording needs correction (remove 'admin' - all authenticated users intended). Rate limiting recommended before production."
+reviewer: "Quinn (Test Architect)"
+updated: "2025-10-07T00:00:00Z"
+
+waiver: { active: false }
+
+top_issues:
+  - id: "DOC-001"
+    severity: medium
+    finding: "AC7 wording mismatch - states 'admin users' but requirement is 'all authenticated users' (clarified by stakeholder)"
+    suggested_action: "Update AC7 to read 'Only authenticated users can trigger backup generation' (remove 'admin')"
+    suggested_owner: "sm"
+    refs: ["docs/stories/6.1.backend-backup-generation-api.md:21"]
+
+  - id: "TEST-001"
+    severity: medium
+    finding: "Test quality issue - tests are documentation-style assertions without mocking actual function execution"
+    suggested_action: "Add integration tests with mocked child_process, fs, and archiver to verify actual code paths"
+    suggested_owner: "dev"
+    refs: ["backend/src/controllers/__tests__/backupController.test.js:1-259"]
+
+  - id: "SEC-002"
+    severity: medium
+    finding: "No rate limiting on backup endpoint - allows potential DoS via expensive pg_dump operations"
+    suggested_action: "Add rate limiting middleware (e.g., 1 backup per 5 minutes per user)"
+    suggested_owner: "dev"
+    refs: ["backend/src/routes/backup.js:8"]
+
+  - id: "STD-001"
+    severity: low
+    finding: "Direct process.env access violates coding standard (should use config)"
+    suggested_action: "Extract environment access to config module or document exception for utility functions"
+    suggested_owner: "dev"
+    refs: ["backend/src/controllers/backupController.js:23-26", "docs/architecture/coding-standards.md:7"]
+
+risk_summary:
+  totals:
+    critical: 0
+    high: 0
+    medium: 3
+    low: 1
+  recommendations:
+    must_fix:
+      - "Correct AC7 wording to remove 'admin' (confirmed: all authenticated users allowed)"
+      - "Add rate limiting to prevent abuse before production deployment"
+    monitor:
+      - "Test quality improvement for production confidence"
+      - "Temp directory cleanup monitoring"
+
+quality_score: 70
+# Calculation: 100 - (10*3 medium CONCERNS) = 70
+
+evidence:
+  tests_reviewed: 17
+  tests_passing: 17
+  risks_identified: 4
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7]
+    ac_gaps: []  # AC7 implementation correct - wording needs correction only
+
+nfr_validation:
+  security:
+    status: CONCERNS
+    notes: "Authentication correctly implemented for all authenticated users (AC7 clarified - implementation matches intent). Missing rate limiting creates DoS risk. CSRF protection verified. Environment sanitization implemented correctly. Backup file contains sensitive credentials (by design but should warn users)."
+
+  performance:
+    status: PASS
+    notes: "5-minute timeout configured. 50MB maxBuffer for large databases. Streaming response prevents disk usage. Blocking pg_dump operation acceptable for manual admin task."
+
+  reliability:
+    status: PASS
+    notes: "Comprehensive error handling for all pg_dump failure modes. Automatic cleanup on success and error paths. Clear user-friendly error messages. Cleanup failure monitoring recommended."
+
+  maintainability:
+    status: PASS
+    notes: "Clean code structure with separation of concerns. Good inline documentation. Standard error format. Follows project patterns (mostly - process.env exception noted)."
+
+recommendations:
+  immediate:
+    - action: "Update AC7 wording to remove 'admin' - should read 'Only authenticated users can trigger backup generation'"
+      refs: ["docs/stories/6.1.backend-backup-generation-api.md:21"]
+      owner: "sm"
+
+    - action: "Add rate limiting middleware to prevent DoS abuse (recommend 1 backup per 5 minutes per user)"
+      refs: ["backend/src/routes/backup.js"]
+      owner: "dev"
+
+  future:
+    - action: "Improve test quality with actual mocks for child_process, fs, archiver"
+      refs: ["backend/src/controllers/__tests__/backupController.test.js"]
+      owner: "dev"
+
+    - action: "Consider backup file encryption or add UI warning about secure storage"
+      refs: ["backend/src/controllers/backupController.js:80-86"]
+      owner: "po"
+
+    - action: "Add monitoring for /tmp directory size to catch cleanup failures"
+      refs: ["backend/src/controllers/backupController.js:120-127"]
+      owner: "dev"
+
+    - action: "Document maximum practical database size for backup operations"
+      refs: ["docs/prd/epic-6-backup-restore.md"]
+      owner: "sm"
+
+expires: "2025-10-21T00:00:00Z"

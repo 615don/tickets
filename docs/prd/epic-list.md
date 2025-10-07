@@ -15,4 +15,8 @@
 **Epic 5: Views, Search & Historical Access**
 *Implement dashboard with open/recently closed tickets, historical ticket search, and navigation workflows for complete user experience.*
 
+**Epic 6: Manual Backup System**
+*Implement manual database backup and restore capabilities to enable disaster recovery, allowing users to download complete system backups (database + configuration) to their local PC and restore from backup files when needed.*
+
+
 ---
