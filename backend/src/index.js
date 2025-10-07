@@ -4,6 +4,7 @@ import pgSession from 'connect-pg-simple';
 import cors from 'cors';
 import helmet from 'helmet';
 import csrf from 'csurf';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import pool, { testConnection } from './config/database.js';
 import { validateXeroConfig } from './config/xero.js';
@@ -32,6 +33,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser(process.env.SESSION_SECRET || 'change-this-secret-in-production')); // For signed cookies
 
 // Session configuration
 app.use(session({
@@ -65,34 +67,30 @@ app.get('/api/csrf-token', (req, res, next) => {
     // Force session creation by setting a value - this marks session as modified
     req.session.csrfInit = true;
 
-    console.log('CSRF token issued, session ID:', req.sessionID);
-    console.log('Session modified:', req.session);
-    console.log('Session cookie config:', {
-      domain: req.session.cookie.domain,
-      secure: req.session.cookie.secure,
-      httpOnly: req.session.cookie.httpOnly,
-      sameSite: req.session.cookie.sameSite,
-    });
+    // Explicitly save session and wait for it to complete before responding
+    req.session.save((saveErr) => {
+      if (saveErr) {
+        console.error('Session save error:', saveErr);
+        return next(saveErr);
+      }
 
-    // Manually set a test cookie to verify cookies work at all
-    res.cookie('test-cookie', 'test-value', {
-      domain: '.zollc.com',
-      secure: true,
-      httpOnly: true,
-      sameSite: 'lax',
-      maxAge: 60000
-    });
+      console.log('Session saved, ID:', req.sessionID);
 
-    // Manually check if Set-Cookie header will be added
-    console.log('Headers before json():', res.getHeaders());
+      // Use res.cookie to set the session cookie properly
+      // Express-session should do this automatically, but we're forcing it
+      res.cookie('connect.sid', req.sessionID, {
+        domain: '.zollc.com',
+        secure: true,
+        httpOnly: true,
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        signed: true // Use the session secret to sign
+      });
 
-    // Send response - express-session will automatically add Set-Cookie header
-    res.json({ csrfToken: req.csrfToken() });
+      console.log('Set-Cookie headers:', res.getHeader('Set-Cookie'));
 
-    // Express-session's Set-Cookie is added after the route completes
-    // Use res.on('finish') to see final headers
-    res.on('finish', () => {
-      console.log('Final response headers sent:', res.getHeaders());
+      // Send response
+      res.json({ csrfToken: req.csrfToken() });
     });
   });
 });
