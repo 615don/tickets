@@ -1,6 +1,6 @@
 {
   "name": "ticketing-system-backend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Backend API for lean IT consulting ticketing system",
   "main": "src/index.js",
   "type": "module",
