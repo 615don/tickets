@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { SettingsSection } from '@/components/SettingsSection';
 import { XeroConnectionCard } from '@/components/XeroConnectionCard';
 import { XeroContactsDialog } from '@/components/XeroContactsDialog';
+import { BackupSection } from '@/components/BackupSection';
 import { XeroConnectionStatus } from '@/types/xero';
 import { useToast } from '@/hooks/use-toast';
 import { useXeroStatus, useDisconnectXero } from '@/hooks/useXero';
@@ -224,6 +225,9 @@ export const Settings = () => {
               </p>
             </div>
           </SettingsSection>
+
+          {/* Backup & Restore Section */}
+          <BackupSection />
 
           {/* General Settings Section - Placeholder */}
           <SettingsSection
