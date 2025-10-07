@@ -109,9 +109,12 @@ app.use((req, res, next) => {
       method: req.method,
       sessionID: req.sessionID,
       hasSession: !!req.session,
+      sessionData: req.session,
       csrfSecret: req.session?.csrfSecret,
       csrfTokenHeader: req.headers['x-csrf-token'],
       cookieHeader: req.headers.cookie,
+      signedCookies: req.signedCookies,
+      cookies: req.cookies,
       origin: req.headers.origin,
       referer: req.headers.referer,
     });
