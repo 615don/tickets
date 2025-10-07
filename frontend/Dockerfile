@@ -11,7 +11,9 @@ RUN npm install
 # Copy application code
 COPY . .
 
-# Build the frontend
+# Build the frontend with environment variables
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
 # Expose port (Railway will override with $PORT)
