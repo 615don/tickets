@@ -9,6 +9,7 @@
     "start": "node src/index.js",
     "migrate": "node src/utils/migrate.js",
     "seed": "node src/utils/seed.js",
+    "setup": "node src/utils/migrate.js && node src/utils/seed.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
