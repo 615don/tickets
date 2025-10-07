@@ -58,15 +58,23 @@ const csrfProtection = csrf({ cookie: false }); // Use session instead of cookie
 
 // Endpoint to get CSRF token (must be BEFORE global CSRF middleware)
 app.get('/api/csrf-token', (req, res, next) => {
-  // Force session creation by setting a dummy value if session doesn't exist
-  if (!req.session.csrfInit) {
-    req.session.csrfInit = true;
-  }
+  // Force session creation by setting a dummy value
+  req.session.csrfInit = true;
 
   // Apply CSRF protection to generate token
   csrfProtection(req, res, (err) => {
     if (err) return next(err);
-    res.json({ csrfToken: req.csrfToken() });
+
+    // Force session save to ensure Set-Cookie header is sent
+    req.session.save((saveErr) => {
+      if (saveErr) {
+        console.error('Session save error:', saveErr);
+        return next(saveErr);
+      }
+
+      console.log('CSRF token issued, session ID:', req.sessionID);
+      res.json({ csrfToken: req.csrfToken() });
+    });
   });
 });
 
