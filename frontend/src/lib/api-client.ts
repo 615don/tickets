@@ -3,7 +3,8 @@
  * Handles authentication, error handling, and request/response formatting
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Use relative URL in production (proxied), absolute in dev if needed
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 export class ApiError extends Error {
   constructor(
