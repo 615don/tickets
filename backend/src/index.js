@@ -49,7 +49,7 @@ app.use(session({
     httpOnly: true,
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for cross-subdomain support
-    domain: process.env.NODE_ENV === 'production' ? '.zollc.com' : undefined, // Share cookies across subdomains
+    domain: process.env.COOKIE_DOMAIN || undefined, // Share cookies across subdomains (set to .zollc.com in production)
   },
 }));
 
