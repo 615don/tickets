@@ -43,7 +43,7 @@ app.use(session({
   name: process.env.SESSION_COOKIE_NAME || 'connect.sid',
   secret: process.env.SESSION_SECRET || 'change-this-secret-in-production',
   resave: false,
-  saveUninitialized: false,
+  saveUninitialized: true, // Must be true to save session for CSRF token endpoint
   cookie: {
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     httpOnly: true,
@@ -58,37 +58,24 @@ const csrfProtection = csrf({ cookie: false }); // Use session instead of cookie
 
 // Endpoint to get CSRF token (must be BEFORE global CSRF middleware)
 app.get('/api/csrf-token', (req, res, next) => {
-  // Force session creation by setting a dummy value
-  req.session.csrfInit = true;
-
   // Apply CSRF protection to generate token
   csrfProtection(req, res, (err) => {
     if (err) return next(err);
 
-    // Force session save to ensure Set-Cookie header is sent
-    req.session.save((saveErr) => {
-      if (saveErr) {
-        console.error('Session save error:', saveErr);
-        return next(saveErr);
-      }
+    // Force session creation by setting a value - this marks session as modified
+    req.session.csrfInit = true;
 
-      console.log('CSRF token issued, session ID:', req.sessionID);
-      console.log('Session cookie config:', {
-        name: req.session.cookie.name || 'connect.sid',
-        domain: req.session.cookie.domain,
-        secure: req.session.cookie.secure,
-        httpOnly: req.session.cookie.httpOnly,
-        sameSite: req.session.cookie.sameSite,
-      });
-
-      // Send response
-      const response = res.json({ csrfToken: req.csrfToken() });
-
-      // Log response headers after sending
-      console.log('Response headers:', res.getHeaders());
-
-      return response;
+    console.log('CSRF token issued, session ID:', req.sessionID);
+    console.log('Session modified:', req.session);
+    console.log('Session cookie config:', {
+      domain: req.session.cookie.domain,
+      secure: req.session.cookie.secure,
+      httpOnly: req.session.cookie.httpOnly,
+      sameSite: req.session.cookie.sameSite,
     });
+
+    // Send response - express-session will automatically add Set-Cookie header
+    res.json({ csrfToken: req.csrfToken() });
   });
 });
 
