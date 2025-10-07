@@ -77,20 +77,15 @@ app.get('/api/csrf-token', (req, res, next) => {
         return next(saveErr);
       }
 
-      console.log('Session saved, ID:', req.sessionID);
-
-      // Use res.cookie to set the session cookie properly
-      // Express-session should do this automatically, but we're forcing it
+      // Manually set the session cookie (workaround for Railway proxy issue)
       res.cookie('connect.sid', req.sessionID, {
         domain: '.zollc.com',
         secure: true,
         httpOnly: true,
         sameSite: 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000,
-        signed: true // Use the session secret to sign
+        signed: true
       });
-
-      console.log('Set-Cookie headers:', res.getHeader('Set-Cookie'));
 
       // Send response
       res.json({ csrfToken: req.csrfToken() });
@@ -103,24 +98,6 @@ app.use((req, res, next) => {
   // Skip CSRF for csrf-token endpoint (already handled above)
   if (req.path === '/api/csrf-token' && req.method === 'GET') {
     return next();
-  }
-
-  // Debug logging for CSRF issues
-  if (process.env.NODE_ENV !== 'production' || process.env.DEBUG_CSRF === 'true') {
-    console.log('CSRF Debug:', {
-      path: req.path,
-      method: req.method,
-      sessionID: req.sessionID,
-      hasSession: !!req.session,
-      sessionData: req.session,
-      csrfSecret: req.session?.csrfSecret,
-      csrfTokenHeader: req.headers['x-csrf-token'],
-      cookieHeader: req.headers.cookie,
-      signedCookies: req.signedCookies,
-      cookies: req.cookies,
-      origin: req.headers.origin,
-      referer: req.headers.referer,
-    });
   }
 
   csrfProtection(req, res, next);
