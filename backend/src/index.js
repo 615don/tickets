@@ -25,6 +25,9 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const PgSession = pgSession(session);
 
+// Trust Railway's proxy - CRITICAL for sessions to work correctly
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(helmet()); // Security headers
 app.use(cors({
