@@ -74,8 +74,26 @@ app.get('/api/csrf-token', (req, res, next) => {
       sameSite: req.session.cookie.sameSite,
     });
 
+    // Manually set a test cookie to verify cookies work at all
+    res.cookie('test-cookie', 'test-value', {
+      domain: '.zollc.com',
+      secure: true,
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: 60000
+    });
+
+    // Manually check if Set-Cookie header will be added
+    console.log('Headers before json():', res.getHeaders());
+
     // Send response - express-session will automatically add Set-Cookie header
     res.json({ csrfToken: req.csrfToken() });
+
+    // Express-session's Set-Cookie is added after the route completes
+    // Use res.on('finish') to see final headers
+    res.on('finish', () => {
+      console.log('Final response headers sent:', res.getHeaders());
+    });
   });
 });
 
