@@ -76,6 +76,19 @@ app.use((req, res, next) => {
   if (req.path === '/api/csrf-token' && req.method === 'GET') {
     return next();
   }
+
+  // Debug logging for CSRF issues
+  if (process.env.NODE_ENV !== 'production' || process.env.DEBUG_CSRF === 'true') {
+    console.log('CSRF Debug:', {
+      path: req.path,
+      method: req.method,
+      sessionID: req.sessionID,
+      hasSession: !!req.session,
+      csrfToken: req.headers['x-csrf-token'],
+      cookies: req.headers.cookie,
+    });
+  }
+
   csrfProtection(req, res, next);
 });
 
