@@ -13,12 +13,22 @@ dotenv.config({ path: join(__dirname, '../../.env') });
 const { Pool } = pg;
 
 // PostgreSQL connection pool
+// Railway provides DATABASE_URL, otherwise construct from individual env vars
+const connectionConfig = process.env.DATABASE_URL
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    }
+  : {
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 5432,
+      database: process.env.DB_NAME || 'ticketing_system',
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD,
+    };
+
 const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'ticketing_system',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD,
+  ...connectionConfig,
   // Connection pool settings
   max: 20,
   idleTimeoutMillis: 30000,
