@@ -93,8 +93,11 @@ app.use((req, res, next) => {
       method: req.method,
       sessionID: req.sessionID,
       hasSession: !!req.session,
-      csrfToken: req.headers['x-csrf-token'],
-      cookies: req.headers.cookie,
+      csrfSecret: req.session?.csrfSecret,
+      csrfTokenHeader: req.headers['x-csrf-token'],
+      cookieHeader: req.headers.cookie,
+      origin: req.headers.origin,
+      referer: req.headers.referer,
     });
   }
 
