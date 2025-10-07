@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs_18"]
+
+[phases.install]
+cmds = ["npm install --workspace=backend --workspace=@tickets/shared --include-workspace-root"]
+
+[phases.build]
+cmds = []
+
+[start]
+cmd = "npm run migrate --workspace=backend && npm run start --workspace=backend"
