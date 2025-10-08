@@ -37,7 +37,8 @@ export const initiateOAuth = async (req, res) => {
     });
 
     const consentUrl = await xero.buildConsentUrl(state);
-    console.log('Redirecting to Xero consent URL');
+    console.log('Redirecting to Xero consent URL:', consentUrl);
+    console.log('State parameter in URL:', consentUrl.includes(`state=${state}`) ? 'FOUND' : 'MISSING');
 
     // Redirect user to Xero authorization page
     res.redirect(consentUrl);
@@ -58,7 +59,9 @@ export const handleCallback = async (req, res) => {
   try {
     const { code, state } = req.query;
     console.log('=== XERO OAUTH CALLBACK DEBUG ===');
-    console.log('Query params:', { code: code?.substring(0, 20) + '...', state: state?.substring(0, 20) + '...' });
+    console.log('Full URL:', req.url);
+    console.log('All query params:', req.query);
+    console.log('Query params:', { code: code ? code.substring(0, 20) + '...' : 'MISSING', state: state ? state.substring(0, 20) + '...' : 'MISSING' });
     console.log('Session ID:', req.sessionID);
     console.log('Session exists:', !!req.session);
     console.log('Session data:', JSON.stringify(req.session, null, 2));
