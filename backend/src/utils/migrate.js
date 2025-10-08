@@ -181,6 +181,26 @@ const migrations = [
       ALTER TABLE clients ADD CONSTRAINT clients_maintenance_contract_type_check
       CHECK (maintenance_contract_type IN ('On Demand', 'Regular Maintenance'));
     `
+  },
+  {
+    name: '011_create_audit_logs_table',
+    sql: `
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id SERIAL PRIMARY KEY,
+        timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        user_email VARCHAR(255) NOT NULL,
+        action VARCHAR(100) NOT NULL,
+        ip_address VARCHAR(45),
+        success BOOLEAN NOT NULL DEFAULT false,
+        error_message TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+    `
   }
 ];
 

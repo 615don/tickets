@@ -1,5 +1,6 @@
 import { User } from '../models/User.js';
 import { invalidateAllSessions } from '../utils/sessionHelpers.js';
+import { logAudit } from '../utils/auditLogger.js';
 
 // Register a new user
 export const register = async (req, res) => {
@@ -196,6 +197,16 @@ export const updateProfile = async (req, res) => {
     // Verify current password
     const isValidPassword = await User.verifyPassword(currentPassword, user.password_hash);
     if (!isValidPassword) {
+      // Log failed email update attempt
+      await logAudit({
+        userId: userId,
+        userEmail: user.email,
+        action: 'email_update_failed',
+        ipAddress: req.ip,
+        success: false,
+        errorMessage: 'Current password is incorrect'
+      });
+
       return res.status(401).json({
         error: 'Invalid credentials',
         message: 'Current password is incorrect'
@@ -208,6 +219,16 @@ export const updateProfile = async (req, res) => {
       updatedUser = await User.updateEmail(userId, email);
     } catch (error) {
       if (error.code === 'DUPLICATE_EMAIL') {
+        // Log failed email update attempt
+        await logAudit({
+          userId: userId,
+          userEmail: user.email,
+          action: 'email_update_failed',
+          ipAddress: req.ip,
+          success: false,
+          errorMessage: 'This email is already registered'
+        });
+
         return res.status(400).json({
           error: 'Email already exists',
           message: 'This email is already registered'
@@ -233,7 +254,7 @@ export const updateProfile = async (req, res) => {
       req.session.userId = updatedUser.id;
       req.session.userEmail = updatedUser.email;
 
-      req.session.save((saveErr) => {
+      req.session.save(async (saveErr) => {
         if (saveErr) {
           console.error('Session save error:', saveErr);
           return res.status(500).json({
@@ -241,6 +262,15 @@ export const updateProfile = async (req, res) => {
             message: 'An error occurred during session update'
           });
         }
+
+        // Log successful email update
+        await logAudit({
+          userId: updatedUser.id,
+          userEmail: updatedUser.email,
+          action: 'email_update',
+          ipAddress: req.ip,
+          success: true
+        });
 
         res.json({
           message: 'Email updated successfully',
@@ -274,11 +304,30 @@ export const updatePassword = async (req, res) => {
       });
     }
 
+    // Get user for audit logging
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'Your account no longer exists'
+      });
+    }
+
     // Update password (includes current password verification and strength validation)
     try {
       await User.updatePassword(userId, currentPassword, newPassword);
     } catch (error) {
       if (error.code === 'INVALID_PASSWORD') {
+        // Log failed password update attempt
+        await logAudit({
+          userId: userId,
+          userEmail: user.email,
+          action: 'password_update_failed',
+          ipAddress: req.ip,
+          success: false,
+          errorMessage: 'Current password is incorrect'
+        });
+
         return res.status(401).json({
           error: 'Invalid credentials',
           message: 'Current password is incorrect'
@@ -286,21 +335,22 @@ export const updatePassword = async (req, res) => {
       }
       // Password strength validation errors
       if (error.message.includes('Password requirements')) {
+        // Log failed password update attempt
+        await logAudit({
+          userId: userId,
+          userEmail: user.email,
+          action: 'password_update_failed',
+          ipAddress: req.ip,
+          success: false,
+          errorMessage: error.message
+        });
+
         return res.status(400).json({
           error: 'Validation failed',
           message: error.message
         });
       }
       throw error;
-    }
-
-    // Get user data to restore session with correct email
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({
-        error: 'User not found',
-        message: 'Your account no longer exists'
-      });
     }
 
     // Invalidate all other sessions
@@ -320,7 +370,7 @@ export const updatePassword = async (req, res) => {
       req.session.userId = userId;
       req.session.userEmail = user.email;
 
-      req.session.save((saveErr) => {
+      req.session.save(async (saveErr) => {
         if (saveErr) {
           console.error('Session save error:', saveErr);
           return res.status(500).json({
@@ -328,6 +378,15 @@ export const updatePassword = async (req, res) => {
             message: 'An error occurred during session update'
           });
         }
+
+        // Log successful password update
+        await logAudit({
+          userId: userId,
+          userEmail: user.email,
+          action: 'password_update',
+          ipAddress: req.ip,
+          success: true
+        });
 
         res.json({
           message: 'Password updated successfully'

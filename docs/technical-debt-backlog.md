@@ -50,6 +50,45 @@ Add integration tests covering all 9 acceptance criteria:
 
 ## Medium Priority
 
+### TD-033: Separate Rate Limiters for Auth Endpoints (SEC-106)
+**Source**: Story 7.2 Post-Implementation Review
+**Date Added**: 2025-10-08
+**Priority**: Medium
+**Effort**: Small (1-2 hours)
+
+**Description**:
+Single rate limiter (`authLimiter`) is shared across all authentication endpoints (login, register, profile update, password update). This means failures across different operations count against the same limit pool. For example, 3 failed login attempts + 2 failed email updates = locked out of all auth endpoints for 15 minutes.
+
+**Current Configuration**:
+- **authLimiter**: 5 attempts per 15 minutes
+- **Applied to**: `/api/auth/login`, `/api/auth/register`, `/api/auth/profile`, `/api/auth/password`
+
+**Impact**:
+- User frustration: Can't login if previously tried changing password
+- Login attempts count against profile update attempts and vice versa
+- Too restrictive for single-user system during development
+- Different operations have different security requirements
+
+**Recommendation**:
+Split into separate rate limiters with appropriate limits for each use case:
+- **loginLimiter**: 10 attempts per 15 minutes (prevents brute force but allows typos)
+- **profileUpdateLimiter**: 15 attempts per 15 minutes (authenticated users making legitimate changes)
+- **registerLimiter**: 5 attempts per 15 minutes (prevents spam account creation)
+
+**Files Affected**:
+- `backend/src/routes/auth.js` (create separate limiters)
+
+**Acceptance Criteria**:
+- [ ] Separate rate limiters created for login, register, and profile updates
+- [ ] Login limiter: 10 attempts per 15 minutes
+- [ ] Profile/password update limiter: 15 attempts per 15 minutes
+- [ ] Register limiter: 5 attempts per 15 minutes
+- [ ] Each endpoint uses appropriate limiter
+- [ ] User can attempt login without being blocked by previous profile update attempts
+- [ ] Configuration documented in code comments
+
+---
+
 ### TD-004: Implement Audit Trail for Deleted Contacts
 **Source**: Story 2.7 QA Review (AC#6 Deferred)
 **Date Added**: 2025-10-01
@@ -978,25 +1017,25 @@ Added 14 comprehensive tests - all passing.
 
 ## Summary Statistics
 
-**Total Active Items**: 25 (was 27)
-**Completed This Session**: 2 items (TD-001, TD-002)
-**Previously Completed**: 5 items (TD-003, TD-005, TD-006, TD-007, TD-009)
+**Total Active Items**: 26 (was 25)
+**Completed This Session**: 0 items
+**Previously Completed**: 7 items (TD-001, TD-002, TD-003, TD-005, TD-006, TD-007, TD-009)
 
-- **High Priority**: 0 items (was 2 - completed TD-001, TD-002) ✅ All High Priority items complete!
-- **Medium Priority**: 3 items (was 6 - previously completed TD-005, TD-006, TD-007)
-- **Low Priority**: 22 items (was 23 - previously completed TD-009)
+- **High Priority**: 0 items ✅ All High Priority items complete!
+- **Medium Priority**: 4 items (was 3 - added TD-033)
+- **Low Priority**: 22 items
 
 **By Category**:
 - **Testing/Quality**: 0 HIGH priority items (completed TD-001, TD-002) ✅
-- **Security**: 4 items (completed TD-007, TD-009)
+- **Security**: 5 items (completed TD-007, TD-009, added TD-033)
 - **Performance**: 4 items (indexes, debouncing, monitoring)
 - **Maintainability**: 8 items (completed TD-005, TD-006)
 - **Features/Enhancements**: 9 items (2FA, password reset, audit trail)
 
 **Most Critical Items**:
-1. **TD-004**: Implement audit trail for deleted contacts (MEDIUM priority, deferred from Story 2.7)
-2. **TD-008**: Sanitize error logging in production (MEDIUM priority)
-3. **TD-032**: Extract Validation Helpers for Reusability (LOW priority)
+1. **TD-033**: Separate rate limiters for auth endpoints (MEDIUM priority, affects user experience)
+2. **TD-004**: Implement audit trail for deleted contacts (MEDIUM priority, deferred from Story 2.7)
+3. **TD-008**: Sanitize error logging in production (MEDIUM priority)
 
 ---
 
@@ -1008,9 +1047,9 @@ This backlog should be reviewed:
 - At the end of each epic (to prioritize accumulated debt)
 - Monthly for long-running projects
 
-**Last Reviewed**: 2025-10-02
-**Last Updated**: 2025-10-02
-**Next Review**: End of Epic 3 or next sprint planning
-**Items Added This Review**: 0
-**Items Completed This Session**: 2 (TD-001, TD-002)
+**Last Reviewed**: 2025-10-08
+**Last Updated**: 2025-10-08
+**Next Review**: End of Epic 7 or next sprint planning
+**Items Added This Review**: 1 (TD-033)
+**Items Completed This Session**: 0
 **Total Completed to Date**: 7 items
