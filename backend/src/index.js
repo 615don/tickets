@@ -53,7 +53,9 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     httpOnly: true,
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    sameSite: 'lax', // 'lax' works for same-site subdomains
+    // Use 'none' for OAuth redirects from external sites (Xero)
+    // Note: This requires secure: true (HTTPS) in production
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     domain: process.env.COOKIE_DOMAIN || undefined, // Share cookies across subdomains (set to .zollc.com in production)
   },
 }));
