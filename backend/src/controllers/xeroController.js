@@ -36,9 +36,15 @@ export const initiateOAuth = async (req, res) => {
       });
     });
 
-    const consentUrl = await xero.buildConsentUrl(state);
-    console.log('Redirecting to Xero consent URL:', consentUrl);
-    console.log('State parameter in URL:', consentUrl.includes(`state=${state}`) ? 'FOUND' : 'MISSING');
+    let consentUrl = await xero.buildConsentUrl();
+
+    // WORKAROUND: xero-node SDK doesn't properly include state parameter
+    // Manually append state to the consent URL
+    const separator = consentUrl.includes('?') ? '&' : '?';
+    consentUrl = `${consentUrl}${separator}state=${encodeURIComponent(state)}`;
+
+    console.log('Redirecting to Xero consent URL (first 100 chars):', consentUrl.substring(0, 100));
+    console.log('State parameter in URL:', consentUrl.includes(`state=${state}`) ? '✓ FOUND' : '✗ MISSING');
 
     // Redirect user to Xero authorization page
     res.redirect(consentUrl);
