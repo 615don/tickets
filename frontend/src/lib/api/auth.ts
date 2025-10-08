@@ -49,3 +49,26 @@ export const logout = () =>
  */
 export const getCurrentUser = () =>
   apiClient.get<{ user: User }>('/api/auth/me');
+
+/**
+ * Update user email (requires current password)
+ */
+export const updateUserEmail = (email: string, currentPassword: string) =>
+  apiClient.put<{ user: User; message: string }>('/api/auth/profile', {
+    email,
+    currentPassword,
+  });
+
+/**
+ * Update user password
+ */
+export const updateUserPassword = (
+  currentPassword: string,
+  newPassword: string,
+  confirmPassword: string
+) =>
+  apiClient.put<{ message: string }>('/api/auth/password', {
+    currentPassword,
+    newPassword,
+    confirmPassword,
+  });

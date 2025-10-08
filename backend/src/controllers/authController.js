@@ -1,4 +1,5 @@
 import { User } from '../models/User.js';
+import { invalidateAllSessions } from '../utils/sessionHelpers.js';
 
 // Register a new user
 export const register = async (req, res) => {
@@ -165,6 +166,179 @@ export const getCurrentUser = async (req, res) => {
     res.status(500).json({
       error: 'Failed to get user',
       message: 'An error occurred while fetching user data'
+    });
+  }
+};
+
+// Update user profile (email)
+export const updateProfile = async (req, res) => {
+  try {
+    const userId = req.session.userId;
+    const { email, currentPassword } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        error: 'Not authenticated',
+        message: 'You must be logged in'
+      });
+    }
+
+    // Get user with password hash to verify current password
+    const user = await User.findByEmail(req.session.userEmail);
+
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'Your account no longer exists'
+      });
+    }
+
+    // Verify current password
+    const isValidPassword = await User.verifyPassword(currentPassword, user.password_hash);
+    if (!isValidPassword) {
+      return res.status(401).json({
+        error: 'Invalid credentials',
+        message: 'Current password is incorrect'
+      });
+    }
+
+    // Update email
+    let updatedUser;
+    try {
+      updatedUser = await User.updateEmail(userId, email);
+    } catch (error) {
+      if (error.code === 'DUPLICATE_EMAIL') {
+        return res.status(400).json({
+          error: 'Email already exists',
+          message: 'This email is already registered'
+        });
+      }
+      throw error;
+    }
+
+    // Invalidate all other sessions
+    await invalidateAllSessions(userId);
+
+    // Regenerate current session to keep user logged in
+    req.session.regenerate((err) => {
+      if (err) {
+        console.error('Session regeneration error:', err);
+        return res.status(500).json({
+          error: 'Update failed',
+          message: 'An error occurred during session update'
+        });
+      }
+
+      // Restore session data with updated email
+      req.session.userId = updatedUser.id;
+      req.session.userEmail = updatedUser.email;
+
+      req.session.save((saveErr) => {
+        if (saveErr) {
+          console.error('Session save error:', saveErr);
+          return res.status(500).json({
+            error: 'Update failed',
+            message: 'An error occurred during session update'
+          });
+        }
+
+        res.json({
+          message: 'Email updated successfully',
+          user: {
+            id: updatedUser.id,
+            email: updatedUser.email,
+            name: updatedUser.name
+          }
+        });
+      });
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({
+      error: 'Update failed',
+      message: 'An error occurred while updating your profile'
+    });
+  }
+};
+
+// Update user password
+export const updatePassword = async (req, res) => {
+  try {
+    const userId = req.session.userId;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        error: 'Not authenticated',
+        message: 'You must be logged in'
+      });
+    }
+
+    // Update password (includes current password verification and strength validation)
+    try {
+      await User.updatePassword(userId, currentPassword, newPassword);
+    } catch (error) {
+      if (error.code === 'INVALID_PASSWORD') {
+        return res.status(401).json({
+          error: 'Invalid credentials',
+          message: 'Current password is incorrect'
+        });
+      }
+      // Password strength validation errors
+      if (error.message.includes('Password requirements')) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          message: error.message
+        });
+      }
+      throw error;
+    }
+
+    // Get user data to restore session with correct email
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'Your account no longer exists'
+      });
+    }
+
+    // Invalidate all other sessions
+    await invalidateAllSessions(userId);
+
+    // Regenerate current session to keep user logged in
+    req.session.regenerate((err) => {
+      if (err) {
+        console.error('Session regeneration error:', err);
+        return res.status(500).json({
+          error: 'Update failed',
+          message: 'An error occurred during session update'
+        });
+      }
+
+      // Restore session data with verified user email
+      req.session.userId = userId;
+      req.session.userEmail = user.email;
+
+      req.session.save((saveErr) => {
+        if (saveErr) {
+          console.error('Session save error:', saveErr);
+          return res.status(500).json({
+            error: 'Update failed',
+            message: 'An error occurred during session update'
+          });
+        }
+
+        res.json({
+          message: 'Password updated successfully'
+        });
+      });
+    });
+  } catch (error) {
+    console.error('Update password error:', error);
+    res.status(500).json({
+      error: 'Update failed',
+      message: 'An error occurred while updating your password'
     });
   }
 };

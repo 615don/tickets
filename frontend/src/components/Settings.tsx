@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/components/PageHeader';
 import { SettingsSection } from '@/components/SettingsSection';
+import { UserProfileSection } from '@/components/UserProfileSection';
 import { XeroConnectionCard } from '@/components/XeroConnectionCard';
 import { XeroContactsDialog } from '@/components/XeroContactsDialog';
 import { BackupSection } from '@/components/BackupSection';
@@ -165,6 +166,9 @@ export const Settings = () => {
         <PageHeader title="Settings" />
 
         <div className="space-y-6">
+          {/* User Profile Section */}
+          <UserProfileSection />
+
           {/* Xero Integration Section */}
           <SettingsSection
             title="Xero Integration"

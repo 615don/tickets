@@ -78,5 +78,72 @@ export const User = {
     );
 
     return result.rows[0];
+  },
+
+  // Update email with uniqueness check
+  async updateEmail(id, email) {
+    // Check if email already exists for another user
+    const existingUser = await query(
+      'SELECT id FROM users WHERE email = $1 AND id != $2',
+      [email, id]
+    );
+
+    if (existingUser.rows.length > 0) {
+      const error = new Error('Email already exists');
+      error.code = 'DUPLICATE_EMAIL';
+      throw error;
+    }
+
+    // Update email
+    const result = await query(
+      'UPDATE users SET email = $1, updated_at = NOW() WHERE id = $2 RETURNING id, email, name, created_at, updated_at',
+      [email, id]
+    );
+
+    if (!result.rows[0]) {
+      throw new Error('User not found');
+    }
+
+    return result.rows[0];
+  },
+
+  // Update password with validation
+  async updatePassword(id, currentPassword, newPassword) {
+    // Get user with password hash
+    const userResult = await query(
+      'SELECT id, password_hash FROM users WHERE id = $1',
+      [id]
+    );
+
+    if (!userResult.rows[0]) {
+      throw new Error('User not found');
+    }
+
+    const user = userResult.rows[0];
+
+    // Verify current password
+    const isValidPassword = await this.verifyPassword(currentPassword, user.password_hash);
+    if (!isValidPassword) {
+      const error = new Error('Current password is incorrect');
+      error.code = 'INVALID_PASSWORD';
+      throw error;
+    }
+
+    // Validate new password strength
+    const validation = validatePasswordStrength(newPassword);
+    if (!validation.isValid) {
+      throw new Error(getPasswordErrorMessage(validation.errors));
+    }
+
+    // Hash new password
+    const newPasswordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+    // Update password
+    await query(
+      'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
+      [newPasswordHash, id]
+    );
+
+    return true;
   }
 };

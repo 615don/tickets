@@ -1,7 +1,7 @@
 import express from 'express';
 import { body } from 'express-validator';
 import rateLimit from 'express-rate-limit';
-import { register, login, logout, getCurrentUser } from '../controllers/authController.js';
+import { register, login, logout, getCurrentUser, updateProfile, updatePassword } from '../controllers/authController.js';
 import { validate } from '../middleware/validation.js';
 import { requireAuth, redirectIfAuthenticated } from '../middleware/auth.js';
 
@@ -45,6 +45,28 @@ const loginValidation = [
     .withMessage('Password is required')
 ];
 
+const updateProfileValidation = [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Valid email is required'),
+  body('currentPassword')
+    .notEmpty()
+    .withMessage('Current password is required')
+];
+
+const updatePasswordValidation = [
+  body('currentPassword')
+    .notEmpty()
+    .withMessage('Current password is required'),
+  body('newPassword')
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters'),
+  body('confirmPassword')
+    .custom((value, { req }) => value === req.body.newPassword)
+    .withMessage('Passwords must match')
+];
+
 // POST /api/auth/register - Register new user
 router.post('/register', authLimiter, redirectIfAuthenticated, registerValidation, validate, register);
 
@@ -56,5 +78,11 @@ router.post('/logout', requireAuth, logout);
 
 // GET /api/auth/me - Get current user
 router.get('/me', requireAuth, getCurrentUser);
+
+// PUT /api/auth/profile - Update user email
+router.put('/profile', authLimiter, requireAuth, updateProfileValidation, validate, updateProfile);
+
+// PUT /api/auth/password - Update user password
+router.put('/password', authLimiter, requireAuth, updatePasswordValidation, validate, updatePassword);
 
 export default router;
