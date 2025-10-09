@@ -5,6 +5,7 @@
   "workspaces": [
     "frontend",
     "backend",
+    "outlook-addin",
     "packages/*"
   ],
   "scripts": {
