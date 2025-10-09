@@ -1,11 +1,12 @@
 import express from 'express';
-import { body } from 'express-validator';
+import { body, query } from 'express-validator';
 import {
   getAllContacts,
   getContactById,
   createContact,
   updateContact,
-  deleteContact
+  deleteContact,
+  matchEmail
 } from '../controllers/contactController.js';
 import { validate } from '../middleware/validation.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -32,6 +33,12 @@ const contactValidation = [
 
 // GET /api/contacts - List all contacts (with optional filters)
 router.get('/', getAllContacts);
+
+// GET /api/contacts/match-email - Match contacts by email address
+router.get('/match-email', [
+  query('email').isEmail().normalizeEmail(),
+  validate
+], matchEmail);
 
 // GET /api/contacts/:id - Get contact by ID
 router.get('/:id', getContactById);

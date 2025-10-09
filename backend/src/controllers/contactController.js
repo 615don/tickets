@@ -163,3 +163,20 @@ export const deleteContact = async (req, res) => {
     });
   }
 };
+
+// GET /api/contacts/match-email - Match contacts by email address
+export const matchEmail = async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    const matches = await Contact.matchByEmail(email);
+
+    res.json(matches);
+  } catch (error) {
+    console.error('Match email error:', error);
+    res.status(500).json({
+      error: 'Failed to match email',
+      message: error.message
+    });
+  }
+};

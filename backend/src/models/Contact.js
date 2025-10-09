@@ -256,5 +256,39 @@ export const Contact = {
 
     const result = await query(sql, params);
     return result.rows.length > 0;
+  },
+
+  // Match contacts by email address (case-insensitive)
+  async matchByEmail(email) {
+    const result = await query(`
+      SELECT
+        c.id,
+        c.client_id,
+        c.name,
+        c.email,
+        c.is_system_contact,
+        c.created_at,
+        c.updated_at,
+        cl.company_name as client_name
+      FROM contacts c
+      JOIN clients cl ON c.client_id = cl.id
+      WHERE LOWER(c.email) = LOWER($1)
+        AND c.deleted_at IS NULL
+        AND c.is_system_contact = FALSE
+      ORDER BY cl.company_name, c.name
+    `, [email]);
+
+    return result.rows.map(row => ({
+      contact: {
+        id: row.id,
+        name: row.name,
+        email: row.email,
+        clientId: row.client_id
+      },
+      client: {
+        id: row.client_id,
+        name: row.client_name
+      }
+    }));
   }
 };

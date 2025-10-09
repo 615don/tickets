@@ -38,7 +38,7 @@ export const ContactForm = ({ contact, clients, existingEmails, onSubmit, onCanc
     formState: { errors, isValid },
   } = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
-    mode: 'onBlur',
+    mode: 'onChange',
     defaultValues: {
       name: contact?.name || '',
       email: contact?.email || '',
