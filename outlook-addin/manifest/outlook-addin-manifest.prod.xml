@@ -18,13 +18,13 @@
 
   <!-- Add-in Display Information -->
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="Email to Ticket Converter"/>
-  <Description DefaultValue="Convert Outlook emails into support tickets with automatic contact matching"/>
+  <DisplayName DefaultValue="Tickets"/>
+  <Description DefaultValue="Convert Outlook emails into support tickets"/>
 
   <!-- Icon URLs - Using placeholder icons for MVP -->
   <!-- Production: Replace with branded icons hosted at outlook-addin.zollc.com -->
-  <IconUrl DefaultValue="https://via.placeholder.com/32x32.png"/>
-  <HighResolutionIconUrl DefaultValue="https://via.placeholder.com/80x80.png"/>
+  <IconUrl DefaultValue="https://placehold.co/32x32/3b82f6/white?text=T"/>
+  <HighResolutionIconUrl DefaultValue="https://placehold.co/80x80/3b82f6/white?text=T"/>
 
   <!-- Support Information -->
   <SupportUrl DefaultValue="https://zollc.com/support"/>
@@ -110,19 +110,19 @@
     <!-- Resources - String and Image Resources -->
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon.16x16" DefaultValue="https://via.placeholder.com/16x16.png"/>
-        <bt:Image id="Icon.32x32" DefaultValue="https://via.placeholder.com/32x32.png"/>
-        <bt:Image id="Icon.80x80" DefaultValue="https://via.placeholder.com/80x80.png"/>
+        <bt:Image id="Icon.16x16" DefaultValue="https://placehold.co/16x16/3b82f6/white?text=T"/>
+        <bt:Image id="Icon.32x32" DefaultValue="https://placehold.co/32x32/3b82f6/white?text=T"/>
+        <bt:Image id="Icon.80x80" DefaultValue="https://placehold.co/80x80/3b82f6/white?text=T"/>
       </bt:Images>
       <bt:Urls>
         <bt:Url id="Taskpane.Url" DefaultValue="https://outlook-addin.zollc.com"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GroupLabel" DefaultValue="Email to Ticket"/>
+        <bt:String id="GroupLabel" DefaultValue="Tickets"/>
         <bt:String id="TaskpaneButton.Label" DefaultValue="Create Ticket"/>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Open task pane to convert this email into a support ticket"/>
+        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Convert this email into a support ticket"/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>
