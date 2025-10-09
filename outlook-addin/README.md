@@ -403,6 +403,153 @@ npm install
   - Use `credentials: 'include'` in fetch requests
   - Base URL: `http://localhost:3001/api` (dev) or production backend URL
 
+## Production Installation
+
+### Production URLs
+
+- **Add-in URL**: `https://outlook-addin.zollc.com`
+- **Manifest URL**: `https://outlook-addin.zollc.com/manifest.xml`
+
+### Installing the Production Add-in
+
+1. **Open Outlook Web Access**:
+   - Navigate to [outlook.office.com](https://outlook.office.com) and sign in
+
+2. **Access Add-ins Menu**:
+   - Click the **"Get Add-ins"** button in the Outlook toolbar
+   - Or click the **three-dot menu (⋯)** → "Get Add-ins"
+
+3. **Navigate to My Add-ins**:
+   - In the Add-ins dialog, click **"My add-ins"** in the left sidebar
+
+4. **Add Custom Add-in**:
+   - **Option A: Add from URL** (if available):
+     - Click **"Add a custom add-in"** → **"Add from URL..."**
+     - Enter: `https://outlook-addin.zollc.com/manifest.xml`
+     - Click **"Install"**
+
+   - **Option B: Add from file** (if URL option unavailable):
+     - Download the manifest file: [manifest.xml](https://outlook-addin.zollc.com/manifest.xml)
+     - Click **"Add a custom add-in"** → **"Add from file..."**
+     - Select the downloaded `manifest.xml` file
+     - Click **"Upload"** → **"Install"**
+
+5. **Open the Add-in**:
+   - Open any email in your inbox
+   - Click the **"Create Ticket"** button in the ribbon
+   - The task pane will open, loading from `https://outlook-addin.zollc.com`
+
+### Production Troubleshooting
+
+#### Task Pane is Blank
+
+**Solutions:**
+- Open browser DevTools Console and check for errors
+- Verify HTTPS certificate is valid (should show green padlock - no security warnings)
+- Check internet connection
+- Try hard refresh: `Ctrl+Shift+R` (Windows) or `Cmd+Shift+R` (Mac)
+
+#### Add-in Doesn't Install
+
+**Solutions:**
+- Verify manifest URL is accessible: [https://outlook-addin.zollc.com/manifest.xml](https://outlook-addin.zollc.com/manifest.xml)
+- Check MIME type in browser DevTools Network tab (should be `application/xml` or `text/xml`)
+- Try downloading and using "Add from file" method instead
+- Contact administrator if organization policies block custom add-ins
+
+#### CORS Errors in Console
+
+**Solutions:**
+- Verify backend CORS configuration includes `https://outlook-addin.zollc.com`
+- Check backend environment variables are set correctly
+- Try logging out and back in to main application
+- Clear browser cookies and cache
+
+#### HTTPS Certificate Warnings
+
+**Cause:** This should NOT occur in production. Railway auto-provisions valid Let's Encrypt certificates.
+
+**Solution:**
+- If you see certificate warnings, contact Railway support or system administrator
+- Verify custom domain `outlook-addin.zollc.com` is correctly configured in Railway
+- Check Railway service dashboard for SSL certificate status
+
+### Production Deployment (For Maintainers)
+
+#### Railway Service Configuration
+
+The add-in is deployed as a separate Railway service:
+
+- **Service Name**: `outlook-addin`
+- **Custom Domain**: `outlook-addin.zollc.com`
+- **Build Command**: `npm install && npm run build --workspace=outlook-addin`
+- **Start Command**: `npx serve -s outlook-addin/dist -p $PORT --config outlook-addin/serve.json`
+
+#### Environment Variables (Railway Service)
+
+Set these in the Railway `outlook-addin` service:
+
+```bash
+VITE_API_URL=https://ticketapi.zollc.com
+NODE_ENV=production
+```
+
+#### Environment Variables (Backend Service)
+
+Update the Railway backend service with:
+
+```bash
+ADDIN_URL=https://outlook-addin.zollc.com
+```
+
+This environment variable is used by the backend CORS configuration to allow cross-origin requests from the production add-in.
+
+#### Auto-Deploy Workflow
+
+The add-in automatically deploys when changes are pushed to the `main` branch:
+
+1. Push changes to `main` branch in GitHub
+2. Railway detects the push and triggers a build
+3. Build command runs: `npm install && npm run build --workspace=outlook-addin`
+4. Service restarts with updated code
+5. Deployment typically completes in <5 minutes
+
+#### Monitoring Deployment
+
+- View deployment logs in [Railway Dashboard](https://railway.app)
+- Check service health at `https://outlook-addin.zollc.com`
+- Monitor for errors in Railway service logs
+
+#### Rollback Process
+
+If a deployment fails or introduces bugs:
+
+1. Open Railway Dashboard → Select `outlook-addin` service
+2. Navigate to **Deployments** tab
+3. Find the last known good deployment
+4. Click **three-dot menu (⋯)** → **Rollback to this deployment**
+5. Confirm rollback
+6. Service will restart with previous version
+
+**Note:** Rollback is instant and does NOT affect the main ticketing system frontend or backend (isolated service).
+
+#### Updating Production Manifest
+
+The production manifest is automatically included in builds via the `public/` directory:
+
+- Source: `outlook-addin/public/manifest.xml`
+- Build output: `outlook-addin/dist/manifest.xml`
+- Public URL: `https://outlook-addin.zollc.com/manifest.xml`
+
+To update the manifest:
+
+1. Edit `outlook-addin/manifest/outlook-addin-manifest.prod.xml`
+2. Copy updated manifest to `outlook-addin/public/manifest.xml`
+3. Commit and push to `main` branch
+4. Railway auto-deploys updated manifest
+
+**Important:** Manifest UUID must remain identical across all versions. Only update version number and URLs as needed.
+
 ## Resources
 
 - [Office Add-ins Documentation](https://learn.microsoft.com/en-us/office/dev/add-ins/)
