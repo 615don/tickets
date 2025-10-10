@@ -18,7 +18,7 @@
 
   <!-- Add-in Display Information -->
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="Email to Ticket Converter"/>
+  <DisplayName DefaultValue="Tickets"/>
   <Description DefaultValue="Convert Outlook emails into support tickets with automatic contact matching"/>
 
   <!-- Icon URLs - Using placeholder icons for MVP -->
