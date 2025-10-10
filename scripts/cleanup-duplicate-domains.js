@@ -12,10 +12,22 @@
  *
  * Environment Variables:
  *   DATABASE_URL - PostgreSQL connection string (from Railway)
+ *   Or set DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD for local database
  */
 
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import dotenv from 'dotenv';
 import pg from 'pg';
+
 const { Pool } = pg;
+
+// Get the directory name of the current module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load .env from backend directory
+dotenv.config({ path: join(__dirname, '../backend/.env') });
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -27,11 +39,21 @@ if (isDryRun) {
   console.log('\n⚠️  EXECUTE MODE - Duplicates will be deleted\n');
 }
 
-// Database connection
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-});
+// Database connection - use same logic as backend
+const connectionConfig = process.env.DATABASE_URL
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    }
+  : {
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 5432,
+      database: process.env.DB_NAME || 'ticketing_system',
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD,
+    };
+
+const pool = new Pool(connectionConfig);
 
 async function findDuplicates() {
   console.log('Step 1: Finding duplicate domain entries...\n');

@@ -8,26 +8,30 @@ Removes duplicate domain entries from the `client_domains` table while preservin
 
 ### Prerequisites
 
-1. Get your Railway database URL:
-   - Go to your Railway project
-   - Click on your PostgreSQL database
-   - Copy the `DATABASE_URL` connection string
+**For Production (Railway):**
+Add your Railway database URL to `backend/.env`:
+```
+DATABASE_URL=postgresql://postgres:password@host:port/database
+```
+
+**For Local:**
+The script will use your existing `backend/.env` configuration.
 
 ### Usage
 
 **Preview mode (safe - no changes):**
 ```bash
-DATABASE_URL="your-railway-database-url" node scripts/cleanup-duplicate-domains.js --dry-run
+node scripts/cleanup-duplicate-domains.js --dry-run
 ```
 
 **Execute mode (deletes duplicates):**
 ```bash
-DATABASE_URL="your-railway-database-url" node scripts/cleanup-duplicate-domains.js --execute
+node scripts/cleanup-duplicate-domains.js --execute
 ```
 
 ### What it does
 
-1. Connects to the database using `DATABASE_URL`
+1. Connects to the database using `DATABASE_URL` from `backend/.env`
 2. Finds all duplicate domain entries (same domain + client_id combination)
 3. Keeps the oldest entry (lowest ID)
 4. Deletes all duplicate entries
