@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import { Sidebar } from './components/Sidebar'
 import { HelloWorld } from './components/HelloWorld'
-import { EmailContext } from './types'
+import { useEmailContext } from './hooks/useEmailContext'
 
 // Office.js initialization states
 type OfficeState = 'loading' | 'ready' | 'error'
@@ -17,26 +17,9 @@ function App() {
   const [officeState, setOfficeState] = useState<OfficeState>('loading')
   const [hostInfo, setHostInfo] = useState<HostInfo | null>(null)
   const [errorMessage, setErrorMessage] = useState<string>('')
-  const [emailContext, setEmailContext] = useState<EmailContext | null>(null)
 
-  // Event handler for ItemChanged
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleItemChanged = (eventArgs: Office.EventArgs): void => {
-    const item = Office.context.mailbox.item
-
-    if (item != null) {
-      const senderEmail = item.from.emailAddress
-      const senderName = item.from.displayName
-      const subject = item.subject
-
-      console.log(`Email changed: ${senderEmail} - ${subject}`)
-
-      setEmailContext({ senderEmail, senderName, subject })
-    } else {
-      console.log('No email selected')
-      setEmailContext(null)
-    }
-  }
+  // Use custom hook for email context management
+  const emailContext = useEmailContext()
 
   useEffect(() => {
     // Initialize Office.js
@@ -58,26 +41,6 @@ function App() {
               permissions: permissions
             })
 
-            // Register ItemChanged event handler
-            try {
-              Office.context.mailbox.addHandlerAsync(
-                Office.EventType.ItemChanged,
-                handleItemChanged,
-                (asyncResult) => {
-                  if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
-                    console.log('ItemChanged event registered')
-                  } else {
-                    console.error('Failed to register ItemChanged event:', asyncResult.error)
-                  }
-                }
-              )
-            } catch (error) {
-              console.error('Error registering ItemChanged event:', error)
-            }
-
-            // Initialize email context with current item
-            handleItemChanged({} as Office.EventArgs)
-
             setOfficeState('ready')
           } else {
             throw new Error('Add-in must be loaded in Outlook')
@@ -97,24 +60,7 @@ function App() {
       setOfficeState('error')
     }
 
-    // Cleanup function to remove event handler on component unmount
-    return () => {
-      if (typeof Office !== 'undefined' && Office.context?.mailbox) {
-        try {
-          Office.context.mailbox.removeHandlerAsync(
-            Office.EventType.ItemChanged,
-            { handler: handleItemChanged },
-            (asyncResult) => {
-              if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
-                console.log('ItemChanged event handler removed')
-              }
-            }
-          )
-        } catch (error) {
-          console.error('Error removing ItemChanged event handler:', error)
-        }
-      }
-    }
+    // No cleanup needed - useEmailContext hook handles event registration/cleanup
   }, [])
 
   // Loading state
