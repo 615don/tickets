@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { EmailContext } from '../types'
 
 /**
@@ -25,29 +25,31 @@ import { EmailContext } from '../types'
 export function useEmailContext(): EmailContext | null {
   const [emailContext, setEmailContext] = useState<EmailContext | null>(null)
 
-  useEffect(() => {
-    // Note: item.from and item.subject are synchronous properties (no async handling needed)
-    const updateEmailContext = (): void => {
-      try {
-        const item = Office.context.mailbox.item
+  // Note: item.from and item.subject are synchronous properties (no async handling needed)
+  // useCallback ensures stable function reference for Office.js event handler registration/removal
+  const updateEmailContext = useCallback((): void => {
+    try {
+      const item = Office.context.mailbox.item
 
-        // Edge case handling: Check if item exists and has sender data
-        if (item != null && item.from) {
-          const senderEmail = item.from.emailAddress || ''
-          const senderName = item.from.displayName || ''
-          const subject = item.subject || ''
+      // Edge case handling: Check if item exists and has sender data
+      if (item != null && item.from) {
+        const senderEmail = item.from.emailAddress || ''
+        const senderName = item.from.displayName || ''
+        const subject = item.subject || ''
 
-          console.log(`Email context updated: ${senderEmail}`)
-          setEmailContext({ senderEmail, senderName, subject })
-        } else {
-          console.log('No email selected or sender data missing')
-          setEmailContext(null)
-        }
-      } catch (error) {
-        console.error('Error extracting email metadata:', error)
+        console.log(`Email context updated: ${senderEmail}`)
+        setEmailContext({ senderEmail, senderName, subject })
+      } else {
+        console.log('No email selected or sender data missing')
         setEmailContext(null)
       }
+    } catch (error) {
+      console.error('Error extracting email metadata:', error)
+      setEmailContext(null)
     }
+  }, []) // Empty deps: function doesn't depend on any props or state
+
+  useEffect(() => {
 
     // Initialize Office.js and register ItemChanged event
     if (typeof Office !== 'undefined') {
@@ -96,7 +98,7 @@ export function useEmailContext(): EmailContext | null {
         }
       }
     }
-  }, []) // Empty dependency array: run once on mount
+  }, [updateEmailContext]) // Include updateEmailContext for exhaustive-deps compliance
 
   return emailContext
 }
