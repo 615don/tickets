@@ -58,6 +58,17 @@ export interface MatchContactResponse {
 }
 
 /**
+ * API response for client matching by domain (Story 4.2)
+ * Response from GET /api/clients/match-domain endpoint
+ */
+export interface MatchClientResponse {
+  id: number;
+  name: string;
+  domains: string[];
+  isActive: boolean;
+}
+
+/**
  * Error response from matching API calls (Story 4.1)
  * Used for typed error handling in useMatching hook
  */

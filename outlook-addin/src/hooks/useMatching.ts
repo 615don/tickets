@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react';
 import type { EmailContext, MatchingResult, MatchingError } from '../types';
-import { matchContactByEmail } from '../lib/api/matching';
+import { matchContactByEmail, matchClientByDomain } from '../lib/api/matching';
+import { extractDomain } from '../lib/utils/domainExtractor';
 
 /**
- * React hook to trigger contact matching when email context changes
+ * React hook to trigger contact/domain matching when email context changes
+ * Implements sequential fallback logic: contact match first, then domain match if no contact found
  * Implements debouncing and request cancellation for rapid email selection changes
  *
  * @param emailContext - Email context from Office.js (or null if no email selected)
  * @returns Object containing matching result, loading state, and error state
  *
  * Story 4.1: Email-to-Contact Matching Integration
+ * Story 4.2: Domain-to-Client Fallback Matching
  */
 export function useMatching(emailContext: EmailContext | null) {
   const [matchingResult, setMatchingResult] = useState<MatchingResult | null>(null);
@@ -34,30 +37,58 @@ export function useMatching(emailContext: EmailContext | null) {
       setError(null);
 
       try {
-        const response = await matchContactByEmail(emailContext.senderEmail);
+        // STEP 1: Try contact matching first (Story 4.1)
+        const contactMatches = await matchContactByEmail(emailContext.senderEmail);
 
-        // Transform API response to MatchingResult format
-        if (response.length > 0) {
-          // Contact matched - use first result (disambiguation handled in Story 4.4)
+        if (contactMatches.length > 0) {
+          // Contact match found - use it (highest priority)
           setMatchingResult({
             type: 'contact-matched',
             client: {
-              id: response[0].client.id,
-              name: response[0].client.name,
+              id: contactMatches[0].client.id,
+              name: contactMatches[0].client.name,
             },
             contact: {
-              id: response[0].contact.id,
-              name: response[0].contact.name,
-              email: response[0].contact.email,
+              id: contactMatches[0].contact.id,
+              name: contactMatches[0].contact.name,
+              email: contactMatches[0].contact.email,
             },
           });
         } else {
-          // No match found
-          setMatchingResult({ type: 'no-match' });
+          // STEP 2: No contact match - try domain matching (Story 4.2)
+          const domain = extractDomain(emailContext.senderEmail);
+
+          if (domain) {
+            try {
+              const client = await matchClientByDomain(domain);
+
+              if (client) {
+                // Domain match found - use it (second priority)
+                setMatchingResult({
+                  type: 'domain-matched',
+                  client: { id: client.id, name: client.name },
+                });
+              } else {
+                // No domain match either
+                setMatchingResult({ type: 'no-match' });
+              }
+            } catch (domainError) {
+              // Domain matching API failed - log and fall back to no-match
+              console.error('Domain matching failed:', domainError);
+              setMatchingResult({ type: 'no-match' });
+              setError({
+                message: domainError instanceof Error ? domainError.message : 'Domain matching failed',
+                status: 0,
+              });
+            }
+          } else {
+            // Domain extraction failed (invalid email)
+            setMatchingResult({ type: 'no-match' });
+          }
         }
       } catch (err) {
-        // Log error for debugging
-        console.error('Matching failed:', err);
+        // Contact matching API failed - log and fall back to no-match
+        console.error('Contact matching failed:', err);
 
         // Set fallback state on error (allows manual mode to remain functional)
         setMatchingResult({ type: 'no-match' });
@@ -65,7 +96,7 @@ export function useMatching(emailContext: EmailContext | null) {
         // Store error details for potential UI display
         setError({
           message: err instanceof Error ? err.message : 'Unknown error',
-          status: 0, // Will be set properly in error handling (Task 6)
+          status: 0,
         });
       } finally {
         // Only update isMatching if request wasn't aborted
