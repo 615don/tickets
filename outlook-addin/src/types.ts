@@ -40,6 +40,33 @@ export type MatchStatus = "loading" | "matched" | "warning" | "neutral";
 export type SubmissionStatus = "idle" | "loading" | "success" | "error";
 
 /**
+ * API response for contact matching by email (Story 4.1)
+ * Response from GET /api/contacts/match-email endpoint
+ */
+export interface MatchContactResponse {
+  contact: {
+    id: number;
+    name: string;
+    email: string;
+    clientId: number;
+  };
+  client: {
+    id: number;
+    name: string;
+    isActive: boolean;
+  };
+}
+
+/**
+ * Error response from matching API calls (Story 4.1)
+ * Used for typed error handling in useMatching hook
+ */
+export interface MatchingError {
+  message: string;
+  status: number;
+}
+
+/**
  * Matching result from contact/domain lookup API (Stories 3.6+)
  * Used to determine StatusBadge variant and display matched client/contact information
  */
