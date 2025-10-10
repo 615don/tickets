@@ -1,21 +1,14 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 import { Sidebar } from './components/Sidebar'
-import { HelloWorld } from './components/HelloWorld'
+import { EmailContext } from './components/EmailContext'
 import { useEmailContext } from './hooks/useEmailContext'
 
 // Office.js initialization states
 type OfficeState = 'loading' | 'ready' | 'error'
 
-interface HostInfo {
-  hostName: string
-  hostVersion: string
-  permissions: string | number
-}
-
 function App() {
   const [officeState, setOfficeState] = useState<OfficeState>('loading')
-  const [hostInfo, setHostInfo] = useState<HostInfo | null>(null)
   const [errorMessage, setErrorMessage] = useState<string>('')
 
   // Use custom hook for email context management
@@ -28,19 +21,6 @@ function App() {
         try {
           // Verify Outlook host
           if (info.host === Office.HostType.Outlook) {
-            // Extract host information
-            const diagnostics = Office.context.mailbox.diagnostics
-            const item = Office.context.mailbox.item
-
-            // Get permissions if an item is selected, otherwise use 0
-            const permissions = item ? item.itemType : 0
-
-            setHostInfo({
-              hostName: diagnostics.hostName,
-              hostVersion: diagnostics.hostVersion,
-              permissions: permissions
-            })
-
             setOfficeState('ready')
           } else {
             throw new Error('Add-in must be loaded in Outlook')
@@ -90,15 +70,17 @@ function App() {
     )
   }
 
-  // Ready state - render HelloWorld component
+  // Ready state - render EmailContext component
   return (
     <Sidebar emailContext={emailContext}>
-      {hostInfo && (
-        <HelloWorld
-          hostName={hostInfo.hostName}
-          hostVersion={hostInfo.hostVersion}
-          permissions={hostInfo.permissions}
-        />
+      {emailContext && (
+        <div className="p-4">
+          <EmailContext
+            senderName={emailContext.senderName}
+            senderEmail={emailContext.senderEmail}
+            matchStatus="loading"
+          />
+        </div>
       )}
     </Sidebar>
   )
