@@ -21,10 +21,9 @@
   <DisplayName DefaultValue="Tickets"/>
   <Description DefaultValue="Convert Outlook emails into support tickets with automatic contact matching"/>
 
-  <!-- Icon URLs - Using placeholder icons for MVP -->
-  <!-- Production: Replace with branded icons hosted at outlook-addin.zollc.com -->
-  <IconUrl DefaultValue="https://via.placeholder.com/32x32.png"/>
-  <HighResolutionIconUrl DefaultValue="https://via.placeholder.com/80x80.png"/>
+  <!-- Icon URLs - Blue "T" icon for Tickets add-in -->
+  <IconUrl DefaultValue="https://localhost:5173/icon-32.svg"/>
+  <HighResolutionIconUrl DefaultValue="https://localhost:5173/icon-80.svg"/>
 
   <!-- Support Information -->
   <SupportUrl DefaultValue="https://zollc.com/support"/>
@@ -111,16 +110,16 @@
     <!-- Resources - String and Image Resources -->
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon.16x16" DefaultValue="https://via.placeholder.com/16x16.png"/>
-        <bt:Image id="Icon.32x32" DefaultValue="https://via.placeholder.com/32x32.png"/>
-        <bt:Image id="Icon.80x80" DefaultValue="https://via.placeholder.com/80x80.png"/>
+        <bt:Image id="Icon.16x16" DefaultValue="https://localhost:5173/icon-16.svg"/>
+        <bt:Image id="Icon.32x32" DefaultValue="https://localhost:5173/icon-32.svg"/>
+        <bt:Image id="Icon.80x80" DefaultValue="https://localhost:5173/icon-80.svg"/>
       </bt:Images>
       <bt:Urls>
         <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:5173"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GroupLabel" DefaultValue="Email to Ticket"/>
-        <bt:String id="TaskpaneButton.Label" DefaultValue="Create Ticket"/>
+        <bt:String id="GroupLabel" DefaultValue="Tickets"/>
+        <bt:String id="TaskpaneButton.Label" DefaultValue="Tickets"/>
       </bt:ShortStrings>
       <bt:LongStrings>
         <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Open task pane to convert this email into a support ticket"/>
@@ -172,16 +171,16 @@
       <!-- Resources - String and Image Resources -->
       <Resources>
         <bt:Images>
-          <bt:Image id="Icon.16x16" DefaultValue="https://via.placeholder.com/16x16.png"/>
-          <bt:Image id="Icon.32x32" DefaultValue="https://via.placeholder.com/32x32.png"/>
-          <bt:Image id="Icon.80x80" DefaultValue="https://via.placeholder.com/80x80.png"/>
+          <bt:Image id="Icon.16x16" DefaultValue="https://localhost:5173/icon-16.svg"/>
+          <bt:Image id="Icon.32x32" DefaultValue="https://localhost:5173/icon-32.svg"/>
+          <bt:Image id="Icon.80x80" DefaultValue="https://localhost:5173/icon-80.svg"/>
         </bt:Images>
         <bt:Urls>
           <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:5173"/>
         </bt:Urls>
         <bt:ShortStrings>
-          <bt:String id="GroupLabel" DefaultValue="Email to Ticket"/>
-          <bt:String id="TaskpaneButton.Label" DefaultValue="Create Ticket"/>
+          <bt:String id="GroupLabel" DefaultValue="Tickets"/>
+          <bt:String id="TaskpaneButton.Label" DefaultValue="Tickets"/>
         </bt:ShortStrings>
         <bt:LongStrings>
           <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Open task pane to convert this email into a support ticket"/>
