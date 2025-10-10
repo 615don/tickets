@@ -26,9 +26,22 @@ export const EmailContext = ({
       case "warning":
         return `⚠ New contact at ${clientName}`;
       case "neutral":
-        return "? No match found";
+        return "? No match found - manual selection required";
       case "loading":
         return "Matching contact and client...";
+    }
+  };
+
+  const getTooltipText = () => {
+    switch (matchStatus) {
+      case "loading":
+        return "Searching for matching contact and client...";
+      case "matched":
+        return "Contact and client found in database";
+      case "warning":
+        return "Client found, but contact will be created when ticket is submitted";
+      case "neutral":
+        return "No match found. Please select client and contact manually.";
     }
   };
 
@@ -55,7 +68,7 @@ export const EmailContext = ({
         )}
         <p className="text-sm text-muted-foreground">{senderEmail}</p>
       </div>
-      <StatusBadge variant={matchStatus} text={getStatusText()} />
+      <StatusBadge variant={matchStatus} text={getStatusText()} tooltip={getTooltipText()} />
     </div>
   );
 };
