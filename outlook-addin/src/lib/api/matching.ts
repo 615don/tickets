@@ -1,5 +1,8 @@
 import type { MatchContactResponse } from '../../types';
 
+// Get API base URL from environment variable or use relative URL for development
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
 /**
  * Match a contact by email address
  * Calls GET /api/contacts/match-email endpoint
@@ -13,7 +16,7 @@ import type { MatchContactResponse } from '../../types';
 export async function matchContactByEmail(email: string): Promise<MatchContactResponse[]> {
   try {
     const response = await fetch(
-      `/api/contacts/match-email?email=${encodeURIComponent(email)}`,
+      `${API_BASE_URL}/api/contacts/match-email?email=${encodeURIComponent(email)}`,
       {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
