@@ -19,14 +19,18 @@ The script will use your existing `backend/.env` configuration.
 
 ### Usage
 
+**IMPORTANT:** Run from the `backend` directory so it can find `node_modules`.
+
 **Preview mode (safe - no changes):**
 ```bash
-node scripts/cleanup-duplicate-domains.js --dry-run
+cd backend
+node ../scripts/cleanup-duplicate-domains.js --dry-run
 ```
 
 **Execute mode (deletes duplicates):**
 ```bash
-node scripts/cleanup-duplicate-domains.js --execute
+cd backend
+node ../scripts/cleanup-duplicate-domains.js --execute
 ```
 
 ### What it does

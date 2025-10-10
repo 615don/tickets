@@ -6,28 +6,23 @@
  * This script finds and removes duplicate domain entries in the client_domains table.
  * It keeps the oldest entry (lowest ID) for each client/domain pair and removes duplicates.
  *
- * Usage:
- *   node scripts/cleanup-duplicate-domains.js --dry-run    # Preview what will be deleted
- *   node scripts/cleanup-duplicate-domains.js --execute    # Actually delete duplicates
+ * Usage (run from project root):
+ *   cd backend
+ *   node ../scripts/cleanup-duplicate-domains.js --dry-run    # Preview what will be deleted
+ *   node ../scripts/cleanup-duplicate-domains.js --execute    # Actually delete duplicates
  *
  * Environment Variables:
  *   DATABASE_URL - PostgreSQL connection string (from Railway)
  *   Or set DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD for local database
  */
 
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import dotenv from 'dotenv';
 import pg from 'pg';
 
 const { Pool } = pg;
 
-// Get the directory name of the current module
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Load .env from backend directory
-dotenv.config({ path: join(__dirname, '../backend/.env') });
+// Load .env from current directory (should be run from backend/)
+dotenv.config();
 
 // Parse command line arguments
 const args = process.argv.slice(2);
