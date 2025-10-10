@@ -27,6 +27,7 @@ export const StatusBadge = ({ variant, text, tooltip }: StatusBadgeProps) => {
     <div
       className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium ${variantStyles[variant]}`}
       title={tooltip}
+      tabIndex={0}
     >
       {variant === "loading" ? (
         <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
