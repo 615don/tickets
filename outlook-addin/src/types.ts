@@ -25,6 +25,12 @@ export interface EmailData {
   senderEmail: string;
 }
 
+export interface EmailContext {
+  senderEmail: string;
+  senderName: string;
+  subject: string;
+}
+
 export interface MatchResult {
   client: Client;
   contact: Contact;
