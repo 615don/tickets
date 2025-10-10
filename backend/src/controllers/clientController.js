@@ -182,3 +182,24 @@ export const deleteClient = async (req, res) => {
     });
   }
 };
+
+// GET /api/clients/match-domain?domain={domain} - Find clients by email domain
+export const matchDomain = async (req, res) => {
+  try {
+    const { domain } = req.query;
+
+    // Convert to lowercase for case-insensitive matching
+    const normalizedDomain = domain.toLowerCase();
+
+    const clients = await Client.matchByDomain(normalizedDomain);
+
+    // Return empty array if no matches (200 status, not 404)
+    res.json(clients);
+  } catch (error) {
+    console.error('Match domain error:', error);
+    res.status(500).json({
+      error: 'Failed to match domain',
+      message: error.message
+    });
+  }
+};

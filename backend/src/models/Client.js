@@ -285,5 +285,27 @@ export const Client = {
     `, [`%${searchTerm}%`]);
 
     return result.rows;
+  },
+
+  // Find clients by domain (case-insensitive exact match)
+  async matchByDomain(domain) {
+    const result = await query(`
+      WITH matched_clients AS (
+        SELECT DISTINCT client_id
+        FROM client_domains
+        WHERE LOWER(domain) = LOWER($1)
+      )
+      SELECT
+        c.id,
+        c.company_name as name,
+        COALESCE(json_agg(cd.domain ORDER BY cd.domain) FILTER (WHERE cd.domain IS NOT NULL), '[]') as domains
+      FROM matched_clients mc
+      JOIN clients c ON mc.client_id = c.id
+      LEFT JOIN client_domains cd ON c.id = cd.client_id
+      GROUP BY c.id, c.company_name
+      ORDER BY c.company_name
+    `, [domain]);
+
+    return result.rows;
   }
 };
