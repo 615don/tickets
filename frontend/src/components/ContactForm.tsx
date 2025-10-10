@@ -98,7 +98,7 @@ export const ContactForm = ({ contact, clients, existingEmails, onSubmit, onCanc
         ) : (
           <Select
             value={clientId?.toString()}
-            onValueChange={(value) => setValue('clientId', parseInt(value))}
+            onValueChange={(value) => setValue('clientId', parseInt(value), { shouldValidate: true })}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select a client" />
