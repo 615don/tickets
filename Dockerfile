@@ -7,14 +7,14 @@ RUN apk add --no-cache postgresql-client
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy backend package files
+COPY backend/package*.json ./
 
 # Install dependencies (use npm install since package-lock.json may not be in build context)
 RUN npm install --omit=dev
 
-# Copy application code
-COPY . .
+# Copy backend application code
+COPY backend/ .
 
 # Expose port (Railway will override this with PORT env var)
 EXPOSE 3001
