@@ -10,7 +10,8 @@
     "migrate": "node src/utils/migrate.js",
     "seed": "node src/utils/seed.js",
     "setup": "node src/utils/migrate.js && node src/utils/seed.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:matching": "NODE_OPTIONS=\"--no-warnings\" node --test src/controllers/__tests__/contactController.matchEmail.test.js && NODE_OPTIONS=\"--no-warnings\" node --test src/controllers/__tests__/clientController.matchDomain.test.js"
   },
   "keywords": [
     "ticketing",
