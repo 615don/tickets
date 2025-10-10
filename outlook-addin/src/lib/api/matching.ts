@@ -8,12 +8,13 @@ const API_BASE_URL = import.meta.env?.VITE_API_URL || '';
  * Calls GET /api/contacts/match-email endpoint
  *
  * @param email - Email address to match against contacts database
+ * @param signal - Optional AbortSignal for request cancellation
  * @returns Promise resolving to array of matching contacts (may be empty if no match)
  * @throws Error with descriptive message for authentication, validation, or server errors
  *
  * Story 4.1: Email-to-Contact Matching Integration
  */
-export async function matchContactByEmail(email: string): Promise<MatchContactResponse[]> {
+export async function matchContactByEmail(email: string, signal?: AbortSignal): Promise<MatchContactResponse[]> {
   try {
     const response = await fetch(
       `${API_BASE_URL}/api/contacts/match-email?email=${encodeURIComponent(email)}`,
@@ -21,6 +22,7 @@ export async function matchContactByEmail(email: string): Promise<MatchContactRe
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include', // Send session cookies for authentication
+        signal, // Support request cancellation
       }
     );
 
@@ -51,12 +53,13 @@ export async function matchContactByEmail(email: string): Promise<MatchContactRe
  * Calls GET /api/clients/match-domain endpoint
  *
  * @param domain - Domain to match against client_domains table
+ * @param signal - Optional AbortSignal for request cancellation
  * @returns Promise resolving to matching client or null if no match
  * @throws Error with descriptive message for authentication, validation, or server errors
  *
  * Story 4.2: Domain-to-Client Fallback Matching
  */
-export async function matchClientByDomain(domain: string): Promise<MatchClientResponse | null> {
+export async function matchClientByDomain(domain: string, signal?: AbortSignal): Promise<MatchClientResponse | null> {
   try {
     const response = await fetch(
       `${API_BASE_URL}/api/clients/match-domain?domain=${encodeURIComponent(domain)}`,
@@ -64,6 +67,7 @@ export async function matchClientByDomain(domain: string): Promise<MatchClientRe
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include', // Send session cookies for authentication
+        signal, // Support request cancellation
       }
     );
 

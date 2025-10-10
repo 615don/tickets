@@ -38,7 +38,7 @@ export function useMatching(emailContext: EmailContext | null) {
 
       try {
         // STEP 1: Try contact matching first (Story 4.1)
-        const contactMatches = await matchContactByEmail(emailContext.senderEmail);
+        const contactMatches = await matchContactByEmail(emailContext.senderEmail, abortController.signal);
 
         if (contactMatches.length > 0) {
           // Contact match found - use it (highest priority)
@@ -60,7 +60,7 @@ export function useMatching(emailContext: EmailContext | null) {
 
           if (domain) {
             try {
-              const client = await matchClientByDomain(domain);
+              const client = await matchClientByDomain(domain, abortController.signal);
 
               if (client) {
                 // Domain match found - use it (second priority)
