@@ -55,25 +55,8 @@ so that **I understand whether the add-in found my contact/client**.
 7. Visual feedback appears within 500ms of matching completion (NFR2 performance target)
 8. Tooltips provide additional context on hover (optional)
 
-## Story 4.4: Disambiguation UI for Multiple Client Matches
 
-As a **user**,
-I want **to select the correct client when a contact exists at multiple clients**,
-so that **I can create tickets for the right client context**.
-
-### Acceptance Criteria
-
-1. Disambiguation UI appears when `matchContactByEmail` returns multiple clients
-2. UI displays radio buttons or dropdown: "This contact exists at multiple clients. Select one:"
-3. Each option shows client name
-4. User selection updates sidebar state with chosen client_id
-5. Form fields auto-populate after client selection
-6. Disambiguation UI hidden for single client match (auto-selected)
-7. UI supports keyboard navigation (Tab, Enter to select)
-8. Selected client persists for current email (doesn't reset on re-render)
-9. Visual design follows progressive disclosure pattern (only shown when needed)
-
-## Story 4.5: Manual Client/Contact Selection Fallback
+## Story 4.4: Manual Client/Contact Selection Fallback
 
 As a **user**,
 I want **to manually select client and contact from dropdowns when auto-matching fails**,
