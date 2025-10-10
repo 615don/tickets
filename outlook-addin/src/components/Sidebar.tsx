@@ -17,7 +17,7 @@ export const Sidebar = ({ children, isLoading = false }: SidebarProps) => {
             <p className="text-sm text-gray-300">Loading...</p>
           </div>
         ) : (
-          <div className="space-y-6">{children}</div>
+          children
         )}
       </main>
     </div>
