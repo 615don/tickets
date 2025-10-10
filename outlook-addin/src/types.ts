@@ -38,3 +38,38 @@ export interface MatchResult {
 
 export type MatchStatus = "loading" | "matched" | "warning" | "neutral";
 export type SubmissionStatus = "idle" | "loading" | "success" | "error";
+
+/**
+ * Matching result from contact/domain lookup API (Stories 3.6+)
+ * Used to determine StatusBadge variant and display matched client/contact information
+ */
+export interface MatchingResult {
+  type: 'contact-matched' | 'domain-matched' | 'no-match';
+  client?: {
+    id: number;
+    name: string;
+  };
+  contact?: {
+    id: number;
+    name: string;
+    email: string;
+  };
+}
+
+/**
+ * Sidebar state management for email context and matching results
+ * Centralized state for sharing data between EmailContext and TicketForm components
+ */
+export interface SidebarState {
+  /** Email context from Office.js (managed via useEmailContext hook) */
+  emailContext: EmailContext | null;
+
+  /** Matching results from backend API (Stories 3.6+) */
+  matchingResult: MatchingResult | null;
+
+  /** True during contact/domain matching API calls */
+  isMatching: boolean;
+
+  /** True during ticket creation (Epic 5+) */
+  isSubmitting: boolean;
+}

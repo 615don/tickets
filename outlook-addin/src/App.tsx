@@ -3,6 +3,7 @@ import './App.css'
 import { Sidebar } from './components/Sidebar'
 import { EmailContext } from './components/EmailContext'
 import { useEmailContext } from './hooks/useEmailContext'
+import type { MatchingResult, MatchStatus } from './types'
 
 // Office.js initialization states
 type OfficeState = 'loading' | 'ready' | 'error'
@@ -13,6 +14,30 @@ function App() {
 
   // Use custom hook for email context management
   const emailContext = useEmailContext()
+
+  // State for matching results (Story 3.5)
+  const [matchingResult, setMatchingResult] = useState<MatchingResult | null>(null)
+  const [isMatching, setIsMatching] = useState(false)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [isSubmitting, setIsSubmitting] = useState(false) // Will be used in Epic 5+
+
+  // Reset matching result when email changes
+  useEffect(() => {
+    setMatchingResult(null)
+    setIsMatching(false)
+  }, [emailContext])
+
+  /**
+   * Derive matchStatus for EmailContext component based on matching state
+   * @returns {MatchStatus} Badge variant to display
+   */
+  const getMatchStatus = (): MatchStatus => {
+    if (isMatching) return 'loading'
+    if (!matchingResult) return 'loading' // Default before matching runs
+    if (matchingResult.type === 'contact-matched') return 'matched'
+    if (matchingResult.type === 'domain-matched') return 'warning'
+    return 'neutral' // no-match
+  }
 
   useEffect(() => {
     // Initialize Office.js
@@ -78,7 +103,9 @@ function App() {
           <EmailContext
             senderName={emailContext.senderName}
             senderEmail={emailContext.senderEmail}
-            matchStatus="loading"
+            matchStatus={getMatchStatus()}
+            clientName={matchingResult?.client?.name}
+            contactName={matchingResult?.contact?.name}
           />
         </div>
       )}
