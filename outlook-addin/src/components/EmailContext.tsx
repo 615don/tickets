@@ -51,7 +51,7 @@ export const EmailContext = ({
             <Edit2 className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           </div>
         ) : (
-          <h2 className="text-base font-semibold text-foreground">{senderName}</h2>
+          <h2 className="text-base font-semibold text-white">{senderName}</h2>
         )}
         <p className="text-sm text-muted-foreground">{senderEmail}</p>
       </div>
