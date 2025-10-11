@@ -1,0 +1,51 @@
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useClients } from '@/hooks/useClients';
+
+interface ClientDropdownProps {
+  value: number | null;
+  onChange: (clientId: number | null) => void;
+  disabled?: boolean;
+}
+
+/**
+ * Client selection dropdown component
+ * Displays all active clients in alphabetical order
+ * Supports loading, empty, and error states
+ * Implements WCAG 2.1 Level AA accessibility standards
+ *
+ * Story 4.4: Manual Client Selection Fallback
+ */
+export function ClientDropdown({ value, onChange, disabled = false }: ClientDropdownProps) {
+  const { clients, isLoading, error } = useClients();
+
+  if (isLoading) {
+    return <div aria-label="Loading clients">Loading clients...</div>;
+  }
+
+  if (error) {
+    return <div role="alert">Failed to load clients. Please try again.</div>;
+  }
+
+  if (clients.length === 0) {
+    return <div>No clients available</div>;
+  }
+
+  return (
+    <Select
+      value={value?.toString() || ''}
+      onValueChange={(val) => onChange(val ? parseInt(val, 10) : null)}
+      disabled={disabled}
+    >
+      <SelectTrigger aria-label="Client selection" aria-required="true">
+        <SelectValue placeholder="Select client..." />
+      </SelectTrigger>
+      <SelectContent>
+        {clients.map((client) => (
+          <SelectItem key={client.id} value={client.id.toString()}>
+            {client.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}

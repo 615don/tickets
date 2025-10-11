@@ -19,6 +19,10 @@ function App() {
   // Use matching hook for automatic contact matching (Story 4.1)
   const { matchingResult, isMatching } = useMatching(emailContext)
 
+  // Client selection state (Story 4.4)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [selectedClient, setSelectedClient] = useState<{ id: number; name: string } | null>(null)
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isSubmitting, setIsSubmitting] = useState(false) // Will be used in Epic 5+
 
@@ -33,6 +37,22 @@ function App() {
     if (matchingResult.type === 'domain-matched') return 'warning'
     return 'neutral' // no-match
   }
+
+  // Auto-populate client from matching result (Story 4.4)
+  useEffect(() => {
+    if (matchingResult?.client) {
+      setSelectedClient(matchingResult.client)
+    } else {
+      setSelectedClient(null)
+    }
+  }, [matchingResult])
+
+  // Reset client selection when email changes (Story 4.4)
+  useEffect(() => {
+    if (emailContext?.senderEmail) {
+      setSelectedClient(null)
+    }
+  }, [emailContext?.senderEmail])
 
   useEffect(() => {
     // Initialize Office.js

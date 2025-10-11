@@ -1,75 +1,33 @@
-import { useState, useEffect, FormEvent } from "react";
+import { useState, FormEvent } from "react";
 import { TimeInput } from "./TimeInput";
+import { ClientDropdown } from "./ClientDropdown";
 import { Loader2 } from "lucide-react";
-import { Client, Contact, TicketFormData } from "../types";
+import { TicketFormData, MatchingResult } from "../types";
 
 export interface TicketFormProps {
-  clients: Client[];
-  selectedClientId?: number;
-  selectedContactId?: number;
-  contactName?: string; // Pass edited name for new contact creation
-  contactEmail?: string; // Pass email for new contact creation
-  hasMatch: boolean; // Whether a contact match was found
-  onClientChange: (clientId: number) => void;
-  onContactLoad: (clientId: number) => Promise<Contact[]>;
+  selectedClient: { id: number; name: string } | null;
+  onClientChange: (client: { id: number; name: string } | null) => void;
+  matchingResult: MatchingResult | null;
   onSubmit: (data: TicketFormData) => Promise<void>;
 }
 
 export const TicketForm = ({
-  clients,
-  selectedClientId,
-  selectedContactId,
-  contactName,
-  contactEmail,
-  hasMatch,
+  selectedClient,
   onClientChange,
-  onContactLoad,
+  matchingResult,
   onSubmit,
 }: TicketFormProps) => {
-  const [clientId, setClientId] = useState<number | null>(selectedClientId || null);
-  const [contactId, setContactId] = useState<number | null>(selectedContactId || null);
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [loadingContacts, setLoadingContacts] = useState(false);
   const [timeValue, setTimeValue] = useState("2m");
   const [isTimeValid, setIsTimeValid] = useState(true);
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
   const [closeImmediately, setCloseImmediately] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Sort clients alphabetically
-  const sortedClients = [...clients].sort((a, b) => a.name.localeCompare(b.name));
-
-  // Load contacts when client changes
-  useEffect(() => {
-    if (clientId) {
-      setLoadingContacts(true);
-      setContactId(null);
-      
-      onContactLoad(clientId)
-        .then((loadedContacts) => {
-          setContacts(loadedContacts);
-          setLoadingContacts(false);
-        })
-        .catch(() => {
-          setContacts([]);
-          setLoadingContacts(false);
-        });
-    } else {
-      setContacts([]);
-      setContactId(null);
-    }
-  }, [clientId, onContactLoad]);
-
-  const handleClientChange = (newClientId: string) => {
-    const id = parseInt(newClientId);
-    setClientId(id);
-    onClientChange(id);
-  };
+  const [validationError, setValidationError] = useState<string>("");
 
   const parseTimeToHours = (timeStr: string): number => {
     const trimmed = timeStr.trim().toLowerCase();
-    
+
     // Match patterns like "1h30m"
     const combinedMatch = trimmed.match(/^(\d+)h(\d+)m$/);
     if (combinedMatch) {
@@ -77,45 +35,60 @@ export const TicketForm = ({
       const minutes = parseInt(combinedMatch[2]);
       return hours + minutes / 60;
     }
-    
+
     // Match patterns like "2h" or "1.5h"
     const hoursMatch = trimmed.match(/^(\d+\.?\d*)h$/);
     if (hoursMatch) {
       return parseFloat(hoursMatch[1]);
     }
-    
+
     // Match patterns like "30m" or "90m"
     const minutesMatch = trimmed.match(/^(\d+)m$/);
     if (minutesMatch) {
       return parseInt(minutesMatch[1]) / 60;
     }
-    
+
     return 0;
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
-    if (!clientId || !contactId || !isTimeValid || !timeValue.trim()) {
+
+    // Validate client selection
+    if (!selectedClient) {
+      setValidationError("Client selection required");
       return;
     }
 
+    if (!isTimeValid || !timeValue.trim()) {
+      return;
+    }
+
+    setValidationError("");
     setIsSubmitting(true);
-    
+
     try {
       const timeHours = parseTimeToHours(timeValue);
-      
-      await onSubmit({
-        clientId,
-        contactId: contactId || 0, // Use 0 for new contacts
+
+      // Build submission payload
+      const payload: TicketFormData = {
+        clientId: selectedClient.id,
+        contactId: matchingResult?.contact?.id || 0, // Use matched contact or 0 for new contact
         timeHours,
         description: description.trim(),
         notes: notes.trim(),
         closeImmediately,
-        contactName, // Include edited name for new contact creation
-        contactEmail, // Include email for new contact creation
-      });
-      
+      };
+
+      // Include contact info for new contact creation (domain match or no match scenarios)
+      if (matchingResult?.type === 'domain-matched' || matchingResult?.type === 'no-match') {
+        // Contact will be created automatically by backend using sender email info
+        payload.contactName = matchingResult.contact?.name;
+        payload.contactEmail = matchingResult.contact?.email;
+      }
+
+      await onSubmit(payload);
+
       // Reset form
       setTimeValue("2m");
       setDescription("");
@@ -126,65 +99,34 @@ export const TicketForm = ({
     }
   };
 
-  const isFormValid = 
-    hasMatch 
-      ? clientId !== null && contactId !== null && isTimeValid && timeValue.trim() !== ""
-      : clientId !== null && isTimeValid && timeValue.trim() !== ""; // No match: only need client selection
+  const isFormValid = selectedClient !== null && isTimeValid && timeValue.trim() !== "";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Client Dropdown */}
+      {/* Client Dropdown - Always visible and editable */}
       <div className="space-y-1">
-        <label htmlFor="client-select" className="block text-sm font-medium text-foreground">
+        <label htmlFor="client-dropdown" className="block text-sm font-medium text-foreground">
           Client
         </label>
-        <select
-          id="client-select"
-          value={clientId || ""}
-          onChange={(e) => handleClientChange(e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-          required
-        >
-          <option value="">Select a client</option>
-          {sortedClients.map((client) => (
-            <option key={client.id} value={client.id}>
-              {client.name}
-            </option>
-          ))}
-        </select>
+        <ClientDropdown
+          value={selectedClient?.id || null}
+          onChange={(clientId) => {
+            if (clientId) {
+              // Find client name from the dropdown's internal list
+              // For now, we'll use a simple object with just the ID
+              // The actual name will be managed by the ClientDropdown component
+              onClientChange({ id: clientId, name: '' });
+            } else {
+              onClientChange(null);
+            }
+          }}
+        />
+        {validationError && (
+          <p className="text-sm text-red-600" role="alert">
+            {validationError}
+          </p>
+        )}
       </div>
-
-      {/* Contact Dropdown - Only shown when there's a match */}
-      {hasMatch && (
-        <div className="space-y-1">
-          <label htmlFor="contact-select" className="block text-sm font-medium text-foreground">
-            Contact
-          </label>
-          <select
-            id="contact-select"
-            value={contactId || ""}
-            onChange={(e) => setContactId(parseInt(e.target.value))}
-            disabled={!clientId || loadingContacts}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-            required
-          >
-            <option value="">
-              {loadingContacts
-                ? "Loading contacts..."
-                : !clientId
-                ? "Select a client first"
-                : contacts.length === 0
-                ? "No contacts available"
-                : "Select a contact"}
-            </option>
-            {contacts.map((contact) => (
-              <option key={contact.id} value={contact.id}>
-                {contact.name} ({contact.email})
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
 
       {/* Time Input */}
       <TimeInput

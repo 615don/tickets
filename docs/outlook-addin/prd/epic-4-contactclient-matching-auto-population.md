@@ -56,22 +56,22 @@ so that **I understand whether the add-in found my contact/client**.
 8. Tooltips provide additional context on hover (optional)
 
 
-## Story 4.4: Manual Client/Contact Selection Fallback
+## Story 4.4: Manual Client Selection Fallback
 
 As a **user**,
-I want **to manually select client and contact from dropdowns when auto-matching fails**,
+I want **to manually select a client from a dropdown when auto-matching fails**,
 so that **I can still create tickets even for unmatched emails**.
 
 ### Acceptance Criteria
 
 1. Client dropdown component displays all active clients (alphabetically sorted)
-2. Contact dropdown component displays contacts for selected client
-3. Dropdowns appear when no match found (manual mode)
-4. Dropdowns editable even when match found (user can override auto-selection)
-5. Client dropdown loads on sidebar initialization (cached for performance)
-6. Contact dropdown filters dynamically based on selected client
-7. Empty state for contact dropdown: "No contacts for this client"
-8. Dropdowns use accessible UI components (keyboard navigation, ARIA labels)
-9. Loading states for dropdowns while data fetches
+2. Dropdown appears when no match found (manual mode)
+3. Dropdown editable even when match found (user can override auto-selection)
+4. Client dropdown loads on sidebar initialization (cached for performance)
+5. Empty state for client dropdown: "No clients available"
+6. Dropdown uses accessible UI components (keyboard navigation, ARIA labels)
+7. Loading states for dropdown while data fetches
+
+**Note:** Contact dropdown removed - contacts are auto-matched by email (Story 4.1). New contacts are created automatically during ticket submission when domain match occurs (Story 4.2).
 
 ---
