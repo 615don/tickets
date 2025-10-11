@@ -1,5 +1,5 @@
 import { StatusBadge, BadgeVariant } from "./StatusBadge";
-import { Edit2, Mail } from "lucide-react";
+import { Edit2 } from "lucide-react";
 
 export interface EmailContextProps {
   senderName: string;
@@ -8,7 +8,6 @@ export interface EmailContextProps {
   clientName?: string;
   contactName?: string;
   onNameChange?: (newName: string) => void;
-  onEmailChange?: (newEmail: string) => void;
 }
 
 export const EmailContext = ({
@@ -18,7 +17,6 @@ export const EmailContext = ({
   clientName,
   contactName,
   onNameChange,
-  onEmailChange,
 }: EmailContextProps) => {
   const isEditable = matchStatus !== "matched" && matchStatus !== "loading";
   const getStatusText = () => {
@@ -68,26 +66,7 @@ export const EmailContext = ({
         ) : (
           <h2 className="text-base font-semibold text-white">{senderName}</h2>
         )}
-      </div>
-      <div className="space-y-2">
-        <label htmlFor="sender-email" className="block text-xs font-medium text-muted-foreground">
-          Email
-        </label>
-        {isEditable ? (
-          <div className="relative">
-            <input
-              id="sender-email"
-              type="email"
-              value={senderEmail}
-              onChange={(e) => onEmailChange?.(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 pr-8 text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="Enter sender email"
-            />
-            <Mail className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">{senderEmail}</p>
-        )}
+        <p className="text-sm text-muted-foreground">{senderEmail}</p>
       </div>
       <StatusBadge variant={matchStatus} text={getStatusText()} tooltip={getTooltipText()} />
     </div>

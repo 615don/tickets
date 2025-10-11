@@ -155,7 +155,6 @@ function App() {
             clientName={matchingResult?.client?.name}
             contactName={matchingResult?.contact?.name}
             onNameChange={setContactName}
-            onEmailChange={setContactEmail}
           />
           <TicketForm
             selectedClient={selectedClient}

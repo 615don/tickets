@@ -4,7 +4,7 @@ import { ClientDropdown } from "./ClientDropdown";
 import { DescriptionTextarea } from "./DescriptionTextarea";
 import { NotesTextarea } from "./NotesTextarea";
 import { ClosedCheckbox } from "./ClosedCheckbox";
-import { Loader2, Info } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { TicketFormData, MatchingResult } from "../types";
 
 export interface TicketFormProps {
@@ -126,16 +126,6 @@ export const TicketForm = ({
               {contactEmailError}
             </p>
           )}
-        </div>
-      )}
-
-      {/* New contact creation indicator */}
-      {(matchingResult?.type === 'domain-matched' || matchingResult?.type === 'no-match') && contactName && contactEmail && (
-        <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2">
-          <Info className="h-4 w-4 text-blue-600 mt-0.5" />
-          <p className="text-sm text-blue-800">
-            This will create a new contact: <strong>{contactName}</strong> ({contactEmail})
-          </p>
         </div>
       )}
 
