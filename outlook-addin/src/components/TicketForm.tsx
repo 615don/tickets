@@ -25,38 +25,13 @@ export const TicketForm = ({
   onSubmit,
 }: TicketFormProps) => {
   const [timeValue, setTimeValue] = useState("2m");
+  const [parsedHours, setParsedHours] = useState<number | null>(0.03); // 2m = 0.0333h ≈ 0.03h
   const [isTimeValid, setIsTimeValid] = useState(true);
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
   const [closeImmediately, setCloseImmediately] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationError, setValidationError] = useState<string>("");
-
-  const parseTimeToHours = (timeStr: string): number => {
-    const trimmed = timeStr.trim().toLowerCase();
-
-    // Match patterns like "1h30m"
-    const combinedMatch = trimmed.match(/^(\d+)h(\d+)m$/);
-    if (combinedMatch) {
-      const hours = parseInt(combinedMatch[1]);
-      const minutes = parseInt(combinedMatch[2]);
-      return hours + minutes / 60;
-    }
-
-    // Match patterns like "2h" or "1.5h"
-    const hoursMatch = trimmed.match(/^(\d+\.?\d*)h$/);
-    if (hoursMatch) {
-      return parseFloat(hoursMatch[1]);
-    }
-
-    // Match patterns like "30m" or "90m"
-    const minutesMatch = trimmed.match(/^(\d+)m$/);
-    if (minutesMatch) {
-      return parseInt(minutesMatch[1]) / 60;
-    }
-
-    return 0;
-  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -67,7 +42,7 @@ export const TicketForm = ({
       return;
     }
 
-    if (!isTimeValid || !timeValue.trim()) {
+    if (!isTimeValid || !timeValue.trim() || parsedHours === null) {
       return;
     }
 
@@ -75,13 +50,11 @@ export const TicketForm = ({
     setIsSubmitting(true);
 
     try {
-      const timeHours = parseTimeToHours(timeValue);
-
       // Build submission payload
       const payload: TicketFormData = {
         clientId: selectedClient.id,
         contactId: matchingResult?.contact?.id || 0, // Use matched contact or 0 for new contact
-        timeHours,
+        timeHours: parsedHours,
         description: description.trim(),
         notes: notes.trim(),
         closeImmediately,
@@ -98,6 +71,7 @@ export const TicketForm = ({
 
       // Reset form
       setTimeValue("2m");
+      setParsedHours(0.03); // Reset to default parsed value
       setDescription("");
       setNotes("");
       setCloseImmediately(false);
@@ -106,7 +80,7 @@ export const TicketForm = ({
     }
   };
 
-  const isFormValid = selectedClient !== null && isTimeValid && timeValue.trim() !== "";
+  const isFormValid = selectedClient !== null && isTimeValid && parsedHours !== null;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -131,6 +105,7 @@ export const TicketForm = ({
         value={timeValue}
         onChange={setTimeValue}
         onValidityChange={setIsTimeValid}
+        onParsedValueChange={setParsedHours}
       />
 
       {/* Description */}
