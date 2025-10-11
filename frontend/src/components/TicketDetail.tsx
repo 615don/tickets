@@ -154,7 +154,10 @@ export const TicketDetail = ({ ticket }: TicketDetailProps) => {
     deleteTicket.mutate(ticket.id, {
       onSuccess: () => {
         toast({ title: 'Ticket deleted' });
-        navigate('/');
+        // Use setTimeout to ensure toast is shown before navigation
+        setTimeout(() => {
+          navigate('/', { replace: true });
+        }, 100);
       },
       onError: (error) => toast({
         title: 'Error deleting ticket',
