@@ -143,18 +143,18 @@ function App() {
       {emailContext && (
         <div className="p-4 space-y-4">
           <EmailContext
-            senderName={emailContext.senderName}
+            senderName={contactName}
             senderEmail={emailContext.senderEmail}
             matchStatus={getMatchStatus()}
             clientName={matchingResult?.client?.name}
             contactName={matchingResult?.contact?.name}
+            onNameChange={setContactName}
           />
           <TicketForm
             selectedClient={selectedClient}
             onClientChange={setSelectedClient}
             matchingResult={matchingResult}
             contactName={contactName}
-            onContactNameChange={setContactName}
             contactEmail={emailContext.senderEmail}
             onSubmit={handleTicketSubmit}
           />

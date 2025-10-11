@@ -1,7 +1,6 @@
 import { useState, FormEvent } from "react";
 import { TimeInput } from "./TimeInput";
 import { ClientDropdown } from "./ClientDropdown";
-import { ContactDisplay } from "./ContactDisplay";
 import { DescriptionTextarea } from "./DescriptionTextarea";
 import { NotesTextarea } from "./NotesTextarea";
 import { ClosedCheckbox } from "./ClosedCheckbox";
@@ -13,7 +12,6 @@ export interface TicketFormProps {
   onClientChange: (client: { id: number; name: string } | null) => void;
   matchingResult: MatchingResult | null;
   contactName: string;
-  onContactNameChange: (name: string) => void;
   contactEmail?: string;
   onSubmit: (data: TicketFormData) => Promise<void>;
 }
@@ -23,7 +21,6 @@ export const TicketForm = ({
   onClientChange,
   matchingResult,
   contactName,
-  onContactNameChange,
   contactEmail,
   onSubmit,
 }: TicketFormProps) => {
@@ -134,14 +131,6 @@ export const TicketForm = ({
         value={timeValue}
         onChange={setTimeValue}
         onValidityChange={setIsTimeValid}
-      />
-
-      {/* Contact Display */}
-      <ContactDisplay
-        matchingResult={matchingResult}
-        contactName={contactName}
-        onContactNameChange={onContactNameChange}
-        contactEmail={contactEmail}
       />
 
       {/* Description */}
