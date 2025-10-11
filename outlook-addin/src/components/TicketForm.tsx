@@ -110,16 +110,7 @@ export const TicketForm = ({
         </label>
         <ClientDropdown
           value={selectedClient?.id || null}
-          onChange={(clientId) => {
-            if (clientId) {
-              // Find client name from the dropdown's internal list
-              // For now, we'll use a simple object with just the ID
-              // The actual name will be managed by the ClientDropdown component
-              onClientChange({ id: clientId, name: '' });
-            } else {
-              onClientChange(null);
-            }
-          }}
+          onChange={onClientChange}
         />
         {validationError && (
           <p className="text-sm text-red-600" role="alert">

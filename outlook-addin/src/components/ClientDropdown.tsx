@@ -3,7 +3,7 @@ import { useClients } from '@/hooks/useClients';
 
 interface ClientDropdownProps {
   value: number | null;
-  onChange: (clientId: number | null) => void;
+  onChange: (client: { id: number; name: string } | null) => void;
   disabled?: boolean;
 }
 
@@ -33,7 +33,14 @@ export function ClientDropdown({ value, onChange, disabled = false }: ClientDrop
   return (
     <Select
       value={value?.toString() || ''}
-      onValueChange={(val) => onChange(val ? parseInt(val, 10) : null)}
+      onValueChange={(val) => {
+        if (val) {
+          const selectedClient = clients.find(c => c.id === parseInt(val, 10));
+          onChange(selectedClient || null);
+        } else {
+          onChange(null);
+        }
+      }}
       disabled={disabled}
     >
       <SelectTrigger aria-label="Client selection" aria-required="true">

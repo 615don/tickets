@@ -23,8 +23,7 @@
     },
     "client": {
       "id": 5,
-      "name": "Acme Corp",
-      "isActive": true
+      "name": "Acme Corp"
     }
   }
 ]
@@ -41,8 +40,7 @@
   {
     "id": 5,
     "name": "Acme Corp",
-    "domains": ["acme.com", "acme.net"],
-    "isActive": true
+    "domains": ["acme.com", "acme.net"]
   }
 ]
 ```

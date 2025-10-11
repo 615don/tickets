@@ -7,7 +7,7 @@ This document outlines the architectural approach for enhancing the Ticketing Sy
 **Relationship to Existing Architecture:**
 This document supplements the existing project architecture (documented in `/docs/architecture/`) by defining how the new Outlook Add-in components will integrate with current systems. Where conflicts arise between new and existing patterns, this document provides guidance on maintaining consistency while implementing enhancements. All architectural decisions respect the established technology stack, coding standards, and deployment patterns.
 
-**Document Version:** 1.0
+**Document Version:** 1.1
 **Created:** 2025-10-09
 **Status:** Final
 
@@ -16,6 +16,7 @@ This document supplements the existing project architecture (documented in `/doc
 | Date | Version | Description | Author |
 |------|---------|-------------|--------|
 | 2025-10-09 | 1.0 | Initial architecture document created | Winston (Architect) |
+| 2025-10-10 | 1.1 | Removed erroneous `isActive` field from API response examples (field does not exist in database schema). Addresses QA recommendation from gate 2.1. | Sarah (PO) |
 
 ---
 
@@ -341,8 +342,7 @@ graph TD
     },
     "client": {
       "id": 5,
-      "name": "Acme Corp",
-      "isActive": true
+      "name": "Acme Corp"
     }
   }
 ]
@@ -359,8 +359,7 @@ graph TD
   {
     "id": 5,
     "name": "Acme Corp",
-    "domains": ["acme.com", "acme.net"],
-    "isActive": true
+    "domains": ["acme.com", "acme.net"]
   }
 ]
 ```

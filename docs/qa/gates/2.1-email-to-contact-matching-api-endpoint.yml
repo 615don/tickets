@@ -61,8 +61,9 @@ recommendations:
   future:
     - action: "Consider adding database index on LOWER(email) for optimal query performance"
       refs: ["backend/src/models/Contact.js:275"]
-    - action: "Update story documentation to remove non-existent isActive field from example responses"
+    - action: "[COMPLETED 2025-10-10] Update story documentation to remove non-existent isActive field from example responses"
       refs: ["docs/outlook-addin/stories/2.1.email-to-contact-matching-api-endpoint.story.md:142,153"]
+      completed: "2025-10-10"
 
 # Detailed Assessment Summary
 assessment_summary: |
