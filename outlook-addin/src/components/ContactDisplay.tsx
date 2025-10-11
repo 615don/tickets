@@ -55,7 +55,7 @@ export function ContactDisplay({
         value={contactName}
         onChange={(e) => onContactNameChange(e.target.value)}
         placeholder="Enter contact name"
-        className="w-full border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+        className="w-full bg-background text-foreground border border-input rounded-md px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
         aria-label="Contact name"
         required
       />
