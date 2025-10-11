@@ -141,7 +141,7 @@ function App() {
   return (
     <Sidebar emailContext={emailContext}>
       {emailContext && (
-        <div className="p-4 space-y-4">
+        <div className="px-3 py-4 space-y-4">
           <EmailContext
             senderName={contactName}
             senderEmail={emailContext.senderEmail}
