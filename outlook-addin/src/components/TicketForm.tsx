@@ -4,7 +4,7 @@ import { ClientDropdown } from "./ClientDropdown";
 import { DescriptionTextarea } from "./DescriptionTextarea";
 import { NotesTextarea } from "./NotesTextarea";
 import { ClosedCheckbox } from "./ClosedCheckbox";
-import { Loader2 } from "lucide-react";
+import { Loader2, Info } from "lucide-react";
 import { TicketFormData, MatchingResult } from "../types";
 
 export interface TicketFormProps {
@@ -12,7 +12,7 @@ export interface TicketFormProps {
   onClientChange: (client: { id: number; name: string } | null) => void;
   matchingResult: MatchingResult | null;
   contactName: string;
-  contactEmail?: string;
+  contactEmail: string;
   onSubmit: (data: TicketFormData) => Promise<void>;
 }
 
@@ -32,6 +32,13 @@ export const TicketForm = ({
   const [closeImmediately, setCloseImmediately] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationError, setValidationError] = useState<string>("");
+  const [contactNameError, setContactNameError] = useState<string>("");
+  const [contactEmailError, setContactEmailError] = useState<string>("");
+
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email.trim());
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -46,7 +53,25 @@ export const TicketForm = ({
       return;
     }
 
+    // Validate contact name and email for new contact scenarios
+    if (matchingResult?.type === 'domain-matched' || matchingResult?.type === 'no-match') {
+      if (!contactName || contactName.trim().length === 0) {
+        setContactNameError("Contact name is required");
+        return;
+      }
+      if (!contactEmail || contactEmail.trim().length === 0) {
+        setContactEmailError("Contact email is required");
+        return;
+      }
+      if (!isValidEmail(contactEmail)) {
+        setContactEmailError("Invalid email format");
+        return;
+      }
+    }
+
     setValidationError("");
+    setContactNameError("");
+    setContactEmailError("");
     setIsSubmitting(true);
 
     try {
@@ -80,10 +105,40 @@ export const TicketForm = ({
     }
   };
 
-  const isFormValid = selectedClient !== null && isTimeValid && parsedHours !== null;
+  const isFormValid = selectedClient !== null
+    && isTimeValid
+    && parsedHours !== null
+    && (matchingResult?.type === 'contact-matched' ||
+        (contactName?.trim().length > 0 && contactEmail && contactEmail.trim().length > 0 && isValidEmail(contactEmail)));
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Contact validation errors */}
+      {(contactNameError || contactEmailError) && (
+        <div className="space-y-1">
+          {contactNameError && (
+            <p className="text-sm text-red-600" role="alert">
+              {contactNameError}
+            </p>
+          )}
+          {contactEmailError && (
+            <p className="text-sm text-red-600" role="alert">
+              {contactEmailError}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* New contact creation indicator */}
+      {(matchingResult?.type === 'domain-matched' || matchingResult?.type === 'no-match') && contactName && contactEmail && (
+        <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2">
+          <Info className="h-4 w-4 text-blue-600 mt-0.5" />
+          <p className="text-sm text-blue-800">
+            This will create a new contact: <strong>{contactName}</strong> ({contactEmail})
+          </p>
+        </div>
+      )}
+
       {/* Client Dropdown - Always visible and editable */}
       <div className="space-y-1">
         <label htmlFor="client-dropdown" className="block text-sm font-medium text-foreground">

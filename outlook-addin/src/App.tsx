@@ -23,8 +23,9 @@ function App() {
   // Client selection state (Story 4.4)
   const [selectedClient, setSelectedClient] = useState<{ id: number; name: string } | null>(null)
 
-  // Contact name state for new contact creation (Story 5.1)
+  // Contact name and email state for new contact creation (Story 5.1, 5.3)
   const [contactName, setContactName] = useState<string>('')
+  const [contactEmail, setContactEmail] = useState<string>('')
 
   /**
    * Derive matchStatus for EmailContext component based on matching state
@@ -54,19 +55,24 @@ function App() {
     }
   }, [emailContext?.senderEmail])
 
-  // Auto-populate contact name from sender (Story 5.1)
+  // Auto-populate contact name and email from sender (Story 5.1, 5.3)
   useEffect(() => {
     if (emailContext?.senderName) {
       setContactName(emailContext.senderName)
     }
-  }, [emailContext?.senderName])
-
-  // Reset contact name when email changes (Story 5.1)
-  useEffect(() => {
     if (emailContext?.senderEmail) {
-      setContactName(emailContext?.senderName || '')
+      setContactEmail(emailContext.senderEmail)
     }
-  }, [emailContext?.senderEmail, emailContext?.senderName])
+  }, [emailContext?.senderName, emailContext?.senderEmail])
+
+  // Override contact state from matching results (Story 5.3)
+  useEffect(() => {
+    if (matchingResult?.type === 'contact-matched' && matchingResult.contact) {
+      setContactName(matchingResult.contact.name)
+      setContactEmail(matchingResult.contact.email)
+    }
+    // For domain-matched or no-match, keep contactName/contactEmail from sender metadata (editable)
+  }, [matchingResult])
 
   useEffect(() => {
     // Initialize Office.js
@@ -144,18 +150,19 @@ function App() {
         <div className="px-2 py-4 space-y-4">
           <EmailContext
             senderName={contactName}
-            senderEmail={emailContext.senderEmail}
+            senderEmail={contactEmail}
             matchStatus={getMatchStatus()}
             clientName={matchingResult?.client?.name}
             contactName={matchingResult?.contact?.name}
             onNameChange={setContactName}
+            onEmailChange={setContactEmail}
           />
           <TicketForm
             selectedClient={selectedClient}
             onClientChange={setSelectedClient}
             matchingResult={matchingResult}
             contactName={contactName}
-            contactEmail={emailContext.senderEmail}
+            contactEmail={contactEmail}
             onSubmit={handleTicketSubmit}
           />
         </div>
