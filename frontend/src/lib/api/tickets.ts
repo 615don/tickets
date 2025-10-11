@@ -170,4 +170,11 @@ export const ticketsApi = {
     );
     return transformTicket(data);
   },
+
+  /**
+   * Delete ticket
+   */
+  delete: async (id: number): Promise<void> => {
+    await apiClient.delete(`/api/tickets/${id}`);
+  },
 };

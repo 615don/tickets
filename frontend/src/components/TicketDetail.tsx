@@ -13,7 +13,7 @@ import { TicketActions } from './TicketActions';
 import { ConfirmDialog } from './ConfirmDialog';
 import { TicketDetail as TicketDetailType, TimeEntryFormData, TimeEntryRequest } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { useUpdateTicket, useCloseTicket, useReopenTicket } from '@/hooks/useTickets';
+import { useUpdateTicket, useCloseTicket, useReopenTicket, useDeleteTicket } from '@/hooks/useTickets';
 import { useCreateTimeEntry, useUpdateTimeEntry, useDeleteTimeEntry } from '@/hooks/useTimeEntries';
 
 interface TicketDetailProps {
@@ -30,6 +30,7 @@ export const TicketDetail = ({ ticket }: TicketDetailProps) => {
   const updateTicket = useUpdateTicket();
   const closeTicket = useCloseTicket();
   const reopenTicket = useReopenTicket();
+  const deleteTicket = useDeleteTicket();
   const createTimeEntry = useCreateTimeEntry(ticket.id);
   const updateTimeEntry = useUpdateTimeEntry(ticket.id);
   const deleteTimeEntry = useDeleteTimeEntry(ticket.id);
@@ -143,6 +144,20 @@ export const TicketDetail = ({ ticket }: TicketDetailProps) => {
       onSuccess: () => toast({ title: 'Ticket re-opened' }),
       onError: (error) => toast({
         title: 'Error re-opening ticket',
+        description: error.message,
+        variant: 'destructive'
+      }),
+    });
+  };
+
+  const handleDeleteTicket = () => {
+    deleteTicket.mutate(ticket.id, {
+      onSuccess: () => {
+        toast({ title: 'Ticket deleted' });
+        navigate('/');
+      },
+      onError: (error) => toast({
+        title: 'Error deleting ticket',
         description: error.message,
         variant: 'destructive'
       }),
@@ -367,6 +382,7 @@ export const TicketDetail = ({ ticket }: TicketDetailProps) => {
           ticket={ticket}
           onCloseTicket={handleCloseTicket}
           onReopenTicket={handleReopenTicket}
+          onDeleteTicket={handleDeleteTicket}
         />
       </main>
 

@@ -12,6 +12,7 @@ import {
   getTicketById,
   updateTicket,
   addTimeEntry,
+  deleteTicket,
   getRecentlyClosedTickets,
   getDashboardStats
 } from '../controllers/ticketController.js';
@@ -69,6 +70,13 @@ router.post(
   requireAuth,
   validateNumericParams(['id']),
   addTimeEntry
+);
+
+router.delete(
+  '/:id',
+  requireAuth,
+  validateNumericParams(['id']),
+  deleteTicket
 );
 
 export default router;

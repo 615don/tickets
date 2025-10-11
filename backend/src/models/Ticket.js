@@ -50,6 +50,7 @@ function convertToCamelCase(row) {
     clientName: row.client_name,
     contactId: row.contact_id,
     contactName: row.contact_name,
+    contactEmail: row.contact_email || null,
     description: row.description,
     notes: row.notes,
     state: row.state,
@@ -164,13 +165,14 @@ export const Ticket = {
         t.updated_at,
         c.company_name as client_name,
         co.name as contact_name,
+        co.email as contact_email,
         COALESCE(SUM(te.duration_hours) FILTER (WHERE te.deleted_at IS NULL), 0) as total_hours
       FROM tickets t
       JOIN clients c ON t.client_id = c.id
       JOIN contacts co ON t.contact_id = co.id
       LEFT JOIN time_entries te ON t.id = te.ticket_id
       WHERE t.id = $1
-      GROUP BY t.id, c.company_name, co.name
+      GROUP BY t.id, c.company_name, co.name, co.email
     `, [id]);
 
     return convertToCamelCase(result.rows[0]);
