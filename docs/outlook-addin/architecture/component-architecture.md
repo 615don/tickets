@@ -22,9 +22,9 @@ The add-in's component architecture is **already implemented** in the Lovable mo
 
 **TicketForm** - Ticket Creation Form
 - **File:** [/outlook-addin/src/components/TicketForm.tsx](outlook-addin/src/components/TicketForm.tsx:1)
-- **Responsibility:** Render ticket creation form with client/contact dropdowns, time input, description/notes fields
-- **Integration Points:** Loads clients/contacts from API, submits to `POST /api/tickets`
-- **Dependencies:** TimeInput component, shadcn/ui form components
+- **Responsibility:** Render ticket creation form with client dropdown, contact display/edit field, time input, description/notes fields
+- **Integration Points:** Loads clients from API, displays matched contacts, submits to `POST /api/tickets`
+- **Dependencies:** TimeInput component, ClientDropdown component, ContactDisplay component, shadcn/ui form components
 
 **TimeInput** - Flexible Time Entry
 - **File:** [/outlook-addin/src/components/TimeInput.tsx](outlook-addin/src/components/TimeInput.tsx:1)

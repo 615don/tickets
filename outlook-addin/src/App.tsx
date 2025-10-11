@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import { Sidebar } from './components/Sidebar'
 import { EmailContext } from './components/EmailContext'
+import { TicketForm } from './components/TicketForm'
 import { useEmailContext } from './hooks/useEmailContext'
 import { useMatching } from './hooks/useMatching'
-import type { MatchStatus } from './types'
+import type { MatchStatus, TicketFormData } from './types'
 
 // Office.js initialization states
 type OfficeState = 'loading' | 'ready' | 'error'
@@ -20,11 +21,10 @@ function App() {
   const { matchingResult, isMatching } = useMatching(emailContext)
 
   // Client selection state (Story 4.4)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedClient, setSelectedClient] = useState<{ id: number; name: string } | null>(null)
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isSubmitting, setIsSubmitting] = useState(false) // Will be used in Epic 5+
+  // Contact name state for new contact creation (Story 5.1)
+  const [contactName, setContactName] = useState<string>('')
 
   /**
    * Derive matchStatus for EmailContext component based on matching state
@@ -53,6 +53,20 @@ function App() {
       setSelectedClient(null)
     }
   }, [emailContext?.senderEmail])
+
+  // Auto-populate contact name from sender (Story 5.1)
+  useEffect(() => {
+    if (emailContext?.senderName) {
+      setContactName(emailContext.senderName)
+    }
+  }, [emailContext?.senderName])
+
+  // Reset contact name when email changes (Story 5.1)
+  useEffect(() => {
+    if (emailContext?.senderEmail) {
+      setContactName(emailContext?.senderName || '')
+    }
+  }, [emailContext?.senderEmail, emailContext?.senderName])
 
   useEffect(() => {
     // Initialize Office.js
@@ -110,17 +124,39 @@ function App() {
     )
   }
 
+  // Ticket submission handler (Story 5.1)
+  const handleTicketSubmit = async (data: TicketFormData) => {
+    try {
+      // TODO: Implement ticket submission API call in Story 5.4
+      console.log('Ticket submission data:', data)
+      // Temporary mock - will be replaced with actual API call
+      await new Promise(resolve => setTimeout(resolve, 1000))
+    } catch (error) {
+      console.error('Ticket submission failed:', error)
+      throw error
+    }
+  }
+
   // Ready state - render EmailContext component
   return (
     <Sidebar emailContext={emailContext}>
       {emailContext && (
-        <div className="p-4">
+        <div className="p-4 space-y-4">
           <EmailContext
             senderName={emailContext.senderName}
             senderEmail={emailContext.senderEmail}
             matchStatus={getMatchStatus()}
             clientName={matchingResult?.client?.name}
             contactName={matchingResult?.contact?.name}
+          />
+          <TicketForm
+            selectedClient={selectedClient}
+            onClientChange={setSelectedClient}
+            matchingResult={matchingResult}
+            contactName={contactName}
+            onContactNameChange={setContactName}
+            contactEmail={emailContext.senderEmail}
+            onSubmit={handleTicketSubmit}
           />
         </div>
       )}

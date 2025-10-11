@@ -1,6 +1,10 @@
 import { useState, FormEvent } from "react";
 import { TimeInput } from "./TimeInput";
 import { ClientDropdown } from "./ClientDropdown";
+import { ContactDisplay } from "./ContactDisplay";
+import { DescriptionTextarea } from "./DescriptionTextarea";
+import { NotesTextarea } from "./NotesTextarea";
+import { ClosedCheckbox } from "./ClosedCheckbox";
 import { Loader2 } from "lucide-react";
 import { TicketFormData, MatchingResult } from "../types";
 
@@ -8,6 +12,9 @@ export interface TicketFormProps {
   selectedClient: { id: number; name: string } | null;
   onClientChange: (client: { id: number; name: string } | null) => void;
   matchingResult: MatchingResult | null;
+  contactName: string;
+  onContactNameChange: (name: string) => void;
+  contactEmail?: string;
   onSubmit: (data: TicketFormData) => Promise<void>;
 }
 
@@ -15,6 +22,9 @@ export const TicketForm = ({
   selectedClient,
   onClientChange,
   matchingResult,
+  contactName,
+  onContactNameChange,
+  contactEmail,
   onSubmit,
 }: TicketFormProps) => {
   const [timeValue, setTimeValue] = useState("2m");
@@ -83,8 +93,8 @@ export const TicketForm = ({
       // Include contact info for new contact creation (domain match or no match scenarios)
       if (matchingResult?.type === 'domain-matched' || matchingResult?.type === 'no-match') {
         // Contact will be created automatically by backend using sender email info
-        payload.contactName = matchingResult.contact?.name;
-        payload.contactEmail = matchingResult.contact?.email;
+        payload.contactName = contactName;
+        payload.contactEmail = contactEmail;
       }
 
       await onSubmit(payload);
@@ -126,49 +136,22 @@ export const TicketForm = ({
         onValidityChange={setIsTimeValid}
       />
 
+      {/* Contact Display */}
+      <ContactDisplay
+        matchingResult={matchingResult}
+        contactName={contactName}
+        onContactNameChange={onContactNameChange}
+        contactEmail={contactEmail}
+      />
+
       {/* Description */}
-      <div className="space-y-1">
-        <label htmlFor="description" className="block text-sm font-medium text-foreground">
-          Description <span className="text-muted-foreground">(optional)</span>
-        </label>
-        <textarea
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Brief description for invoice"
-          rows={3}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-      </div>
+      <DescriptionTextarea value={description} onChange={setDescription} />
 
       {/* Notes */}
-      <div className="space-y-1">
-        <label htmlFor="notes" className="block text-sm font-medium text-foreground">
-          Notes <span className="text-muted-foreground">(optional)</span>
-        </label>
-        <textarea
-          id="notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Detailed notes (optional)"
-          rows={6}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-      </div>
+      <NotesTextarea value={notes} onChange={setNotes} />
 
       {/* Checkbox */}
-      <div className="flex items-center space-x-2">
-        <input
-          type="checkbox"
-          id="close-immediately"
-          checked={closeImmediately}
-          onChange={(e) => setCloseImmediately(e.target.checked)}
-          className="h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring"
-        />
-        <label htmlFor="close-immediately" className="text-sm text-foreground">
-          Mark as closed immediately
-        </label>
-      </div>
+      <ClosedCheckbox checked={closeImmediately} onChange={setCloseImmediately} />
 
       {/* Submit Button */}
       <button

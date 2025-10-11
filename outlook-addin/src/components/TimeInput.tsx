@@ -62,7 +62,8 @@ export const TimeInput = ({ value, onChange, onValidityChange }: TimeInputProps)
         value={value}
         onChange={(e) => handleChange(e.target.value)}
         onBlur={handleBlur}
-        placeholder="e.g., 2h, 30m, 1.5h"
+        placeholder="e.g., 2m, 0.5h, 30m"
+        aria-label="Time entry"
         className={`w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${
           hasError
             ? "border-destructive focus:ring-destructive"

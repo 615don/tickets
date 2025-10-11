@@ -43,7 +43,7 @@ Solo IT consultants performing hourly billing work primarily through email face 
 
 **FR8:** Add-in shall automatically clear and refresh the form when the user selects a different email in Outlook.
 
-**FR9:** Add-in shall provide a manual ticket creation form with fields: Client (dropdown), Contact (dropdown with auto-selection based on matching), Time (default 0.03 hours / 2 minutes), Description (optional), Notes (optional), and "Mark as closed immediately" checkbox.
+**FR9:** Add-in shall provide a ticket creation form with fields: Client (dropdown, auto-selected when matched), Contact (display matched contact or editable name for new contact), Time (default 2 minutes), Description (optional), Notes (optional), and "Mark as closed immediately" checkbox.
 
 **FR10:** Add-in form fields shall be pre-filled based on email matching but remain fully editable before ticket submission.
 
@@ -664,9 +664,9 @@ so that **users can input ticket data**.
 
 #### Acceptance Criteria
 
-1. Form components created: ClientSelect, ContactSelect, TimeInput, DescriptionTextarea, NotesTextarea
-2. ClientSelect populated from client data (auto-selected when matched)
-3. ContactSelect populated from contacts for selected client (auto-selected when matched)
+1. Form components created: ClientDropdown, ContactDisplay, TimeInput, DescriptionTextarea, NotesTextarea
+2. ClientDropdown populated from client data (auto-selected when matched)
+3. ContactDisplay shows matched contact (read-only) or editable name field for new contact creation
 4. TimeInput text field with placeholder: "e.g., 2m, 0.5h, 30m" (default value: 0.03h / 2 minutes)
 5. DescriptionTextarea optional, multiline, placeholder: "Brief description for invoice"
 6. NotesTextarea optional, multiline, placeholder: "Detailed notes (optional)"

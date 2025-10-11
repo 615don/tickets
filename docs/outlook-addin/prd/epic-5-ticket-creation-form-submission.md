@@ -10,9 +10,9 @@ so that **users can input ticket data**.
 
 ### Acceptance Criteria
 
-1. Form components created: ClientSelect, ContactSelect, TimeInput, DescriptionTextarea, NotesTextarea
-2. ClientSelect populated from client data (auto-selected when matched)
-3. ContactSelect populated from contacts for selected client (auto-selected when matched)
+1. Form components created: ClientDropdown, ContactDisplay, TimeInput, DescriptionTextarea, NotesTextarea
+2. ClientDropdown populated from client data (auto-selected when matched)
+3. ContactDisplay shows matched contact (read-only) or editable name field for new contact creation
 4. TimeInput text field with placeholder: "e.g., 2m, 0.5h, 30m" (default value: 0.03h / 2 minutes)
 5. DescriptionTextarea optional, multiline, placeholder: "Brief description for invoice"
 6. NotesTextarea optional, multiline, placeholder: "Detailed notes (optional)"
