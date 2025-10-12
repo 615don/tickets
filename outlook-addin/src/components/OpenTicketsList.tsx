@@ -40,6 +40,7 @@ export function OpenTicketsList({
           return (
             <button
               key={ticket.id}
+              type="button"
               onClick={() => onTicketSelect(ticket)}
               className={`
                 w-full text-left px-3 py-2 rounded truncate transition-colors text-sm
