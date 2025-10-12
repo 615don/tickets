@@ -33,8 +33,9 @@ function App() {
   const [contactNameError, setContactNameError] = useState<string>('')
   const [contactEmailError, setContactEmailError] = useState<string>('')
 
-  // Success state for showing success banner (Story 5.4)
+  // Success state for showing success banner (Story 5.4, Story 6.3)
   const [createdTicketId, setCreatedTicketId] = useState<number | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string>('')
 
   /**
    * Derive matchStatus for EmailContext component based on matching state
@@ -139,10 +140,16 @@ function App() {
     )
   }
 
-  // Ticket submission handler (Story 5.4, 5.5)
-  const handleTicketSubmit = (response: CreateTicketResponse) => {
+  // Ticket submission handler (Story 5.4, 5.5, Story 6.3)
+  const handleTicketSubmit = (response: CreateTicketResponse, mode?: 'create-ticket' | 'add-time-entry') => {
     // Set ticket ID for success banner (AC 3, 4)
     setCreatedTicketId(response.id)
+
+    // Set success message based on mode (Story 6.3 AC 8)
+    const message = mode === 'add-time-entry'
+      ? `Time entry added to Ticket #${response.id}`
+      : `Ticket #${response.id} created successfully`
+    setSuccessMessage(message)
 
     // Preserve matching state to allow creating multiple tickets for same email (AC 6)
     // Do NOT clear: selectedClient, contactName, contactEmail, matchingResult
@@ -174,6 +181,7 @@ function App() {
             <SuccessBanner
               ticketId={createdTicketId}
               showLink={false}
+              message={successMessage}
               onDismiss={handleDismissSuccess}
             />
           )}

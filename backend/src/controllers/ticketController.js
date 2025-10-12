@@ -325,22 +325,18 @@ export const getDashboardStats = async (req, res) => {
 export const addTimeEntry = async (req, res) => {
   try {
     const { id: ticketId } = req.params;
-    const { workDate, duration, billable = true } = req.body;
+    const { workDate, duration, billable = true, notes } = req.body;
 
     // Validate required fields
-    if (!workDate) {
-      return res.status(400).json({
-        error: 'ValidationError',
-        message: 'workDate is required'
-      });
-    }
-
     if (!duration) {
       return res.status(400).json({
         error: 'ValidationError',
         message: 'duration is required'
       });
     }
+
+    // Default workDate to today if not provided
+    const effectiveWorkDate = workDate || new Date().toISOString().split('T')[0];
 
     // Verify ticket exists
     const ticket = await Ticket.findById(ticketId);
@@ -351,8 +347,16 @@ export const addTimeEntry = async (req, res) => {
       });
     }
 
+    // Check if ticket is closed
+    if (ticket.state === 'closed') {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Cannot add time to closed ticket'
+      });
+    }
+
     // Check if month is locked
-    const isLocked = await InvoiceLock.isMonthLocked(workDate);
+    const isLocked = await InvoiceLock.isMonthLocked(effectiveWorkDate);
     if (isLocked) {
       return res.status(403).json({
         error: 'Forbidden',
@@ -372,13 +376,30 @@ export const addTimeEntry = async (req, res) => {
     // Create time entry
     const timeEntry = await TimeEntry.create({
       ticketId,
-      workDate,
+      workDate: effectiveWorkDate,
       duration,
       billable
     });
 
-    // Update ticket timestamp
-    await Ticket.touch(ticketId);
+    // Append notes to ticket if provided
+    if (notes && notes.trim()) {
+      const dbClient = await getClient();
+      const today = new Date().toISOString().split('T')[0];
+      const separator = '\n\n';
+      await dbClient.query(
+        `UPDATE tickets
+         SET notes = CASE
+           WHEN notes IS NULL OR notes = '' THEN $2::text
+           ELSE CONCAT(notes, $3::text, '--- ', $4::text, ' ---', $3::text, $2::text)
+         END,
+         updated_at = NOW()
+         WHERE id = $1`,
+        [ticketId, notes.trim(), separator, today]
+      );
+    } else {
+      // Update ticket timestamp even if no notes
+      await Ticket.touch(ticketId);
+    }
 
     res.status(201).json(timeEntry);
   } catch (error) {

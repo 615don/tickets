@@ -8,7 +8,9 @@ import { ErrorMessage } from "./ErrorMessage";
 import { OpenTicketsList } from "./OpenTicketsList";
 import { Loader2 } from "lucide-react";
 import { MatchingResult } from "../types";
-import { createTicket, CreateTicketResponse, CreateTicketPayload, OpenTicket } from "../lib/api/tickets";
+import { createTicket, CreateTicketResponse, CreateTicketPayload, OpenTicket, addTimeEntry, TimeEntryPayload } from "../lib/api/tickets";
+
+type FormMode = 'create-ticket' | 'add-time-entry';
 
 export interface TicketFormProps {
   selectedClient: { id: number; name: string } | null;
@@ -16,7 +18,7 @@ export interface TicketFormProps {
   matchingResult: MatchingResult | null;
   contactName: string;
   contactEmail: string;
-  onSubmit: (response: CreateTicketResponse) => void;
+  onSubmit: (response: CreateTicketResponse, mode?: 'create-ticket' | 'add-time-entry') => void;
   contactNameError?: string;
   contactEmailError?: string;
   onContactNameErrorChange?: (error: string) => void;
@@ -55,10 +57,29 @@ export const TicketForm = ({
   // Extract contactId from matchingResult
   const contactId = matchingResult?.type === 'contact-matched' ? matchingResult.contact.id : null;
 
+  // Derive form mode from selected ticket
+  const formMode: FormMode = selectedTicket ? 'add-time-entry' : 'create-ticket';
+
   // Reset selected ticket when matchingResult changes (user switches emails)
   useEffect(() => {
     setSelectedTicket(null);
   }, [matchingResult]);
+
+  // Pre-populate Description when ticket selected (AC 2)
+  useEffect(() => {
+    if (selectedTicket) {
+      setDescription(selectedTicket.description);
+    } else {
+      setDescription('');
+    }
+  }, [selectedTicket]);
+
+  // Clear Notes when ticket selected (AC 3)
+  useEffect(() => {
+    if (selectedTicket) {
+      setNotes(''); // Clear for new entry-specific notes
+    }
+  }, [selectedTicket]);
 
   const isValidEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -134,46 +155,79 @@ export const TicketForm = ({
     setIsSubmitting(true);
 
     try {
-      // Build API payload
-      const payload: CreateTicketPayload = {
-        clientId: selectedClient.id,
-        contactId: matchingResult?.type === 'contact-matched'
-          ? matchingResult.contact.id
-          : 0, // 0 signals new contact creation
-        description: description.trim(),
-        notes: notes.trim(),
-        state: closeImmediately ? ('closed' as const) : ('open' as const),
-        timeEntry: {
-          workDate: new Date().toLocaleDateString('en-CA'), // Today's date YYYY-MM-DD in local timezone
-          duration: timeValue, // Backend expects string like "2m" or "1.5h", NOT parsed hours
+      if (formMode === 'add-time-entry' && selectedTicket) {
+        // Time entry submission (AC 5, 8, 9)
+        const timeEntryPayload: TimeEntryPayload = {
+          duration: timeValue,
           billable: true,
-        },
-      };
-
-      // Include new contact data if creating new contact
-      if (payload.contactId === 0) {
-        payload.newContact = {
-          name: contactName.trim(),
-          email: contactEmail.trim(),
-          clientId: selectedClient.id,
+          notes: notes.trim() || undefined, // Optional
         };
+
+        const timeEntryResponse = await addTimeEntry(selectedTicket.id, timeEntryPayload);
+
+        // Clear selection and reset form (AC 9)
+        setSelectedTicket(null);
+        setNotes('');
+        setTimeValue('2m');
+        setParsedHours(0.03);
+
+        // Notify parent with time entry mode (AC 8)
+        // Create a response that matches CreateTicketResponse format
+        const response: CreateTicketResponse = {
+          id: selectedTicket.id,
+          clientId: selectedClient!.id,
+          contactId: contactId!,
+          description: selectedTicket.description,
+          notes: notes,
+          state: 'open',
+          createdAt: timeEntryResponse.createdAt,
+          updatedAt: timeEntryResponse.createdAt,
+        };
+        onSubmit(response, 'add-time-entry');
+      } else {
+        // Existing ticket creation logic (unchanged)
+        const payload: CreateTicketPayload = {
+          clientId: selectedClient.id,
+          contactId: matchingResult?.type === 'contact-matched'
+            ? matchingResult.contact.id
+            : 0, // 0 signals new contact creation
+          description: description.trim(),
+          notes: notes.trim(),
+          state: closeImmediately ? ('closed' as const) : ('open' as const),
+          timeEntry: {
+            workDate: new Date().toLocaleDateString('en-CA'), // Today's date YYYY-MM-DD in local timezone
+            duration: timeValue, // Backend expects string like "2m" or "1.5h", NOT parsed hours
+            billable: true,
+          },
+        };
+
+        // Include new contact data if creating new contact
+        if (payload.contactId === 0) {
+          payload.newContact = {
+            name: contactName.trim(),
+            email: contactEmail.trim(),
+            clientId: selectedClient.id,
+          };
+        }
+
+        // Call API
+        const response = await createTicket(payload);
+
+        // Success - notify parent and reset form
+        onSubmit(response, 'create-ticket');
+
+        // Reset form
+        setTimeValue("2m");
+        setParsedHours(0.03);
+        setDescription("");
+        setNotes("");
+        setCloseImmediately(false);
       }
-
-      // Call API
-      const response = await createTicket(payload);
-
-      // Success - notify parent and reset form
-      onSubmit(response);
-
-      // Reset form
-      setTimeValue("2m");
-      setParsedHours(0.03);
-      setDescription("");
-      setNotes("");
-      setCloseImmediately(false);
     } catch (error) {
       // Error handling - display error and keep form data for retry
-      let errorMessage = 'Failed to create ticket.';
+      let errorMessage = formMode === 'add-time-entry'
+        ? 'Failed to add time entry.'
+        : 'Failed to create ticket.';
 
       if (error instanceof Error) {
         // Check for authentication error (AC 4)
@@ -188,11 +242,20 @@ export const TicketForm = ({
         else if (error.message.includes('Security token')) {
           errorMessage = error.message; // Use the message from apiClient
         }
+        // Check for specific time entry errors
+        else if (error.message.includes('closed ticket') || error.message.includes('closed')) {
+          errorMessage = 'Cannot add time to closed ticket.';
+        }
+        else if (error.message.includes('404') || error.message.includes('not found')) {
+          errorMessage = 'Ticket not found. It may have been deleted.';
+        }
         // Parse backend validation or API error (AC 3)
         else {
           // If message doesn't already include "Failed to", prepend it
           if (error.message.startsWith('HTTP') || error.message.includes('validation')) {
-            errorMessage = `Failed to create ticket: ${error.message}`;
+            errorMessage = formMode === 'add-time-entry'
+              ? `Failed to add time entry: ${error.message}`
+              : `Failed to create ticket: ${error.message}`;
           } else {
             errorMessage = error.message;
           }
@@ -210,8 +273,9 @@ export const TicketForm = ({
     && parsedHours !== null
     && !contactNameErrorValue
     && !contactEmailErrorValue
-    && (matchingResult?.type === 'contact-matched' ||
-        (contactName?.trim().length > 0 && contactEmail && contactEmail.trim().length > 0 && isValidEmail(contactEmail)));
+    && (formMode === 'add-time-entry' ||
+        (matchingResult?.type === 'contact-matched' ||
+        (contactName?.trim().length > 0 && contactEmail && contactEmail.trim().length > 0 && isValidEmail(contactEmail))));
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -245,6 +309,20 @@ export const TicketForm = ({
         />
       )}
 
+      {/* Clear Selection Button - AC 6 */}
+      {selectedTicket && (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={() => setSelectedTicket(null)}
+            className="text-sm text-muted-foreground hover:text-foreground underline"
+            aria-label="Clear ticket selection and return to create mode"
+          >
+            Clear Selection
+          </button>
+        </div>
+      )}
+
       {/* Time Input */}
       <TimeInput
         value={timeValue}
@@ -254,7 +332,11 @@ export const TicketForm = ({
       />
 
       {/* Description */}
-      <DescriptionTextarea value={description} onChange={handleDescriptionChange} />
+      <DescriptionTextarea
+        value={description}
+        onChange={handleDescriptionChange}
+        disabled={formMode === 'add-time-entry'}
+      />
 
       {/* Notes */}
       <NotesTextarea value={notes} onChange={handleNotesChange} />
@@ -272,10 +354,10 @@ export const TicketForm = ({
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Creating...
+              {formMode === 'add-time-entry' ? 'Adding Time...' : 'Creating...'}
             </>
           ) : (
-            "Create Ticket"
+            formMode === 'add-time-entry' ? 'Add Time Entry' : 'Create Ticket'
           )}
         </button>
       </div>

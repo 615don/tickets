@@ -101,3 +101,29 @@ export async function fetchOpenTickets(
     { signal }
   );
 }
+
+export interface TimeEntryPayload {
+  workDate?: string; // ISO date YYYY-MM-DD (optional)
+  duration: string; // Time string like "2h", "30m", "1h30m"
+  billable?: boolean; // Optional, defaults to true
+  notes?: string; // Optional, appended to ticket notes
+}
+
+export interface TimeEntryResponse {
+  id: number;
+  ticketId: number;
+  workDate: string;
+  durationHours: number;
+  billable: boolean;
+  createdAt: string;
+}
+
+export async function addTimeEntry(
+  ticketId: number,
+  payload: TimeEntryPayload
+): Promise<TimeEntryResponse> {
+  return apiClient<TimeEntryResponse>(`/api/tickets/${ticketId}/time-entries`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}

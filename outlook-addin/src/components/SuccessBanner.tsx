@@ -4,10 +4,13 @@ import { X } from "lucide-react";
 interface SuccessBannerProps {
   ticketId: number;
   showLink?: boolean;
+  message?: string;
   onDismiss: () => void;
 }
 
-export const SuccessBanner = ({ ticketId, showLink = false, onDismiss }: SuccessBannerProps) => {
+export const SuccessBanner = ({ ticketId, message, onDismiss }: SuccessBannerProps) => {
+  const defaultMessage = `Ticket #${ticketId} created successfully`;
+  const displayMessage = message || defaultMessage;
   const dismissButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -32,19 +35,7 @@ export const SuccessBanner = ({ ticketId, showLink = false, onDismiss }: Success
       <div className="flex items-center gap-2">
         <span className="mr-2 text-lg font-bold text-green-600">✓</span>
         <span className="text-sm font-medium">
-          Ticket{" "}
-          {showLink ? (
-            <a
-              href={`/tickets/${ticketId}`}
-              className="underline hover:no-underline"
-              onClick={(e) => e.preventDefault()}
-            >
-              #{ticketId}
-            </a>
-          ) : (
-            <span>#{ticketId}</span>
-          )}{" "}
-          created successfully
+          {displayMessage}
         </span>
       </div>
       <button
