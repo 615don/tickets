@@ -161,9 +161,14 @@ export const updateTicket = async (req, res) => {
         // Check if any time entries are in locked months before closing
         const timeEntries = await TimeEntry.findByTicketId(id);
         for (const entry of timeEntries) {
-          const isLocked = await InvoiceLock.isMonthLocked(entry.workDate);
+          // Convert Date object to string if necessary
+          const workDateStr = entry.workDate instanceof Date
+            ? entry.workDate.toISOString().split('T')[0]
+            : entry.workDate;
+
+          const isLocked = await InvoiceLock.isMonthLocked(workDateStr);
           if (isLocked) {
-            const month = entry.workDate.substring(0, 7);
+            const month = workDateStr.substring(0, 7);
             return res.status(403).json({
               error: 'InvoiceLockError',
               message: `Cannot close ticket with time entries in locked month ${month}`
@@ -368,9 +373,14 @@ export const deleteTicket = async (req, res) => {
     // Check if any time entries are in locked months
     const timeEntries = await TimeEntry.findByTicketId(id);
     for (const entry of timeEntries) {
-      const isLocked = await InvoiceLock.isMonthLocked(entry.workDate);
+      // Convert Date object to string if necessary
+      const workDateStr = entry.workDate instanceof Date
+        ? entry.workDate.toISOString().split('T')[0]
+        : entry.workDate;
+
+      const isLocked = await InvoiceLock.isMonthLocked(workDateStr);
       if (isLocked) {
-        const month = entry.workDate.substring(0, 7);
+        const month = workDateStr.substring(0, 7);
         return res.status(403).json({
           error: 'InvoiceLockError',
           message: `Cannot delete ticket with time entries in locked month ${month}`
