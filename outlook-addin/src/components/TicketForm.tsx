@@ -88,7 +88,7 @@ export const TicketForm = ({
         notes: notes.trim(),
         state: closeImmediately ? ('closed' as const) : ('open' as const),
         timeEntry: {
-          workDate: new Date().toISOString().split('T')[0], // Today's date YYYY-MM-DD
+          workDate: new Date().toLocaleDateString('en-CA'), // Today's date YYYY-MM-DD in local timezone
           duration: timeValue, // Backend expects string like "2m" or "1.5h", NOT parsed hours
           billable: true,
         },
