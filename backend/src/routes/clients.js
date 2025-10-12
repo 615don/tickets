@@ -1,12 +1,13 @@
 import express from 'express';
-import { body } from 'express-validator';
+import { body, query } from 'express-validator';
 import {
   getAllClients,
   getClientById,
   getDeletionImpact,
   createClient,
   updateClient,
-  deleteClient
+  deleteClient,
+  matchDomain
 } from '../controllers/clientController.js';
 import { validate } from '../middleware/validation.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -42,6 +43,12 @@ const clientValidation = [
 
 // GET /api/clients - List all clients (with optional search)
 router.get('/', getAllClients);
+
+// GET /api/clients/match-domain?domain={domain} - Find clients by domain (must be before /:id)
+router.get('/match-domain', [
+  query('domain').matches(/^[a-z0-9.-]+\.[a-z]{2,}$/i).withMessage('Invalid domain format'),
+  validate
+], matchDomain);
 
 // GET /api/clients/:id/deletion-impact - Get deletion impact counts (must be before /:id)
 router.get('/:id/deletion-impact', getDeletionImpact);

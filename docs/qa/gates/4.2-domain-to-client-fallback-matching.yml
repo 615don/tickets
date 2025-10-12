@@ -1,0 +1,278 @@
+# Quality Gate Decision: Story 4.2 - Domain-to-Client Fallback Matching
+# Reviewed by Quinn (Test Architect) on 2025-10-10
+
+schema: 1
+story: "4.2"
+story_title: "Domain-to-Client Fallback Matching"
+gate: PASS
+status_reason: "All acceptance criteria met. PERF-001 (AbortController) fixed during QA review. Only remaining item is deferred hook integration tests (TEST-001), which is documented and mitigated by manual testing."
+reviewer: "Quinn (Test Architect)"
+updated: "2025-10-10T00:00:00Z"
+
+waiver: { active: false }
+
+top_issues:
+  - id: "PERF-001"
+    severity: medium
+    status: RESOLVED
+    finding: "AbortController created but signal not passed to fetch calls"
+    impact: "In-flight API requests not cancelled when email changes rapidly, wasting network resources"
+    location: "src/hooks/useMatching.ts:41, 63 | src/lib/api/matching.ts:17, 62"
+    resolution: "Fixed during QA review - Added optional signal parameter to API functions and passed abortController.signal in hook"
+    resolved_by: "Quinn (Test Architect)"
+    resolved_at: "2025-10-10T00:00:00Z"
+
+  - id: "TEST-001"
+    severity: low
+    status: ACCEPTED
+    finding: "React hook integration tests deferred for useMatching sequential logic"
+    impact: "Hook orchestration (call order, error propagation, state transitions) validated only through manual testing, no automated regression protection"
+    location: "src/hooks/useMatching.ts"
+    mitigation: "Extensive manual testing (TC1-TC7) with Network tab and React DevTools validation. Unit tests cover all individual functions."
+    tracked_in: "Story 4.2 Task 9, Technical Debt TD-001"
+    suggested_action: "Add React Testing Library integration tests in future sprint when RTL setup available"
+    suggested_owner: dev
+
+quality_score: 90
+# Base: 100, TEST-001 (deferred, low): -10
+
+evidence:
+  tests_reviewed: 29
+  tests_passing: 29
+  tests_failing: 0
+  manual_test_cases: 7
+  manual_tests_passed: 7  # 6 full pass + 1 partial pass (TC5: 401 auth error UI deferred to Story 4.3)
+  risks_identified: 2
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    ac_gaps: []
+
+requirements_traceability:
+  - ac: 1
+    requirement: "Domain extracted using extractDomain() utility"
+    tests: "domainExtractor.test.ts (8 tests)"
+    implementation: "src/lib/utils/domainExtractor.ts:6"
+    status: PASS
+
+  - ac: 2
+    requirement: "If email match empty, trigger domain match"
+    tests: "Manual TC2, TC7 (Network tab inspection)"
+    implementation: "src/hooks/useMatching.ts:58-87"
+    status: PASS
+
+  - ac: 3
+    requirement: "API client function matchClientByDomain created"
+    tests: "matching.test.ts (10 tests for matchClientByDomain)"
+    implementation: "src/lib/api/matching.ts:59"
+    status: PASS
+
+  - ac: 4
+    requirement: "Calls GET /api/clients/match-domain endpoint"
+    tests: "URL encoding test, manual TC7"
+    implementation: "src/lib/api/matching.ts:62"
+    status: PASS
+
+  - ac: 5
+    requirement: "Domain matching results stored in sidebar state"
+    tests: "Manual TC6 (React DevTools state inspection)"
+    implementation: "src/hooks/useMatching.ts:67-70"
+    status: PASS
+
+  - ac: 6
+    requirement: "Matching hierarchy enforced (exact > domain)"
+    tests: "Manual TC2 (contact match prevents domain call)"
+    implementation: "src/hooks/useMatching.ts:43-56"
+    status: PASS
+
+  - ac: 7
+    requirement: "Sequential API calls (email first, then domain)"
+    tests: "Manual TC7 (Network tab shows sequential calls)"
+    implementation: "src/hooks/useMatching.ts:40-88"
+    status: PASS
+
+  - ac: 8
+    requirement: "Error handling for domain matching failures"
+    tests: "5 error tests (401, 400, 500, network, JSON), manual TC4, TC5"
+    implementation: "src/lib/api/matching.ts:70-81, src/hooks/useMatching.ts:75-83"
+    status: PASS
+
+  - ac: 9
+    requirement: "Unit tests for fallback logic"
+    tests: "29 tests pass (8 domain extraction + 21 API client)"
+    implementation: "All test files"
+    status: PASS
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: "Session auth with credentials:include, 401 handling, URL encoding, input validation, no sensitive logging"
+    findings:
+      - "✅ Session-based authentication properly implemented"
+      - "✅ 401 errors detected and handled gracefully"
+      - "✅ encodeURIComponent() used for all user input"
+      - "✅ No XSS or SQL injection risks"
+      - "⚠️ 401 errors lack user-facing auth guidance (deferred to Story 4.3)"
+
+  performance:
+    status: CONCERNS
+    notes: "300ms debouncing, conditional API calls, efficient error handling, but AbortController not integrated"
+    findings:
+      - "✅ 300ms debounce prevents excessive API calls"
+      - "✅ Domain match skipped if contact match found"
+      - "✅ Fast error fallback, proper dependency array"
+      - "⚠️ AbortController signal not passed to fetch (PERF-001)"
+      - "✅ Manual testing: < 500ms response time"
+
+  reliability:
+    status: PASS
+    notes: "Graceful degradation, error isolation, defensive coding, proper state management"
+    findings:
+      - "✅ All error scenarios fall back to manual mode (no crash)"
+      - "✅ Domain errors don't prevent contact matching"
+      - "✅ Null checks, empty array handling"
+      - "✅ Loading states prevent race conditions"
+      - "✅ 6/7 manual tests full pass, 1/7 partial pass"
+
+  maintainability:
+    status: PASS
+    notes: "Clean code, excellent documentation, strong types, consistent patterns"
+    findings:
+      - "✅ JSDoc comments on all public functions"
+      - "✅ Complex logic well-commented"
+      - "✅ Full TypeScript coverage, no any types"
+      - "✅ Clean separation: utils, API clients, hooks"
+      - "✅ Matches Story 4.1 patterns perfectly"
+
+test_architecture:
+  unit_tests:
+    count: 29
+    coverage: "Domain extraction (8), API clients (21)"
+    quality: "Comprehensive edge cases, clean mocks, fast execution"
+
+  integration_tests:
+    count: 0
+    status: DEFERRED
+    reason: "React hook testing deferred due to RTL complexity (Task 9)"
+    mitigation: "Extensive manual testing with Network tab and DevTools"
+    recommendation: "Add RTL integration tests in Story 4.3 or later sprint"
+
+  manual_tests:
+    count: 7
+    scenarios: "TC1-TC7: Domain match, contact precedence, no match, network error, 401 auth, state inspection, sequential calls"
+    validation: "Network tab, React DevTools, browser console"
+
+recommendations:
+  immediate:
+    - action: "Fix AbortController integration by passing signal to fetch calls"
+      priority: "MEDIUM"
+      effort: "< 10 minutes"
+      refs: ["src/hooks/useMatching.ts:41", "src/hooks/useMatching.ts:63"]
+      owner: dev
+      rationale: "Prevents wasted network requests when user rapidly switches emails"
+
+  future:
+    - action: "Add React Testing Library integration tests for useMatching hook"
+      priority: "MEDIUM"
+      effort: "2-4 hours"
+      refs: ["src/hooks/useMatching.ts"]
+      owner: dev
+      rationale: "Automated regression protection for sequential logic currently validated only manually"
+
+    - action: "Enhance 401 error UX with user-facing auth message/redirect"
+      priority: "LOW"
+      effort: "1 hour"
+      refs: ["src/hooks/useMatching.ts:79-82"]
+      owner: dev
+      rationale: "Improve UX when session expires (already tracked for Story 4.3)"
+
+    - action: "Extract and preserve HTTP status codes from API errors"
+      priority: "LOW"
+      effort: "30 minutes"
+      refs: ["src/hooks/useMatching.ts:97-100"]
+      owner: dev
+      rationale: "Better error debugging (currently status always 0)"
+
+    - action: "Add test coverage reporting with --experimental-test-coverage"
+      priority: "LOW"
+      effort: "15 minutes"
+      refs: ["package.json scripts"]
+      owner: dev
+      rationale: "Quantify test coverage (currently validated through manual inspection)"
+
+technical_debt:
+  identified:
+    - debt_id: "TD-001"
+      description: "React hook integration tests deferred"
+      impact: "MEDIUM - No automated regression tests for hook orchestration"
+      tracked_in: "Story 4.2 Task 9, QA gate CONCERNS"
+
+    - debt_id: "TD-002"
+      description: "AbortController not integrated with fetch"
+      impact: "MEDIUM - Network requests not cancelled, resource waste"
+      tracked_in: "QA gate PERF-001"
+
+    - debt_id: "TD-003"
+      description: "401 error UX enhancement deferred"
+      impact: "LOW - Graceful degradation works, UX suboptimal"
+      tracked_in: "Story 4.3 (Matching Status Visual Feedback)"
+
+code_quality:
+  grade: EXCELLENT
+  typescript_errors: 0
+  linting_errors: 0  # Story 4.2 files only; pre-existing UI component lint errors excluded
+  naming_conventions: PASS
+  documentation: EXCELLENT
+  test_coverage: GOOD  # Unit tests comprehensive, integration tests deferred
+  patterns_consistency: EXCELLENT  # Matches Story 4.1 patterns
+
+compliance:
+  coding_standards: PASS
+  project_structure: PASS
+  testing_strategy: PASS  # Unit tests comprehensive, hook integration tests deferred with mitigation
+
+refactoring_performed:
+  - file: "outlook-addin/src/lib/api/matching.ts"
+    change: "Added optional signal parameter to matchContactByEmail and matchClientByDomain"
+    lines: "17, 25, 62, 70"
+    reason: "Enable request cancellation via AbortController"
+    impact: "Backward compatible (signal optional), fixes PERF-001"
+
+  - file: "outlook-addin/src/hooks/useMatching.ts"
+    change: "Pass abortController.signal to both API function calls"
+    lines: "41, 63"
+    reason: "Connect AbortController to fetch requests for proper cancellation"
+    impact: "In-flight requests now cancelled on cleanup, prevents wasted network resources"
+
+decision_rationale: |
+  Gate set to PASS after QA refactoring resolved PERF-001:
+
+  **Resolved During Review:**
+  - ✅ **PERF-001 (AbortController):** Fixed by adding optional signal parameter to API functions
+    and passing abortController.signal in hook. All 29 tests still pass, TypeScript compiles
+    without errors. Backward compatible change (signal is optional).
+
+  **Accepted with Mitigation:**
+  - ✓ **TEST-001 (Hook integration tests):** Intentional deferral documented in Task 9. Sequential
+    logic validated through extensive manual testing (TC1-TC7 with Network tab inspection). Unit
+    tests cover all individual functions comprehensively. Risk mitigated, acceptable for release.
+
+  Story is production-ready:
+  - All 9 acceptance criteria met and validated
+  - 29 unit tests pass with excellent edge case coverage
+  - Manual testing 6/7 full pass + 1/7 partial pass (TC5: auth UX deferred to Story 4.3)
+  - AbortController optimization implemented (PERF-001 resolved)
+  - Code quality excellent, follows established patterns
+  - Security, performance, reliability, maintainability all PASS
+
+  **Decision:** Owner chose Option B - QA fixed AbortController during review. Story ready for Done.
+
+gate_history:
+  - at: "2025-10-10T00:00:00Z"
+    gate: CONCERNS
+    reviewer: "Quinn (Test Architect)"
+    note: "Initial comprehensive review - excellent code quality, two MEDIUM issues identified but non-blocking for release"
+
+  - at: "2025-10-10T00:00:00Z"
+    gate: PASS
+    reviewer: "Quinn (Test Architect)"
+    note: "PERF-001 resolved via QA refactoring (AbortController integrated). TEST-001 accepted with documented mitigation. Story production-ready."

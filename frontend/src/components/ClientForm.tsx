@@ -34,6 +34,11 @@ interface ClientFormProps {
 }
 
 export const ClientForm = ({ client, onSubmit, onCancel }: ClientFormProps) => {
+  // Deduplicate domains in case of stale cache data
+  const uniqueDomains = client?.domains
+    ? Array.from(new Set(client.domains)).map(d => ({ value: d }))
+    : [{ value: '' }];
+
   const {
     register,
     handleSubmit,
@@ -48,7 +53,7 @@ export const ClientForm = ({ client, onSubmit, onCancel }: ClientFormProps) => {
       companyName: client?.companyName || '',
       xeroCustomerId: client?.xeroCustomerId || '',
       maintenanceContractType: client?.maintenanceContractType || 'On Demand',
-      domains: client?.domains.map(d => ({ value: d })) || [{ value: '' }],
+      domains: uniqueDomains,
     },
   });
 

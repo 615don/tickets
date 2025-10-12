@@ -124,11 +124,17 @@ export const ClientList = () => {
   };
 
   const handleFormSubmit = async (data: { companyName: string; xeroCustomerId?: string; maintenanceContractType: string; domains: Array<{ value: string }> }) => {
+    // Extract, filter, and deduplicate domains
+    const domains = data.domains
+      .map((d) => d.value)
+      .filter((v: string) => v.trim() !== '');
+    const uniqueDomains = Array.from(new Set(domains));
+
     const clientData = {
       companyName: data.companyName,
       xeroCustomerId: data.xeroCustomerId,
       maintenanceContractType: data.maintenanceContractType,
-      domains: data.domains.map((d) => d.value).filter((v: string) => v.trim() !== ''),
+      domains: uniqueDomains,
     };
 
     try {

@@ -161,9 +161,14 @@ export const updateTicket = async (req, res) => {
         // Check if any time entries are in locked months before closing
         const timeEntries = await TimeEntry.findByTicketId(id);
         for (const entry of timeEntries) {
-          const isLocked = await InvoiceLock.isMonthLocked(entry.workDate);
+          // Convert Date object to string if necessary
+          const workDateStr = entry.workDate instanceof Date
+            ? entry.workDate.toISOString().split('T')[0]
+            : entry.workDate;
+
+          const isLocked = await InvoiceLock.isMonthLocked(workDateStr);
           if (isLocked) {
-            const month = entry.workDate.substring(0, 7);
+            const month = workDateStr.substring(0, 7);
             return res.status(403).json({
               error: 'InvoiceLockError',
               message: `Cannot close ticket with time entries in locked month ${month}`
@@ -344,6 +349,54 @@ export const addTimeEntry = async (req, res) => {
     res.status(201).json(timeEntry);
   } catch (error) {
     console.error('Add time entry error:', error);
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: error.message
+    });
+  }
+};
+
+// DELETE /api/tickets/:id - Delete ticket
+export const deleteTicket = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if ticket exists
+    const ticket = await Ticket.findById(id);
+    if (!ticket) {
+      return res.status(404).json({
+        error: 'NotFound',
+        message: `Ticket with ID ${id} not found`
+      });
+    }
+
+    // Check if any time entries are in locked months
+    const timeEntries = await TimeEntry.findByTicketId(id);
+    for (const entry of timeEntries) {
+      // Convert Date object to string if necessary
+      const workDateStr = entry.workDate instanceof Date
+        ? entry.workDate.toISOString().split('T')[0]
+        : entry.workDate;
+
+      const isLocked = await InvoiceLock.isMonthLocked(workDateStr);
+      if (isLocked) {
+        const month = workDateStr.substring(0, 7);
+        return res.status(403).json({
+          error: 'InvoiceLockError',
+          message: `Cannot delete ticket with time entries in locked month ${month}`
+        });
+      }
+    }
+
+    // Delete the ticket (cascade deletes time entries)
+    const result = await Ticket.delete(id);
+
+    res.status(200).json({
+      message: 'Ticket deleted successfully',
+      ...result
+    });
+  } catch (error) {
+    console.error('Delete ticket error:', error);
     res.status(500).json({
       error: 'InternalServerError',
       message: error.message

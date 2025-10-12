@@ -124,3 +124,18 @@ export function useReopenTicket() {
       updateTicket.mutateAsync({ id, data: { state: 'open' } }),
   });
 }
+
+/**
+ * Delete ticket
+ */
+export function useDeleteTicket() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => ticketsApi.delete(id),
+    onSuccess: () => {
+      // Invalidate all ticket queries to refresh lists
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all });
+    },
+  });
+}

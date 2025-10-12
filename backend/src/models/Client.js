@@ -93,7 +93,7 @@ export const Client = {
         c.maintenance_contract_type,
         c.created_at,
         c.updated_at,
-        COALESCE(json_agg(cd.domain ORDER BY cd.domain) FILTER (WHERE cd.domain IS NOT NULL), '[]') as domains,
+        COALESCE(json_agg(DISTINCT cd.domain ORDER BY cd.domain) FILTER (WHERE cd.domain IS NOT NULL), '[]') as domains,
         COUNT(DISTINCT contacts.id) as contact_count
       FROM clients c
       LEFT JOIN client_domains cd ON c.id = cd.client_id
@@ -115,7 +115,7 @@ export const Client = {
         c.maintenance_contract_type,
         c.created_at,
         c.updated_at,
-        COALESCE(json_agg(cd.domain ORDER BY cd.domain) FILTER (WHERE cd.domain IS NOT NULL), '[]') as domains,
+        COALESCE(json_agg(DISTINCT cd.domain ORDER BY cd.domain) FILTER (WHERE cd.domain IS NOT NULL), '[]') as domains,
         COUNT(DISTINCT contacts.id) as contact_count
       FROM clients c
       LEFT JOIN client_domains cd ON c.id = cd.client_id
@@ -274,7 +274,7 @@ export const Client = {
         c.xero_customer_id,
         c.maintenance_contract_type,
         c.created_at,
-        COALESCE(json_agg(cd.domain ORDER BY cd.domain) FILTER (WHERE cd.domain IS NOT NULL), '[]') as domains,
+        COALESCE(json_agg(DISTINCT cd.domain ORDER BY cd.domain) FILTER (WHERE cd.domain IS NOT NULL), '[]') as domains,
         COUNT(DISTINCT contacts.id) as contact_count
       FROM clients c
       LEFT JOIN client_domains cd ON c.id = cd.client_id
@@ -283,6 +283,28 @@ export const Client = {
       GROUP BY c.id
       ORDER BY c.company_name
     `, [`%${searchTerm}%`]);
+
+    return result.rows;
+  },
+
+  // Find clients by domain (case-insensitive exact match)
+  async matchByDomain(domain) {
+    const result = await query(`
+      WITH matched_clients AS (
+        SELECT DISTINCT client_id
+        FROM client_domains
+        WHERE LOWER(domain) = LOWER($1)
+      )
+      SELECT
+        c.id,
+        c.company_name as name,
+        COALESCE(json_agg(DISTINCT cd.domain ORDER BY cd.domain) FILTER (WHERE cd.domain IS NOT NULL), '[]') as domains
+      FROM matched_clients mc
+      JOIN clients c ON mc.client_id = c.id
+      LEFT JOIN client_domains cd ON c.id = cd.client_id
+      GROUP BY c.id, c.company_name
+      ORDER BY c.company_name
+    `, [domain]);
 
     return result.rows;
   }

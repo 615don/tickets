@@ -30,8 +30,23 @@ app.set('trust proxy', 1);
 
 // Middleware
 app.use(helmet()); // Security headers
+
+// CORS Configuration - Multiple allowed origins
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:8080',
+  'https://tickets.zollc.com',
+  'https://outlook-addin.zollc.com',  // Production add-in
+  'http://localhost:5173',             // Development add-in
+];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:8080',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 app.use(express.json());

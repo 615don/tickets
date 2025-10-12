@@ -38,7 +38,7 @@ export const ContactForm = ({ contact, clients, existingEmails, onSubmit, onCanc
     formState: { errors, isValid },
   } = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
-    mode: 'onBlur',
+    mode: 'onChange',
     defaultValues: {
       name: contact?.name || '',
       email: contact?.email || '',
@@ -98,7 +98,7 @@ export const ContactForm = ({ contact, clients, existingEmails, onSubmit, onCanc
         ) : (
           <Select
             value={clientId?.toString()}
-            onValueChange={(value) => setValue('clientId', parseInt(value))}
+            onValueChange={(value) => setValue('clientId', parseInt(value), { shouldValidate: true })}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select a client" />
