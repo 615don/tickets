@@ -15,4 +15,7 @@
 **Epic 5: Ticket Creation Form & Submission**
 *Implement ticket creation form with pre-filled fields, new contact creation workflow, and ticket submission via existing API, completing the end-to-end workflow.*
 
+**Epic 6: Open Ticket Re-entry Workflow** (Brownfield Enhancement)
+*Enable users to add time to existing open tickets by displaying up to three open tickets for matched contacts and transforming the ticket creation form into a time entry form, reducing duplicate ticket creation and improving workflow efficiency.*
+
 ---
