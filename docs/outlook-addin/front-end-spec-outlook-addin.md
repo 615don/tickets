@@ -145,27 +145,32 @@ graph TD
     C --> D{Email match?}
     D -->|No match| E[API: GET /api/clients/match-domain?domain=acmecorp.com]
     E --> F{Domain match?}
-    F -->|Yes| G[⚠ Display: New contact at Acme Corp]
-    G --> H[Pre-fill new contact fields: Name from display name, Email]
-    H --> I[Pre-fill client: Acme Corp selected]
-    I --> J[User reviews/edits contact info]
-    J --> K[User enters time, optional description]
-    K --> L[User clicks Create Ticket]
-    L --> M[API: Create contact + ticket in single request]
-    M --> N{Success?}
-    N -->|Yes| O[✓ Success: Contact created, Ticket #124]
-    N -->|No| P[❌ Error: Check contact info]
-    O --> Q[Form clears for next email]
+    F -->|Yes| G[⚠ StatusBadge: New contact at Acme Corp]
+    G --> H[Pre-fill contact name from display name editable]
+    H --> I[Display email read-only in EmailContext]
+    I --> J[Pre-select client: Acme Corp]
+    J --> K[User edits name if needed]
+    K --> L[User enters time, optional description]
+    L --> M[User clicks Create Ticket]
+    M --> N[API: Create contact + ticket in single request]
+    N --> O{Success?}
+    O -->|Yes| P[✓ Success: Contact created, Ticket #124]
+    O -->|No| Q[❌ Error: Check contact info]
+    P --> R[Form clears for next email]
 ```
 
 #### Edge Cases & Error Handling:
 
 - **Domain matches multiple clients:** Show disambiguation UI to select correct client first
-- **Invalid email format in sender:** Display validation error, user must edit manually
+- **Email sourced from Outlook:** Always valid format (no client-side email validation needed)
 - **Duplicate contact email at same client:** Backend returns error, prompt user to select existing contact from dropdown
 - **Contact creation fails but ticket succeeds:** Handle partial failure gracefully (rare edge case)
 
-**Notes:** Slightly slower than exact match (new contact creation adds latency) but still <30 second target end-to-end.
+**Notes:**
+- Slightly slower than exact match (new contact creation adds latency) but still <30 second target end-to-end
+- Email address remains read-only (sourced from Outlook to prevent entry errors)
+- StatusBadge displays "⚠ New contact at Acme Corp" to indicate new contact creation
+- No additional indicator message displayed (StatusBadge provides sufficient feedback)
 
 ---
 
@@ -314,10 +319,10 @@ graph TD
   - Client name: "Acme Corp" (from domain match)
 
 - **New Contact Section** (progressive disclosure):
-  - Informational text: "This will create a new contact at Acme Corp"
+  - StatusBadge: "⚠ New contact at Acme Corp" (provides indication, no additional message)
   - **Contact Name field:** Text input (pre-filled from sender display name, editable)
-  - **Contact Email field:** Text input (pre-filled from sender email, editable)
-  - Validation: Name required, email format validated
+  - **Contact Email:** Read-only display (sourced from Outlook sender email)
+  - Validation: Name required (email always valid from Outlook)
 
 - **Ticket Form Section:**
   - Client dropdown (pre-selected from domain match)

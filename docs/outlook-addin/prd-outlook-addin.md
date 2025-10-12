@@ -703,11 +703,11 @@ so that **I can create tickets for new contacts without leaving Outlook**.
 
 1. When domain match found but no contact match, "New Contact" form fields appear
 2. Contact name field pre-filled from sender display name (editable)
-3. Contact email field pre-filled from sender email (editable)
+3. Contact email field pre-filled from sender email (read-only, displayed in EmailContext)
 4. Client auto-selected from domain match result
-5. User can edit contact name/email before ticket creation
+5. User can edit contact name before ticket creation
 6. Validation enforces: name required, valid email format
-7. Form indicates new contact will be created: "This will create a new contact: [Name] ([Email])"
+7. StatusBadge indicates new contact will be created: "⚠ New contact at [Client]"
 8. New contact form hidden when exact contact match found
 9. Progressive disclosure: new contact fields only appear when needed
 
