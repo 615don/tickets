@@ -150,6 +150,24 @@ export const Ticket = {
     return result.rows.map(convertToCamelCase);
   },
 
+  // Find open tickets for a specific contact, ordered by most recent activity
+  async findOpenByContact(contactId, limit = 3) {
+    const result = await query(
+      `SELECT
+        t.id,
+        t.description,
+        t.updated_at as "updatedAt"
+      FROM tickets t
+      WHERE t.contact_id = $1
+        AND t.state = 'open'
+      ORDER BY t.updated_at DESC
+      LIMIT $2`,
+      [contactId, limit]
+    );
+
+    return result.rows;
+  },
+
   // Get ticket by ID with related data
   async findById(id) {
     const result = await query(`

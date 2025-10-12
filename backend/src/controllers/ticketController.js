@@ -244,6 +244,40 @@ export const getRecentlyClosedTickets = async (req, res) => {
   }
 };
 
+// GET /api/tickets/open-by-contact - Get open tickets for a specific contact
+export const getOpenTicketsByContact = async (req, res) => {
+  try {
+    const { contactId } = req.query;
+
+    // Validate contactId parameter
+    if (!contactId) {
+      return res.status(400).json({
+        error: 'BadRequest',
+        message: 'contactId query parameter is required'
+      });
+    }
+
+    const contactIdInt = parseInt(contactId, 10);
+    if (isNaN(contactIdInt) || contactIdInt <= 0) {
+      return res.status(400).json({
+        error: 'BadRequest',
+        message: 'contactId must be a positive integer'
+      });
+    }
+
+    // Use Ticket model to find open tickets for contact
+    const openTickets = await Ticket.findOpenByContact(contactIdInt);
+
+    res.status(200).json(openTickets);
+  } catch (error) {
+    console.error('Get open tickets by contact error:', error);
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: error.message
+    });
+  }
+};
+
 // GET /api/tickets/stats - Get dashboard statistics
 export const getDashboardStats = async (req, res) => {
   try {

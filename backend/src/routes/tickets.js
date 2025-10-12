@@ -14,6 +14,7 @@ import {
   addTimeEntry,
   deleteTicket,
   getRecentlyClosedTickets,
+  getOpenTicketsByContact,
   getDashboardStats
 } from '../controllers/ticketController.js';
 
@@ -33,6 +34,13 @@ router.get(
   '/recently-closed',
   requireAuth,
   getRecentlyClosedTickets
+);
+
+// Open tickets by contact endpoint
+router.get(
+  '/open-by-contact',
+  requireAuth,
+  getOpenTicketsByContact
 );
 
 // Get all tickets
