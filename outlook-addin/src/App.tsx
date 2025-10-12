@@ -3,9 +3,11 @@ import './App.css'
 import { Sidebar } from './components/Sidebar'
 import { EmailContext } from './components/EmailContext'
 import { TicketForm } from './components/TicketForm'
+import { SuccessBanner } from './components/SuccessBanner'
 import { useEmailContext } from './hooks/useEmailContext'
 import { useMatching } from './hooks/useMatching'
-import type { MatchStatus, TicketFormData } from './types'
+import type { MatchStatus } from './types'
+import type { CreateTicketResponse } from './lib/api/tickets'
 
 // Office.js initialization states
 type OfficeState = 'loading' | 'ready' | 'error'
@@ -26,6 +28,9 @@ function App() {
   // Contact name and email state for new contact creation (Story 5.1, 5.3)
   const [contactName, setContactName] = useState<string>('')
   const [contactEmail, setContactEmail] = useState<string>('')
+
+  // Success state for showing success banner (Story 5.4)
+  const [createdTicketId, setCreatedTicketId] = useState<number | null>(null)
 
   /**
    * Derive matchStatus for EmailContext component based on matching state
@@ -130,17 +135,21 @@ function App() {
     )
   }
 
-  // Ticket submission handler (Story 5.1)
-  const handleTicketSubmit = async (data: TicketFormData) => {
-    try {
-      // TODO: Implement ticket submission API call in Story 5.4
-      console.log('Ticket submission data:', data)
-      // Temporary mock - will be replaced with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-    } catch (error) {
-      console.error('Ticket submission failed:', error)
-      throw error
-    }
+  // Ticket submission handler (Story 5.4)
+  const handleTicketSubmit = (response: CreateTicketResponse) => {
+    // Set ticket ID for success banner
+    setCreatedTicketId(response.id)
+
+    // Clear form state
+    setContactName('')
+    setContactEmail('')
+    setSelectedClient(null)
+    // Note: TicketForm handles its own internal state reset (time, description, notes)
+  }
+
+  // Success banner dismiss handler
+  const handleDismissSuccess = () => {
+    setCreatedTicketId(null)
   }
 
   // Ready state - render EmailContext component
@@ -148,6 +157,15 @@ function App() {
     <Sidebar emailContext={emailContext}>
       {emailContext && (
         <div className="px-2 py-4 space-y-4">
+          {/* Success Banner - displayed at top when ticket is created */}
+          {createdTicketId && (
+            <SuccessBanner
+              ticketId={createdTicketId}
+              showLink={false}
+              onDismiss={handleDismissSuccess}
+            />
+          )}
+
           <EmailContext
             senderName={contactName}
             senderEmail={contactEmail}

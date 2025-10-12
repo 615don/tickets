@@ -5,7 +5,8 @@ import { DescriptionTextarea } from "./DescriptionTextarea";
 import { NotesTextarea } from "./NotesTextarea";
 import { ClosedCheckbox } from "./ClosedCheckbox";
 import { Loader2 } from "lucide-react";
-import { TicketFormData, MatchingResult } from "../types";
+import { MatchingResult } from "../types";
+import { createTicket, CreateTicketResponse } from "../lib/api/tickets";
 
 export interface TicketFormProps {
   selectedClient: { id: number; name: string } | null;
@@ -13,7 +14,7 @@ export interface TicketFormProps {
   matchingResult: MatchingResult | null;
   contactName: string;
   contactEmail: string;
-  onSubmit: (data: TicketFormData) => Promise<void>;
+  onSubmit: (response: CreateTicketResponse) => void;
 }
 
 export const TicketForm = ({
@@ -34,6 +35,7 @@ export const TicketForm = ({
   const [validationError, setValidationError] = useState<string>("");
   const [contactNameError, setContactNameError] = useState<string>("");
   const [contactEmailError, setContactEmailError] = useState<string>("");
+  const [submitError, setSubmitError] = useState<string>("");
 
   const isValidEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -72,34 +74,54 @@ export const TicketForm = ({
     setValidationError("");
     setContactNameError("");
     setContactEmailError("");
+    setSubmitError("");
     setIsSubmitting(true);
 
     try {
-      // Build submission payload
-      const payload: TicketFormData = {
+      // Build API payload
+      const payload = {
         clientId: selectedClient.id,
-        contactId: matchingResult?.contact?.id || 0, // Use matched contact or 0 for new contact
-        timeHours: parsedHours,
+        contactId: matchingResult?.type === 'contact-matched'
+          ? matchingResult.contact.id
+          : 0, // 0 signals new contact creation
         description: description.trim(),
         notes: notes.trim(),
-        closeImmediately,
+        state: closeImmediately ? ('closed' as const) : ('open' as const),
+        timeEntry: {
+          workDate: new Date().toISOString().split('T')[0], // Today's date YYYY-MM-DD
+          duration: parsedHours, // Backend expects 'duration' not 'durationHours'
+          billable: true,
+        },
       };
 
-      // Include contact info for new contact creation (domain match or no match scenarios)
-      if (matchingResult?.type === 'domain-matched' || matchingResult?.type === 'no-match') {
-        // Contact will be created automatically by backend using sender email info
-        payload.contactName = contactName;
-        payload.contactEmail = contactEmail;
+      // Include new contact data if creating new contact
+      if (payload.contactId === 0) {
+        payload.newContact = {
+          name: contactName.trim(),
+          email: contactEmail.trim(),
+          clientId: selectedClient.id,
+        };
       }
 
-      await onSubmit(payload);
+      // Call API
+      const response = await createTicket(payload);
+
+      // Success - notify parent and reset form
+      onSubmit(response);
 
       // Reset form
       setTimeValue("2m");
-      setParsedHours(0.03); // Reset to default parsed value
+      setParsedHours(0.03);
       setDescription("");
       setNotes("");
       setCloseImmediately(false);
+    } catch (error) {
+      // Error handling - display error and keep form data for retry
+      if (error instanceof Error) {
+        setSubmitError(error.message);
+      } else {
+        setSubmitError("An unexpected error occurred. Please try again.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -163,20 +185,29 @@ export const TicketForm = ({
       <ClosedCheckbox checked={closeImmediately} onChange={setCloseImmediately} />
 
       {/* Submit Button */}
-      <button
-        type="submit"
-        disabled={!isFormValid || isSubmitting}
-        className="flex w-full items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {isSubmitting ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Creating...
-          </>
-        ) : (
-          "Create Ticket"
+      <div className="space-y-2">
+        <button
+          type="submit"
+          disabled={!isFormValid || isSubmitting}
+          className="flex w-full items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Creating...
+            </>
+          ) : (
+            "Create Ticket"
+          )}
+        </button>
+
+        {/* Submit Error Display */}
+        {submitError && (
+          <p className="text-sm text-red-600" role="alert">
+            {submitError}
+          </p>
         )}
-      </button>
+      </div>
     </form>
   );
 };
