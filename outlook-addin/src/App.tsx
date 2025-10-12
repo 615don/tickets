@@ -29,6 +29,10 @@ function App() {
   const [contactName, setContactName] = useState<string>('')
   const [contactEmail, setContactEmail] = useState<string>('')
 
+  // Contact validation error state (Story 5.6)
+  const [contactNameError, setContactNameError] = useState<string>('')
+  const [contactEmailError, setContactEmailError] = useState<string>('')
+
   // Success state for showing success banner (Story 5.4)
   const [createdTicketId, setCreatedTicketId] = useState<number | null>(null)
 
@@ -152,6 +156,14 @@ function App() {
     setCreatedTicketId(null)
   }
 
+  // Contact name change handler with error clearing (Story 5.6 AC 7)
+  const handleContactNameChange = (newName: string) => {
+    setContactName(newName)
+    if (contactNameError) {
+      setContactNameError('')
+    }
+  }
+
   // Ready state - render EmailContext component
   return (
     <Sidebar emailContext={emailContext}>
@@ -172,7 +184,9 @@ function App() {
             matchStatus={getMatchStatus()}
             clientName={matchingResult?.client?.name}
             contactName={matchingResult?.contact?.name}
-            onNameChange={setContactName}
+            onNameChange={handleContactNameChange}
+            nameError={contactNameError}
+            emailError={contactEmailError}
           />
           <TicketForm
             selectedClient={selectedClient}
@@ -181,6 +195,10 @@ function App() {
             contactName={contactName}
             contactEmail={contactEmail}
             onSubmit={handleTicketSubmit}
+            contactNameError={contactNameError}
+            contactEmailError={contactEmailError}
+            onContactNameErrorChange={setContactNameError}
+            onContactEmailErrorChange={setContactEmailError}
           />
         </div>
       )}

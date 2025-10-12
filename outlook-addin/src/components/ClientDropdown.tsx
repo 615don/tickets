@@ -5,6 +5,7 @@ interface ClientDropdownProps {
   value: number | null;
   onChange: (client: { id: number; name: string } | null) => void;
   disabled?: boolean;
+  error?: string;
 }
 
 /**
@@ -15,7 +16,7 @@ interface ClientDropdownProps {
  *
  * Story 4.4: Manual Client Selection Fallback
  */
-export function ClientDropdown({ value, onChange, disabled = false }: ClientDropdownProps) {
+export function ClientDropdown({ value, onChange, disabled = false, error: validationError }: ClientDropdownProps) {
   const { clients, isLoading, error } = useClients();
 
   if (isLoading) {
@@ -30,29 +31,42 @@ export function ClientDropdown({ value, onChange, disabled = false }: ClientDrop
     return <div>No clients available</div>;
   }
 
+  const hasError = Boolean(validationError);
+
   return (
-    <Select
-      value={value?.toString() || ''}
-      onValueChange={(val) => {
-        if (val) {
-          const selectedClient = clients.find(c => c.id === parseInt(val, 10));
-          onChange(selectedClient || null);
-        } else {
-          onChange(null);
-        }
-      }}
-      disabled={disabled}
-    >
-      <SelectTrigger aria-label="Client selection" aria-required="true">
-        <SelectValue placeholder="Select client..." />
-      </SelectTrigger>
-      <SelectContent>
-        {clients.map((client) => (
-          <SelectItem key={client.id} value={client.id.toString()}>
-            {client.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="space-y-1">
+      <Select
+        value={value?.toString() || ''}
+        onValueChange={(val) => {
+          if (val) {
+            const selectedClient = clients.find(c => c.id === parseInt(val, 10));
+            onChange(selectedClient || null);
+          } else {
+            onChange(null);
+          }
+        }}
+        disabled={disabled}
+      >
+        <SelectTrigger
+          aria-label="Client selection"
+          aria-required="true"
+          className={hasError ? "border-red-300" : ""}
+        >
+          <SelectValue placeholder="Select client..." />
+        </SelectTrigger>
+        <SelectContent>
+          {clients.map((client) => (
+            <SelectItem key={client.id} value={client.id.toString()}>
+              {client.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {hasError && (
+        <div className="text-red-600 text-sm mt-1" role="alert">
+          {validationError}
+        </div>
+      )}
+    </div>
   );
 }
