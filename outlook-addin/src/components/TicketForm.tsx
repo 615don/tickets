@@ -65,19 +65,14 @@ export const TicketForm = ({
     setSelectedTicket(null);
   }, [matchingResult]);
 
-  // Pre-populate Description when ticket selected (AC 2)
+  // Pre-populate Description and clear Notes when ticket selected (AC 2, 3)
+  // Combined into single useEffect to prevent double re-render
   useEffect(() => {
     if (selectedTicket) {
       setDescription(selectedTicket.description);
+      setNotes(''); // Clear for new entry-specific notes
     } else {
       setDescription('');
-    }
-  }, [selectedTicket]);
-
-  // Clear Notes when ticket selected (AC 3)
-  useEffect(() => {
-    if (selectedTicket) {
-      setNotes(''); // Clear for new entry-specific notes
     }
   }, [selectedTicket]);
 
