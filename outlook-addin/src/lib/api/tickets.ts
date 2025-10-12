@@ -2,7 +2,7 @@ import { apiClient } from '../api-client';
 
 export interface TimeEntryData {
   workDate?: string; // ISO date format YYYY-MM-DD (optional, defaults to today)
-  duration: number; // Decimal hours (backend expects 'duration' not 'durationHours')
+  duration: string; // Time string like "2m", "1.5h", "1h30m" (backend parses this)
   billable?: boolean; // Optional, defaults to true
 }
 

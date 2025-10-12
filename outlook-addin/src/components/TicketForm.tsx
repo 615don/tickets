@@ -89,7 +89,7 @@ export const TicketForm = ({
         state: closeImmediately ? ('closed' as const) : ('open' as const),
         timeEntry: {
           workDate: new Date().toISOString().split('T')[0], // Today's date YYYY-MM-DD
-          duration: parsedHours, // Backend expects 'duration' not 'durationHours'
+          duration: timeValue, // Backend expects string like "2m" or "1.5h", NOT parsed hours
           billable: true,
         },
       };

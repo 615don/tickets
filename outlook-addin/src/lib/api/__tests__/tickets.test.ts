@@ -70,7 +70,7 @@ describe('createTicket API', () => {
       state: "closed",
       timeEntry: {
         workDate: "2025-10-11",
-        duration: 0.5,
+        duration: "30m",
         billable: true,
       },
     };
@@ -151,7 +151,7 @@ describe('createTicket API', () => {
       state: "open",
       timeEntry: {
         workDate: "2025-10-11",
-        duration: 0.5,
+        duration: "30m",
         billable: true,
       },
       newContact: {
@@ -200,7 +200,7 @@ describe('createTicket API', () => {
       state: "open",
       timeEntry: {
         workDate: "2025-10-11",
-        duration: 0.5,
+        duration: "30m",
         billable: true,
       },
     };
@@ -235,7 +235,7 @@ describe('createTicket API', () => {
       state: "open",
       timeEntry: {
         workDate: "2025-10-11",
-        duration: 0.5,
+        duration: "30m",
         billable: true,
       },
     };
@@ -275,7 +275,7 @@ describe('createTicket API', () => {
       state: "open",
       timeEntry: {
         workDate: "2025-10-11",
-        duration: 0.5,
+        duration: "30m",
         billable: true,
       },
     };
