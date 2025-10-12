@@ -14,22 +14,53 @@ describe('createTicket API', () => {
   });
 
   it('should create ticket with existing contact', async () => {
-    const mockResponse = {
+    const mockTicketResponse = {
       id: 123,
       clientId: 5,
       contactId: 42,
       description: "Email support",
       notes: "Helped with email configuration",
-      state: "closed",
+      state: "open",
       createdAt: "2025-10-11T12:00:00Z",
       updatedAt: "2025-10-11T12:00:00Z",
     };
 
-    global.fetch = mock.fn(async () => ({
-      ok: true,
-      status: 200,
-      json: async () => mockResponse,
-    })) as typeof global.fetch;
+    const mockClosedTicketResponse = {
+      ...mockTicketResponse,
+      state: "closed",
+    };
+
+    global.fetch = mock.fn(async (url: string) => {
+      // Mock CSRF token endpoint
+      if (url.includes('/api/csrf-token')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ csrfToken: 'mock-csrf-token' }),
+        } as Response;
+      }
+      // Mock ticket creation
+      if (url.includes('/api/tickets') && !url.match(/\/api\/tickets\/\d+/)) {
+        return {
+          ok: true,
+          status: 201,
+          json: async () => mockTicketResponse,
+        } as Response;
+      }
+      // Mock ticket update (for closed state)
+      if (url.match(/\/api\/tickets\/\d+/)) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => mockClosedTicketResponse,
+        } as Response;
+      }
+      return {
+        ok: false,
+        status: 404,
+        json: async () => ({ message: 'Not found' }),
+      } as Response;
+    }) as typeof global.fetch;
 
     const payload: CreateTicketPayload = {
       clientId: 5,
@@ -48,12 +79,21 @@ describe('createTicket API', () => {
 
     assert.strictEqual(result.id, 123);
     assert.strictEqual(result.contactId, 42);
-    assert.strictEqual(global.fetch.mock.calls.length, 2); // POST ticket + PUT state
+    assert.strictEqual(result.state, "closed");
+    assert.strictEqual(global.fetch.mock.calls.length, 3); // GET csrf-token + POST ticket + PUT state
 
-    const [firstUrl, firstOptions] = global.fetch.mock.calls[0].arguments;
-    assert.ok(firstUrl.includes('/api/tickets'));
-    assert.strictEqual(firstOptions.method, 'POST');
-    assert.strictEqual(firstOptions.credentials, 'include');
+    // Verify CSRF token was fetched
+    const [csrfUrl] = global.fetch.mock.calls[0].arguments;
+    assert.ok(csrfUrl.includes('/api/csrf-token'));
+
+    // Verify ticket creation
+    const [ticketUrl, ticketOptions] = global.fetch.mock.calls[1].arguments;
+    assert.ok(ticketUrl.includes('/api/tickets'));
+    assert.strictEqual(ticketOptions.method, 'POST');
+    assert.strictEqual(ticketOptions.credentials, 'include');
+
+    // Verify CSRF token included in headers
+    assert.ok(ticketOptions.headers['X-CSRF-Token']);
   });
 
   it('should create ticket with new contact', async () => {
@@ -79,6 +119,15 @@ describe('createTicket API', () => {
     };
 
     global.fetch = mock.fn(async (url: string) => {
+      // Mock CSRF token endpoint
+      if (url.includes('/api/csrf-token')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ csrfToken: 'mock-csrf-token' }),
+        } as Response;
+      }
+      // Mock contact creation
       if (url.includes('/api/contacts')) {
         return {
           ok: true,
@@ -86,6 +135,7 @@ describe('createTicket API', () => {
           json: async () => mockContactResponse,
         } as Response;
       }
+      // Mock ticket creation
       return {
         ok: true,
         status: 201,
@@ -124,12 +174,23 @@ describe('createTicket API', () => {
   });
 
   it('should throw authentication error on 401', async () => {
-    global.fetch = mock.fn(async () => ({
-      ok: false,
-      status: 401,
-      statusText: 'Unauthorized',
-      json: async () => ({ message: 'Session expired' }),
-    })) as typeof global.fetch;
+    global.fetch = mock.fn(async (url: string) => {
+      // Mock CSRF token endpoint success
+      if (url.includes('/api/csrf-token')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ csrfToken: 'mock-csrf-token' }),
+        } as Response;
+      }
+      // Mock 401 on ticket creation
+      return {
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        json: async () => ({ message: 'Session expired' }),
+      } as Response;
+    }) as typeof global.fetch;
 
     const payload: CreateTicketPayload = {
       clientId: 5,
@@ -153,7 +214,16 @@ describe('createTicket API', () => {
   });
 
   it('should throw network error on fetch failure', async () => {
-    global.fetch = mock.fn(async () => {
+    global.fetch = mock.fn(async (url: string) => {
+      // Mock CSRF token endpoint success
+      if (url.includes('/api/csrf-token')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ csrfToken: 'mock-csrf-token' }),
+        } as Response;
+      }
+      // Throw network error on ticket creation
       throw new TypeError('Failed to fetch');
     }) as typeof global.fetch;
 
@@ -179,12 +249,23 @@ describe('createTicket API', () => {
   });
 
   it('should throw validation error on 400', async () => {
-    global.fetch = mock.fn(async () => ({
-      ok: false,
-      status: 400,
-      statusText: 'Bad Request',
-      json: async () => ({ message: 'Client ID is required' }),
-    })) as typeof global.fetch;
+    global.fetch = mock.fn(async (url: string) => {
+      // Mock CSRF token endpoint success
+      if (url.includes('/api/csrf-token')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ csrfToken: 'mock-csrf-token' }),
+        } as Response;
+      }
+      // Mock 400 validation error on ticket creation
+      return {
+        ok: false,
+        status: 400,
+        statusText: 'Bad Request',
+        json: async () => ({ message: 'Client ID is required' }),
+      } as Response;
+    }) as typeof global.fetch;
 
     const payload: CreateTicketPayload = {
       clientId: 0, // Invalid client ID
