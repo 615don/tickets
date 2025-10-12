@@ -111,12 +111,13 @@ describe('matchContactByEmail', () => {
     global.fetch = mock.fn(async () => ({
       ok: false,
       status: 401,
+      json: async () => ({ message: 'Unauthorized' }),
     })) as unknown as typeof fetch;
 
     await assert.rejects(
       async () => matchContactByEmail('test@example.com'),
       {
-        message: 'Authentication required. Please log in.',
+        message: 'Authentication required. Please log in to the web app.',
       }
     );
   });
@@ -126,12 +127,13 @@ describe('matchContactByEmail', () => {
     global.fetch = mock.fn(async () => ({
       ok: false,
       status: 400,
+      json: async () => ({ message: 'Invalid email format' }),
     })) as unknown as typeof fetch;
 
     await assert.rejects(
       async () => matchContactByEmail('invalid-email'),
       {
-        message: 'Invalid email format.',
+        message: 'Invalid email format',
       }
     );
   });
@@ -141,12 +143,14 @@ describe('matchContactByEmail', () => {
     global.fetch = mock.fn(async () => ({
       ok: false,
       status: 500,
+      statusText: 'Internal Server Error',
+      json: async () => ({}),
     })) as unknown as typeof fetch;
 
     await assert.rejects(
       async () => matchContactByEmail('test@example.com'),
       {
-        message: 'Server error. Please try again later.',
+        message: /HTTP 500/,
       }
     );
   });
@@ -298,12 +302,13 @@ describe('matchClientByDomain', () => {
     global.fetch = mock.fn(async () => ({
       ok: false,
       status: 401,
+      json: async () => ({ message: 'Unauthorized' }),
     })) as unknown as typeof fetch;
 
     await assert.rejects(
       async () => matchClientByDomain('acme.com'),
       {
-        message: 'Authentication required. Please log in.',
+        message: 'Authentication required. Please log in to the web app.',
       }
     );
   });
@@ -313,12 +318,13 @@ describe('matchClientByDomain', () => {
     global.fetch = mock.fn(async () => ({
       ok: false,
       status: 400,
+      json: async () => ({ message: 'Invalid domain format' }),
     })) as unknown as typeof fetch;
 
     await assert.rejects(
       async () => matchClientByDomain('invalid-domain'),
       {
-        message: 'Invalid domain format.',
+        message: 'Invalid domain format',
       }
     );
   });
@@ -328,12 +334,14 @@ describe('matchClientByDomain', () => {
     global.fetch = mock.fn(async () => ({
       ok: false,
       status: 500,
+      statusText: 'Internal Server Error',
+      json: async () => ({}),
     })) as unknown as typeof fetch;
 
     await assert.rejects(
       async () => matchClientByDomain('acme.com'),
       {
-        message: 'Server error. Please try again later.',
+        message: /HTTP 500/,
       }
     );
   });

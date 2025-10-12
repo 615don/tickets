@@ -1,7 +1,5 @@
 import type { MatchContactResponse, MatchClientResponse } from '../../types';
-
-// Get API base URL from environment variable or use relative URL for development
-const API_BASE_URL = import.meta.env?.VITE_API_URL || '';
+import { apiClient } from '../api-client';
 
 /**
  * Match a contact by email address
@@ -15,37 +13,10 @@ const API_BASE_URL = import.meta.env?.VITE_API_URL || '';
  * Story 4.1: Email-to-Contact Matching Integration
  */
 export async function matchContactByEmail(email: string, signal?: AbortSignal): Promise<MatchContactResponse[]> {
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/api/contacts/match-email?email=${encodeURIComponent(email)}`,
-      {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // Send session cookies for authentication
-        signal, // Support request cancellation
-      }
-    );
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        throw new Error('Authentication required. Please log in.');
-      }
-      if (response.status === 400) {
-        throw new Error('Invalid email format.');
-      }
-      if (response.status === 500) {
-        throw new Error('Server error. Please try again later.');
-      }
-      throw new Error(`Server error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data; // Array of MatchContactResponse objects
-  } catch (error) {
-    // Log error for debugging
-    console.error('Match contact API failed:', error);
-    throw error;
-  }
+  return apiClient<MatchContactResponse[]>(
+    `/api/contacts/match-email?email=${encodeURIComponent(email)}`,
+    { signal }
+  );
 }
 
 /**
@@ -60,37 +31,12 @@ export async function matchContactByEmail(email: string, signal?: AbortSignal): 
  * Story 4.2: Domain-to-Client Fallback Matching
  */
 export async function matchClientByDomain(domain: string, signal?: AbortSignal): Promise<MatchClientResponse | null> {
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/api/clients/match-domain?domain=${encodeURIComponent(domain)}`,
-      {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // Send session cookies for authentication
-        signal, // Support request cancellation
-      }
-    );
+  const data = await apiClient<MatchClientResponse[]>(
+    `/api/clients/match-domain?domain=${encodeURIComponent(domain)}`,
+    { signal }
+  );
 
-    if (!response.ok) {
-      if (response.status === 401) {
-        throw new Error('Authentication required. Please log in.');
-      }
-      if (response.status === 400) {
-        throw new Error('Invalid domain format.');
-      }
-      if (response.status === 500) {
-        throw new Error('Server error. Please try again later.');
-      }
-      throw new Error(`Server error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    // API returns array, but domain is unique per client (database constraint)
-    // Return first element or null if empty
-    return data.length > 0 ? data[0] : null;
-  } catch (error) {
-    // Log error for debugging
-    console.error('Match domain API failed:', error);
-    throw error;
-  }
+  // API returns array, but domain is unique per client (database constraint)
+  // Return first element or null if empty
+  return data.length > 0 ? data[0] : null;
 }

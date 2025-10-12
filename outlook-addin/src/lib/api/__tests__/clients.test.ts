@@ -68,12 +68,13 @@ describe('fetchClients', () => {
     global.fetch = mock.fn(async () => ({
       ok: false,
       status: 401,
+      json: async () => ({ message: 'Unauthorized' }),
     })) as unknown as typeof fetch;
 
     await assert.rejects(
       async () => await fetchClients(),
       {
-        message: 'Authentication required. Please log in.',
+        message: 'Authentication required. Please log in to the web app.',
       }
     );
   });
@@ -83,12 +84,14 @@ describe('fetchClients', () => {
     global.fetch = mock.fn(async () => ({
       ok: false,
       status: 500,
+      statusText: 'Internal Server Error',
+      json: async () => ({}),
     })) as unknown as typeof fetch;
 
     await assert.rejects(
       async () => await fetchClients(),
       {
-        message: 'Server error: 500',
+        message: /HTTP 500/,
       }
     );
   });
