@@ -26,11 +26,13 @@ export const SuccessBanner = ({ ticketId, showLink = false, onDismiss }: Success
     <div
       role="alert"
       aria-live="polite"
-      className="animate-slide-down sticky top-0 z-50 flex items-center justify-between rounded-md bg-success p-4 text-success-foreground shadow-lg"
+      aria-atomic="true"
+      className="animate-slide-down sticky top-0 z-50 flex items-center justify-between rounded-md border border-green-200 bg-green-50 px-4 py-3 text-green-800 shadow-lg"
     >
       <div className="flex items-center gap-2">
+        <span className="mr-2 text-lg font-bold text-green-600">✓</span>
         <span className="text-sm font-medium">
-          ✓ Ticket{" "}
+          Ticket{" "}
           {showLink ? (
             <a
               href={`/tickets/${ticketId}`}
@@ -48,8 +50,8 @@ export const SuccessBanner = ({ ticketId, showLink = false, onDismiss }: Success
       <button
         ref={dismissButtonRef}
         onClick={onDismiss}
-        className="rounded p-1 transition-colors hover:bg-success-foreground/20 focus:outline-none focus:ring-2 focus:ring-success-foreground"
-        aria-label="Dismiss notification"
+        className="rounded p-1 text-green-600 transition-colors hover:text-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+        aria-label="Dismiss success message"
       >
         <X className="h-4 w-4" />
       </button>

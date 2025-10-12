@@ -135,16 +135,16 @@ function App() {
     )
   }
 
-  // Ticket submission handler (Story 5.4)
+  // Ticket submission handler (Story 5.4, 5.5)
   const handleTicketSubmit = (response: CreateTicketResponse) => {
-    // Set ticket ID for success banner
+    // Set ticket ID for success banner (AC 3, 4)
     setCreatedTicketId(response.id)
 
-    // Clear form state
-    setContactName('')
-    setContactEmail('')
-    setSelectedClient(null)
-    // Note: TicketForm handles its own internal state reset (time, description, notes)
+    // Preserve matching state to allow creating multiple tickets for same email (AC 6)
+    // Do NOT clear: selectedClient, contactName, contactEmail, matchingResult
+    // User can create another ticket for same email/client without re-matching
+
+    // Note: TicketForm handles its own internal state reset (time, description, notes, closeImmediately) (AC 5)
   }
 
   // Success banner dismiss handler

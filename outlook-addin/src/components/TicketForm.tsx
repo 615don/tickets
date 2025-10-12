@@ -6,7 +6,7 @@ import { NotesTextarea } from "./NotesTextarea";
 import { ClosedCheckbox } from "./ClosedCheckbox";
 import { Loader2 } from "lucide-react";
 import { MatchingResult } from "../types";
-import { createTicket, CreateTicketResponse } from "../lib/api/tickets";
+import { createTicket, CreateTicketResponse, CreateTicketPayload } from "../lib/api/tickets";
 
 export interface TicketFormProps {
   selectedClient: { id: number; name: string } | null;
@@ -45,6 +45,9 @@ export const TicketForm = ({
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
+    // Early exit if already submitting (prevents double-submission)
+    if (isSubmitting) return;
+
     // Validate client selection
     if (!selectedClient) {
       setValidationError("Client selection required");
@@ -79,7 +82,7 @@ export const TicketForm = ({
 
     try {
       // Build API payload
-      const payload = {
+      const payload: CreateTicketPayload = {
         clientId: selectedClient.id,
         contactId: matchingResult?.type === 'contact-matched'
           ? matchingResult.contact.id
