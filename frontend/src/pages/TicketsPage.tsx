@@ -76,7 +76,8 @@ const TicketsPage = () => {
     const filtered = tickets.filter((ticket) =>
       ticket.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       ticket.contactName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ticket.id.toString().includes(searchQuery)
+      ticket.id.toString().includes(searchQuery) ||
+      (ticket.description && ticket.description.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
     filtered.sort((a, b) => {
@@ -195,7 +196,7 @@ const TicketsPage = () => {
           </div>
           <div className="flex-1">
             <SearchBar
-              placeholder="Search by client, contact, or ticket ID..."
+              placeholder="Search by client, contact, description, or ticket ID..."
               value={searchQuery}
               onChange={setSearchQuery}
               onClear={() => setSearchQuery('')}
@@ -245,6 +246,7 @@ const TicketsPage = () => {
                   </TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead>Contact</TableHead>
+                  <TableHead>Description</TableHead>
                   <TableHead>Total Hours</TableHead>
                   <TableHead>Last Updated</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
@@ -259,6 +261,9 @@ const TicketsPage = () => {
                     <TableCell className="font-medium cursor-pointer" onClick={() => handleTicketClick(ticket.id)}>#{ticket.id}</TableCell>
                     <TableCell className="cursor-pointer" onClick={() => handleTicketClick(ticket.id)}>{ticket.clientName}</TableCell>
                     <TableCell className="cursor-pointer" onClick={() => handleTicketClick(ticket.id)}>{ticket.contactName}</TableCell>
+                    <TableCell className="cursor-pointer" onClick={() => handleTicketClick(ticket.id)}>
+                      {ticket.description || <span className="text-muted-foreground italic">No description</span>}
+                    </TableCell>
                     <TableCell className="cursor-pointer" onClick={() => handleTicketClick(ticket.id)}>{formatHours(ticket.totalHours)}</TableCell>
                     <TableCell className="text-muted-foreground cursor-pointer" onClick={() => handleTicketClick(ticket.id)}>
                       {formatUpdatedAt(ticket.updatedAt)}
@@ -317,6 +322,12 @@ const TicketsPage = () => {
                     <span className="text-muted-foreground">Contact:</span>
                     <span className="font-medium">{ticket.contactName}</span>
                   </div>
+                  {ticket.description && (
+                    <div className="flex flex-col">
+                      <span className="text-muted-foreground mb-1">Description:</span>
+                      <span className="font-medium">{ticket.description}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Updated:</span>
                     <span className="text-muted-foreground">{formatUpdatedAt(ticket.updatedAt)}</span>
