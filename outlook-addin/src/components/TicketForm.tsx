@@ -1,13 +1,14 @@
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { TimeInput } from "./TimeInput";
 import { ClientDropdown } from "./ClientDropdown";
 import { DescriptionTextarea } from "./DescriptionTextarea";
 import { NotesTextarea } from "./NotesTextarea";
 import { ClosedCheckbox } from "./ClosedCheckbox";
 import { ErrorMessage } from "./ErrorMessage";
+import { OpenTicketsList } from "./OpenTicketsList";
 import { Loader2 } from "lucide-react";
 import { MatchingResult } from "../types";
-import { createTicket, CreateTicketResponse, CreateTicketPayload } from "../lib/api/tickets";
+import { createTicket, CreateTicketResponse, CreateTicketPayload, OpenTicket } from "../lib/api/tickets";
 
 export interface TicketFormProps {
   selectedClient: { id: number; name: string } | null;
@@ -43,12 +44,21 @@ export const TicketForm = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationError, setValidationError] = useState<string>("");
   const [submitError, setSubmitError] = useState<string>("");
+  const [selectedTicket, setSelectedTicket] = useState<OpenTicket | null>(null);
 
   // Use external error state if provided, otherwise use empty string
   const contactNameErrorValue = externalContactNameError ?? "";
   const contactEmailErrorValue = externalContactEmailError ?? "";
   const setContactNameError = onContactNameErrorChange ?? (() => {});
   const setContactEmailError = onContactEmailErrorChange ?? (() => {});
+
+  // Extract contactId from matchingResult
+  const contactId = matchingResult?.type === 'contact-matched' ? matchingResult.contact.id : null;
+
+  // Reset selected ticket when matchingResult changes (user switches emails)
+  useEffect(() => {
+    setSelectedTicket(null);
+  }, [matchingResult]);
 
   const isValidEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -225,6 +235,15 @@ export const TicketForm = ({
           error={validationError}
         />
       </div>
+
+      {/* Open Tickets List - positioned between Client and Time */}
+      {contactId && (
+        <OpenTicketsList
+          contactId={contactId}
+          onTicketSelect={setSelectedTicket}
+          selectedTicketId={selectedTicket?.id || null}
+        />
+      )}
 
       {/* Time Input */}
       <TimeInput

@@ -12,6 +12,12 @@ export interface NewContactData {
   clientId: number;
 }
 
+export interface OpenTicket {
+  id: number;
+  description: string;
+  updatedAt: string; // ISO 8601 timestamp
+}
+
 export interface CreateTicketPayload {
   clientId: number;
   contactId: number; // 0 for new contact creation
@@ -84,4 +90,14 @@ export async function createTicket(
   }
 
   return ticket;
+}
+
+export async function fetchOpenTickets(
+  contactId: number,
+  signal?: AbortSignal
+): Promise<OpenTicket[]> {
+  return apiClient<OpenTicket[]>(
+    `/api/tickets/open-by-contact?contactId=${contactId}`,
+    { signal }
+  );
 }
