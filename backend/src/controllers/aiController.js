@@ -99,8 +99,8 @@ export async function summarizeEmailThread(req, res) {
       });
     }
 
-    // AC5: Process email thread using emailThreadProcessor
-    const processedThread = processEmailThread(emails);
+    // AC5: Process email thread using emailThreadProcessor with configurable word limit
+    const processedThread = processEmailThread(emails, aiSettings.maxWordCount);
 
     // processedThread contains:
     // - selectedEmails: Array of sanitized emails

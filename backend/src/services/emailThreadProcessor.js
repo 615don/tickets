@@ -2,21 +2,21 @@
  * Email Thread Processor Service
  *
  * Intelligently selects and formats emails from thread for AI summarization,
- * balancing context quality with token costs (max 5 emails or 4,000 words).
+ * balancing context quality with token costs (max 5 emails or configurable word limit).
  *
  * Selection Priority:
- * 1. Most recent email (ALWAYS included, even if >4K words - truncate if needed)
+ * 1. Most recent email (ALWAYS included, even if exceeds word limit - truncate if needed)
  * 2. Older emails in chronological order until limits reached
  *
  * Limits:
  * - Max 5 emails (prevents excessive context)
- * - Max 4,000 words total (~5,333 tokens, cost optimization)
+ * - Max words configurable (default 4,000 words ~5,333 tokens, cost optimization)
  */
 
 import { sanitizeEmail } from './emailSanitizer.js';
 
 const MAX_EMAILS = 5;
-const MAX_WORDS = 4000;
+const DEFAULT_MAX_WORDS = 4000;
 
 /**
  * Counts words in text for limit enforcement
@@ -58,6 +58,7 @@ function validateEmailObject(email) {
  * Selects most relevant emails within token/count limits
  *
  * @param {Array<Object>} emails - Array of raw email objects { from, subject, body }
+ * @param {number} maxWords - Maximum word count limit (default: 4000)
  * @returns {Promise<Object>} Processed thread with selected emails and metadata
  * @returns {Array<Object>} result.selectedEmails - Sanitized email objects (chronological)
  * @returns {boolean} result.truncated - True if limits exceeded
@@ -65,7 +66,7 @@ function validateEmailObject(email) {
  * @returns {number} result.wordCount - Total word count across selected emails
  * @returns {string} result.lengthClass - 'short' | 'medium' | 'long' for smart summarization
  */
-export function processEmailThread(emails) {
+export function processEmailThread(emails, maxWords = DEFAULT_MAX_WORDS) {
   // Validate input
   if (!emails || emails.length === 0) {
     throw new Error('Email thread is empty - no emails to process');
@@ -90,15 +91,15 @@ export function processEmailThread(emails) {
   let recentBody = recentSanitized.sanitized;
   let recentWordCount = countWords(recentBody);
 
-  // Truncate most recent email if it alone exceeds MAX_WORDS
-  if (recentWordCount > MAX_WORDS) {
-    recentBody = truncateToWordLimit(recentBody, MAX_WORDS);
-    recentWordCount = MAX_WORDS;
+  // Truncate most recent email if it alone exceeds maxWords
+  if (recentWordCount > maxWords) {
+    recentBody = truncateToWordLimit(recentBody, maxWords);
+    recentWordCount = maxWords;
     truncated = true;
   }
 
   // Calculate how much word budget remains for older emails
-  const remainingWords = MAX_WORDS - recentWordCount;
+  const remainingWords = maxWords - recentWordCount;
 
   // Add older emails until limits reached
   for (const email of olderEmails) {
@@ -153,9 +154,10 @@ export function processEmailThread(emails) {
   // Log warning if thread was truncated
   if (truncated) {
     console.warn('[EmailThreadProcessor] Thread truncated:', {
-      reason: selectedEmails.length >= MAX_EMAILS ? '5-email limit' : '4000-word limit',
+      reason: selectedEmails.length >= MAX_EMAILS ? '5-email limit' : `${maxWords}-word limit`,
       inputEmails: emails.length,
-      selectedEmails: selectedEmails.length
+      selectedEmails: selectedEmails.length,
+      maxWordsLimit: maxWords
     });
   }
 

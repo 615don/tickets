@@ -32,11 +32,11 @@ export const AiSettings = {
   /**
    * Get current AI settings
    * Creates default if not exists
-   * @returns {Promise<{openaiApiKey: string, openaiModel: string, systemPrompt: string, configured: boolean}>}
+   * @returns {Promise<{openaiApiKey: string, openaiModel: string, systemPrompt: string, maxCompletionTokens: number, maxWordCount: number, apiTimeoutMs: number, configured: boolean}>}
    */
   async getSettings() {
     const result = await pool.query(
-      'SELECT openai_api_key, openai_model, system_prompt, max_completion_tokens FROM ai_settings WHERE id = 1'
+      'SELECT openai_api_key, openai_model, system_prompt, max_completion_tokens, max_word_count, api_timeout_ms FROM ai_settings WHERE id = 1'
     );
 
     if (result.rows.length === 0) {
@@ -46,6 +46,8 @@ export const AiSettings = {
         openaiModel: 'gpt-5-mini',
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
         maxCompletionTokens: 2000,
+        maxWordCount: 4000,
+        apiTimeoutMs: 15000,
         configured: false
       };
     }
@@ -69,6 +71,8 @@ export const AiSettings = {
       openaiModel: row.openai_model,
       systemPrompt: row.system_prompt,
       maxCompletionTokens: row.max_completion_tokens || 2000,
+      maxWordCount: row.max_word_count || 4000,
+      apiTimeoutMs: row.api_timeout_ms || 15000,
       configured: openaiApiKey !== ''
     };
   },
@@ -79,10 +83,12 @@ export const AiSettings = {
    * @param {string} model - Model name (gpt-5, gpt-5-mini, gpt-5-nano)
    * @param {string} systemPrompt - System prompt text
    * @param {number} maxCompletionTokens - Maximum completion tokens (100-128000)
-   * @returns {Promise<{openaiApiKey: string, openaiModel: string, systemPrompt: string, maxCompletionTokens: number, configured: boolean}>}
+   * @param {number} maxWordCount - Maximum word count for email threads (100-10000)
+   * @param {number} apiTimeoutMs - API timeout in milliseconds (5000-60000)
+   * @returns {Promise<{openaiApiKey: string, openaiModel: string, systemPrompt: string, maxCompletionTokens: number, maxWordCount: number, apiTimeoutMs: number, configured: boolean}>}
    * @throws {Error} If validation fails
    */
-  async updateSettings(apiKey, model, systemPrompt, maxCompletionTokens = 2000) {
+  async updateSettings(apiKey, model, systemPrompt, maxCompletionTokens = 2000, maxWordCount = 4000, apiTimeoutMs = 15000) {
     // Validate inputs
     if (!apiKey || apiKey.trim() === '') {
       throw new Error('openaiApiKey is required');
@@ -104,15 +110,27 @@ export const AiSettings = {
       throw new Error('maxCompletionTokens must be between 100 and 128000');
     }
 
+    // Validate maxWordCount
+    const wordCount = parseInt(maxWordCount);
+    if (isNaN(wordCount) || wordCount < 100 || wordCount > 10000) {
+      throw new Error('maxWordCount must be between 100 and 10000');
+    }
+
+    // Validate apiTimeoutMs
+    const timeout = parseInt(apiTimeoutMs);
+    if (isNaN(timeout) || timeout < 5000 || timeout > 60000) {
+      throw new Error('apiTimeoutMs must be between 5000 and 60000');
+    }
+
     // Encrypt API key before storage
     const encryptedApiKey = encrypt(apiKey);
 
     // Update singleton row
     await pool.query(
       `UPDATE ai_settings
-       SET openai_api_key = $1, openai_model = $2, system_prompt = $3, max_completion_tokens = $4, updated_at = NOW()
+       SET openai_api_key = $1, openai_model = $2, system_prompt = $3, max_completion_tokens = $4, max_word_count = $5, api_timeout_ms = $6, updated_at = NOW()
        WHERE id = 1`,
-      [encryptedApiKey, model, systemPrompt, tokens]
+      [encryptedApiKey, model, systemPrompt, tokens, wordCount, timeout]
     );
 
     return {
@@ -120,6 +138,8 @@ export const AiSettings = {
       openaiModel: model,
       systemPrompt,
       maxCompletionTokens: tokens,
+      maxWordCount: wordCount,
+      apiTimeoutMs: timeout,
       configured: true
     };
   }

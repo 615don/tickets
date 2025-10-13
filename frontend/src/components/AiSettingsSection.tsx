@@ -17,6 +17,8 @@ export function AiSettingsSection() {
   const [model, setModel] = useState('gpt-5-mini');
   const [systemPrompt, setSystemPrompt] = useState('');
   const [maxCompletionTokens, setMaxCompletionTokens] = useState(2000);
+  const [maxWordCount, setMaxWordCount] = useState(4000);
+  const [apiTimeoutMs, setApiTimeoutMs] = useState(15000);
   const [showApiKey, setShowApiKey] = useState(false);
   const [isModified, setIsModified] = useState(false);
 
@@ -35,6 +37,8 @@ export function AiSettingsSection() {
       setModel(settings.openaiModel);
       setSystemPrompt(settings.systemPrompt);
       setMaxCompletionTokens(settings.maxCompletionTokens || 2000);
+      setMaxWordCount(settings.maxWordCount || 4000);
+      setApiTimeoutMs(settings.apiTimeoutMs || 15000);
       setIsModified(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -62,6 +66,8 @@ export function AiSettingsSection() {
       openaiModel: model,
       systemPrompt: systemPrompt,
       maxCompletionTokens: maxCompletionTokens,
+      maxWordCount: maxWordCount,
+      apiTimeoutMs: apiTimeoutMs,
     });
 
     setIsModified(false);
@@ -179,6 +185,54 @@ export function AiSettingsSection() {
         />
         <p className="text-xs text-muted-foreground">
           Token limit for AI responses (100-128,000). GPT-5 uses tokens for both reasoning and output. Default: 2000
+        </p>
+      </div>
+
+      {/* Max Word Count */}
+      <div className="space-y-2">
+        <Label htmlFor="maxWordCount">Max Word Count</Label>
+        <Input
+          id="maxWordCount"
+          type="number"
+          min="100"
+          max="10000"
+          step="100"
+          value={maxWordCount}
+          onChange={(e) => {
+            const value = parseInt(e.target.value);
+            if (!isNaN(value) && value >= 100 && value <= 10000) {
+              setMaxWordCount(value);
+              setIsModified(true);
+            }
+          }}
+          aria-label="Maximum word count"
+        />
+        <p className="text-xs text-muted-foreground">
+          Word limit for email threads sent to AI (100-10,000). Higher values increase token costs. Default: 4000
+        </p>
+      </div>
+
+      {/* API Timeout */}
+      <div className="space-y-2">
+        <Label htmlFor="apiTimeoutMs">API Timeout (milliseconds)</Label>
+        <Input
+          id="apiTimeoutMs"
+          type="number"
+          min="5000"
+          max="60000"
+          step="1000"
+          value={apiTimeoutMs}
+          onChange={(e) => {
+            const value = parseInt(e.target.value);
+            if (!isNaN(value) && value >= 5000 && value <= 60000) {
+              setApiTimeoutMs(value);
+              setIsModified(true);
+            }
+          }}
+          aria-label="API timeout in milliseconds"
+        />
+        <p className="text-xs text-muted-foreground">
+          Timeout for OpenAI API requests (5,000-60,000ms). GPT-5 models may need longer timeouts. Default: 15000ms (15s)
         </p>
       </div>
 

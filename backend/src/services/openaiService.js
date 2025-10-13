@@ -4,7 +4,7 @@ import OpenAI from 'openai';
  * Summarize email thread using OpenAI API
  *
  * @param {Array} emailThread - Array of {from, subject, body} email objects (sanitized)
- * @param {Object} settings - {openaiApiKey, openaiModel, systemPrompt} from AiSettings
+ * @param {Object} settings - {openaiApiKey, openaiModel, systemPrompt, apiTimeoutMs} from AiSettings
  * @param {String} lengthClass - 'short' | 'medium' | 'long' for smart minification
  * @returns {Promise<Object>} {description, notes, success, error?, tokensUsed, responseTimeMs}
  */
@@ -15,7 +15,7 @@ export async function summarizeEmail(emailThread, settings, lengthClass) {
     // Create OpenAI client (not global - allows dynamic API key changes)
     const client = new OpenAI({
       apiKey: settings.openaiApiKey,
-      timeout: 15000, // 15-second timeout (GPT-5 models need more time than GPT-4)
+      timeout: settings.apiTimeoutMs || 15000, // Configurable timeout (default 15s for GPT-5 models)
     });
 
     // Format email thread for OpenAI user message
@@ -190,19 +190,20 @@ Body: ${email.body}
       };
     }
 
-    // TimeoutError: 5-second timeout exceeded
+    // TimeoutError: Timeout exceeded
     if (error.message?.includes('timeout') || error.code === 'ETIMEDOUT') {
       console.error('[OpenAI] Summarization failed:', {
         timestamp: new Date().toISOString(),
         error: 'TimeoutError',
         message: error.message,
-        emailCount: emailThread.length
+        emailCount: emailThread.length,
+        timeoutMs: settings.apiTimeoutMs || 15000
       });
 
       return {
         success: false,
         error: 'TimeoutError',
-        message: 'AI summarization timed out after 5 seconds. Please try again.'
+        message: `AI summarization timed out after ${(settings.apiTimeoutMs || 15000) / 1000} seconds. Try increasing timeout in settings.`
       };
     }
 

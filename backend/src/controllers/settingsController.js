@@ -88,7 +88,7 @@ export async function getAiSettings(req, res) {
  */
 export async function updateAiSettings(req, res) {
   try {
-    const { openaiApiKey, openaiModel, systemPrompt, maxCompletionTokens } = req.body;
+    const { openaiApiKey, openaiModel, systemPrompt, maxCompletionTokens, maxWordCount, apiTimeoutMs } = req.body;
 
     // Validate required fields
     if (!openaiApiKey) {
@@ -123,6 +123,28 @@ export async function updateAiSettings(req, res) {
       }
     }
 
+    // Validate maxWordCount (optional, defaults to 4000)
+    if (maxWordCount !== undefined) {
+      const wordCount = parseInt(maxWordCount);
+      if (isNaN(wordCount) || wordCount < 100 || wordCount > 10000) {
+        return res.status(400).json({
+          error: 'ValidationError',
+          message: 'maxWordCount must be between 100 and 10000'
+        });
+      }
+    }
+
+    // Validate apiTimeoutMs (optional, defaults to 15000)
+    if (apiTimeoutMs !== undefined) {
+      const timeout = parseInt(apiTimeoutMs);
+      if (isNaN(timeout) || timeout < 5000 || timeout > 60000) {
+        return res.status(400).json({
+          error: 'ValidationError',
+          message: 'apiTimeoutMs must be between 5000 and 60000'
+        });
+      }
+    }
+
     // Optional: Basic API key format validation for immediate feedback
     if (!openaiApiKey.startsWith('sk-') || openaiApiKey.length < 20) {
       return res.status(400).json({
@@ -131,8 +153,8 @@ export async function updateAiSettings(req, res) {
       });
     }
 
-    // Update settings (maxCompletionTokens defaults to 2000 if not provided)
-    await AiSettings.updateSettings(openaiApiKey, openaiModel, systemPrompt, maxCompletionTokens);
+    // Update settings (with defaults for optional fields)
+    await AiSettings.updateSettings(openaiApiKey, openaiModel, systemPrompt, maxCompletionTokens, maxWordCount, apiTimeoutMs);
 
     res.json({
       success: true,
@@ -140,7 +162,7 @@ export async function updateAiSettings(req, res) {
     });
   } catch (error) {
     // Handle validation errors from model
-    if (error.message.includes('required') || error.message.includes('Invalid')) {
+    if (error.message.includes('required') || error.message.includes('Invalid') || error.message.includes('must be between')) {
       return res.status(400).json({
         error: 'ValidationError',
         message: error.message
