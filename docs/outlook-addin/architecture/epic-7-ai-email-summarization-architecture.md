@@ -31,7 +31,7 @@ This architecture defines the approach for adding AI-powered email summarization
 **Relationship to Existing Architecture:**
 This supplements existing Outlook add-in architecture by defining:
 - New backend AI service layer (OpenAI integration)
-- Email sanitization and processing pipeline
+- Email thread processing pipeline
 - Admin settings UI extension in main web app
 - Integration with Epic 4 (contact matching) and Epic 6 (ticket updates)
 
@@ -40,6 +40,7 @@ This supplements existing Outlook add-in architecture by defining:
 | Change | Date | Version | Description | Author |
 |--------|------|---------|-------------|--------|
 | Initial Draft | 2025-01-13 | 1.0 | Created Epic 7 architecture from PRD and existing codebase analysis | Winston (Architect Agent) |
+| Email Sanitization Removed | 2025-10-13 | 1.1 | Removed Email Sanitizer component - signature handling migrated to AI system prompt approach | Sarah (PO Agent) |
 
 ---
 
@@ -114,7 +115,7 @@ This enhancement eliminates manual note-taking friction while improving quality 
 - ✅ **No changes to core data models** (clients, contacts, tickets, time_entries tables remain unchanged)
 - ✅ **No changes to core workflows** (matching, form validation, submission flows work identically)
 - ⚠️ **New database settings** (AI API key, model selection, system prompt) via new columns or settings table extension
-- ⚠️ **New backend services** (OpenAI integration, email sanitization, thread processing)
+- ⚠️ **New backend services** (OpenAI integration, thread processing)
 - ⚠️ **Enhanced auto-population logic** (existing form population extended to include AI-generated content)
 - ⚠️ **New admin UI section** (main web app settings page adds AI configuration)
 - ✅ **Graceful degradation** (AI failures never block ticket creation—users can manually enter content)
@@ -126,7 +127,6 @@ This enhancement eliminates manual note-taking friction while improving quality 
 **Backend Integration:**
 - **New Service Layer:** Create dedicated `backend/src/services/` modules for AI functionality:
   - `openaiService.js` - OpenAI API client wrapper
-  - `emailSanitizer.js` - Signature/footer stripping
   - `emailThreadProcessor.js` - Thread selection and word count limiting
 - **New Controller:** `backend/src/controllers/aiController.js` for AI summarization endpoint
 - **Extended Controller:** Add AI settings CRUD methods to existing `settingsController.js`
@@ -264,7 +264,7 @@ All existing technologies will be maintained at current versions to ensure compa
 | **Validation** | express-validator | ^7.0.1 | AI endpoint validation | Validate email payloads and settings |
 | **Security Headers** | helmet | ^7.1.0 | No changes | Existing security headers apply to AI endpoints |
 | **CORS** | cors | ^2.8.5 | No changes | Existing CORS config covers AI endpoints |
-| **Testing (Backend)** | Node test runner | Native | AI service tests | Unit tests for sanitization, thread processing, OpenAI service |
+| **Testing (Backend)** | Node test runner | Native | AI service tests | Unit tests for thread processing, OpenAI service |
 | **Package Manager** | npm | 9+ | Install OpenAI SDK | npm install openai --workspace=backend |
 
 ### New Technology Additions
@@ -417,55 +417,30 @@ ON CONFLICT (id) DO NOTHING;
 
 **Dependencies:**
 - **Existing Components:** None (standalone service)
-- **New Components:** Email Thread Processor (for formatted input), Email Sanitizer (for cleaned content)
+- **New Components:** Email Thread Processor (for formatted input)
 - **External:** OpenAI npm SDK
 
 **Technology Stack:** Node.js ES modules, OpenAI SDK 4.x, native fetch as fallback
 
 ---
 
-#### Backend Component: Email Sanitizer Service
-
-**Responsibility:** Strip signatures, disclaimers, quoted replies, and boilerplate content from email bodies before AI processing. Reduces token costs by 30-50% and improves summary quality.
-
-**Integration Points:**
-- Called by Email Thread Processor before building thread for AI
-- Operates on raw email body strings
-- Returns cleaned email body
-
-**Key Interfaces:**
-- `sanitizeEmailBody(emailBody: string): { sanitized: string, tokensRemoved: number }`
-  - Input: Raw email body (may include signatures, footers, quoted text)
-  - Output: Cleaned body + approximate token savings
-  - Handles: Multi-language emails, nested quotes, common signature patterns
-
-**Dependencies:**
-- **Existing Components:** None (standalone utility)
-- **New Components:** None
-- **External:** None (pure string processing)
-
-**Technology Stack:** Node.js ES modules, regex patterns for signature detection
-
----
-
 #### Backend Component: Email Thread Processor Service
 
-**Responsibility:** Select and format emails from thread for AI summarization. Implements intelligent limits (5 emails or 4,000 words) and classifies thread length (short/medium/long) for smart minification.
+**Responsibility:** Select and format emails from thread for AI summarization. Implements intelligent limits (5 emails or 4,000 words) and classifies thread length (short/medium/long) for smart summarization. Note: Signature/boilerplate handling is performed by the AI via system prompt instructions, not by pre-processing.
 
 **Integration Points:**
 - Called by AI Controller before sending to OpenAI Service
-- Uses Email Sanitizer to clean email bodies
 - Returns formatted thread + metadata
 
 **Key Interfaces:**
 - `processEmailThread(emails: RawEmail[]): ProcessedThread`
   - Input: Array of raw email objects from add-in
   - Output: `{ selectedEmails, truncated, emailCount, wordCount, lengthClass }`
-  - Logic: Sort chronologically, sanitize, limit to 5 emails or 4K words, classify length
+  - Logic: Sort chronologically, limit to 5 emails or 4K words, classify length
 
 **Dependencies:**
 - **Existing Components:** None
-- **New Components:** Email Sanitizer (for cleaning)
+- **New Components:** None
 - **External:** None
 
 **Technology Stack:** Node.js ES modules, string utilities for word counting
@@ -662,7 +637,6 @@ graph TB
         AiController[AI Controller]
         SettingsController[Settings Controller Extension]
         EmailThreadProcessor[Email Thread Processor]
-        EmailSanitizer[Email Sanitizer]
         OpenAiService[OpenAI Service]
         AiSettingsModel[AI Settings Model]
     end
@@ -682,7 +656,7 @@ graph TB
     AiApiClient -->|"POST /api/ai/summarize-email"| AuthMiddleware
     AuthMiddleware -->|"Validate session"| AiController
     AiController -->|"Process thread"| EmailThreadProcessor
-    EmailThreadProcessor -->|"Clean bodies"| EmailSanitizer
+    EmailThreadProcessor -->|"Formatted emails"| AiController
     AiController -->|"Get settings"| AiSettingsModel
     AiController -->|"Generate summary"| OpenAiService
     OpenAiService -->|"API call"| OpenAI
@@ -899,7 +873,7 @@ graph TB
 - **Model Availability Errors (404):** Requested model doesn't exist or is deprecated
 
 **Cost Management:**
-- Email sanitization reduces tokens by 30-50%
+- AI system prompt instructs model to focus on relevant content (ignore signatures/boilerplate)
 - 5-email/4K-word limit caps maximum cost per request
 - Contact-match gating prevents processing non-ticket emails
 - Estimated cost: $0.0001-0.0005 per summary (gpt-5-mini pricing)
@@ -976,10 +950,8 @@ tickets/
 │   │   │   └── settings.js                     # MODIFY
 │   │   ├── services/
 │   │   │   ├── __tests__/
-│   │   │   │   ├── emailSanitizer.test.js      # NEW
 │   │   │   │   ├── emailThreadProcessor.test.js # NEW
 │   │   │   │   └── openaiService.test.js       # NEW
-│   │   │   ├── emailSanitizer.js               # NEW
 │   │   │   ├── emailThreadProcessor.js         # NEW
 │   │   │   └── openaiService.js                # NEW
 │   │   ├── utils/
@@ -1228,7 +1200,6 @@ NODE_OPTIONS="--no-warnings" node --test backend/src/**/__tests__/*.test.js
 **Framework:** Node test runner (matches existing)
 
 **Location:**
-- `backend/src/services/__tests__/emailSanitizer.test.js`
 - `backend/src/services/__tests__/emailThreadProcessor.test.js`
 - `backend/src/services/__tests__/openaiService.test.js`
 - `backend/src/models/__tests__/AiSettings.test.js`
@@ -1436,7 +1407,6 @@ This brownfield architecture document for Epic 7: AI Email Summarization is now 
 **Phase 1: Backend Foundation (Stories 7.1-7.5)**
 - 7.1: Backend AI Settings Infrastructure ← **START HERE**
 - 7.2: OpenAI API Integration Service
-- 7.3: Email Sanitization Pipeline
 - 7.4: Smart Email Thread Processing
 - 7.5: AI Summarization API Endpoint
 
@@ -1465,7 +1435,6 @@ This brownfield architecture document for Epic 7: AI Email Summarization is now 
 ```
 backend/src/services/
 ├── openaiService.js
-├── emailSanitizer.js
 └── emailThreadProcessor.js
 ```
 

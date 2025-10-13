@@ -76,6 +76,8 @@ The brainstorming session identified that proactive automation on contact-match 
 | Change | Date | Version | Description | Author |
 |--------|------|---------|-------------|--------|
 | Initial Draft | 2025-10-12 | 0.1 | Created Epic 7: AI Email Summarization PRD from analyst brainstorming session | PM Agent (John) |
+| Story 7.10 Removed | 2025-10-13 | 0.2 | Removed Story 7.10 (Smart Minification) and FR11 based on testing validation - AI already handles short emails appropriately | PO Agent (Sarah) |
+| Story 7.3 Removed | 2025-10-13 | 0.3 | Removed Story 7.3 (Email Sanitization Pipeline) - migrated to AI-based signature handling via system prompt after programmatic sanitization proved ineffective | PO Agent (Sarah) |
 
 ---
 
@@ -92,7 +94,7 @@ The brainstorming session identified that proactive automation on contact-match 
 
 **FR2a:** When email threads exceed limits (>5 emails or >4,000 words), the system SHALL prioritize the most recent emails and include a note in the generated summary indicating "Summary based on last 5 emails in thread" to set user expectations.
 
-**FR3:** Before sending email content to the AI, the system SHALL sanitize the email by stripping signatures, disclaimers, legal footers, and other boilerplate content to reduce token costs and improve summary quality.
+**FR3:** The AI system prompt SHALL instruct the model to ignore email signatures, disclaimers, legal footers, and other boilerplate content when generating summaries, ensuring focus on relevant content without programmatic pre-processing.
 
 **FR4:** The AI summarization SHALL generate two distinct outputs from a single API call:
 - **Description:** A one-line, invoice-friendly ticket title (concise enough to fit on billing line items)
@@ -109,8 +111,6 @@ The brainstorming session identified that proactive automation on contact-match 
 **FR9:** Administrators SHALL be able to configure the OpenAI API key via the main web application's settings page (not within the add-in).
 
 **FR10:** Administrators SHALL be able to configure and modify the system prompt used for AI summarization via the main web application's settings page.
-
-**FR11:** The system SHALL adjust summary length proportionally to email input length (smart minification—don't over-summarize 2-sentence emails).
 
 **FR12:** The system SHALL only trigger AI summarization when a contact match exists, preventing token waste on junk/vendor/partner emails that won't become tickets.
 
@@ -130,7 +130,7 @@ The brainstorming session identified that proactive automation on contact-match 
 
 **NFR7:** AI-generated content quality SHALL be sufficient for memory-jogging purposes—100% accuracy is not required (user can edit).
 
-**NFR8:** Token costs per ticket SHALL be minimized through email sanitization, smart minification, and single-model strategy (no multi-model fallbacks).
+**NFR8:** Token costs per ticket SHALL be minimized through smart thread selection (5-email/4000-word limits) and single-model strategy (no multi-model fallbacks).
 
 ### Compatibility Requirements
 
@@ -283,7 +283,6 @@ Based on existing Outlook add-in architecture documentation:
 backend/src/
   controllers/aiController.js (NEW - summarize endpoint, settings CRUD)
   services/openaiService.js (NEW - OpenAI API client wrapper)
-  services/emailSanitizer.js (NEW - signature/footer stripping)
   services/emailThreadProcessor.js (NEW - thread selection and word count)
   middleware/aiErrorHandler.js (NEW - graceful degradation logic)
 
@@ -346,13 +345,8 @@ packages/shared/ (if needed)
 
 2. **Token Cost Escalation:** Long email threads or high usage could spike costs
    - **Mitigation:** 5-email/4000-word limit caps maximum tokens per request
-   - **Mitigation:** Email sanitization removes boilerplate (30-50% token reduction)
+   - **Mitigation:** AI system prompt instructs model to ignore signatures/boilerplate
    - **Mitigation:** Contact-match gating prevents processing non-ticket emails
-
-3. **Email Sanitization Accuracy:** May incorrectly strip relevant content or miss signatures
-   - **Mitigation:** User can always edit AI output to add missing context
-   - **Mitigation:** Start with conservative patterns (common signature markers like "-- ", "Sent from")
-   - **Mitigation:** Iteration based on user feedback about stripped content
 
 **Integration Risks:**
 1. **Breaking Existing Auto-Population:** AI trigger on contact-match could interfere with current workflow
@@ -468,33 +462,6 @@ so that **email content can be sent for summarization and responses can be parse
 
 ---
 
-### Story 7.3: Email Sanitization Pipeline
-
-As a **system**,
-I want **to strip signatures, disclaimers, and boilerplate content from emails before AI processing**,
-so that **token costs are reduced and summary quality is improved by focusing on actual content**.
-
-**Acceptance Criteria:**
-
-1. New file `backend/src/services/emailSanitizer.js` exports `sanitizeEmail(emailBody)` function
-2. Sanitizer detects and removes common signature markers:
-   - Lines starting with `--` or `___` or `---`
-   - "Sent from my iPhone/Android"
-   - "Get Outlook for iOS/Android"
-   - Email confidentiality disclaimers (common patterns)
-3. Sanitizer removes quoted previous emails (lines starting with `>` or `|`)
-4. Sanitizer preserves original formatting (line breaks) of remaining content
-5. Sanitizer handles edge cases (empty emails, signature-only emails) without crashing
-6. Function returns sanitized text with approximate token savings logged
-
-**Integration Verification:**
-
-- **IV1:** Sanitizer does not remove legitimate content (tested with sample emails containing `--` in actual message body)
-- **IV2:** Sanitizer handles multi-language emails (preserves non-English content)
-- **IV3:** Performance remains acceptable (<100ms for typical emails)
-
----
-
 ### Story 7.4: Smart Email Thread Processing
 
 As a **system**,
@@ -510,7 +477,7 @@ so that **context is balanced with token costs (max 5 emails or 4,000 words)**.
 5. Function stops adding emails if total exceeds 4,000 words (even if <5 emails)
 6. Function always includes the most recent email, even if it alone exceeds 4,000 words (truncate to 4,000)
 7. Function returns: `{ selectedEmails: Email[], truncated: boolean, emailCount: number, wordCount: number }`
-8. Each email includes: `from`, `subject`, `body` (sanitized)
+8. Each email includes: `from`, `subject`, `body`
 
 **Integration Verification:**
 
@@ -539,7 +506,7 @@ so that **ticket descriptions and notes can be auto-populated**.
 2. Endpoint validates authenticated session (requires logged-in user)
 3. Endpoint retrieves AI settings from database
 4. Endpoint returns 400 error if AI not configured (no API key)
-5. Endpoint processes email thread: sanitize → select recent emails → call OpenAI service
+5. Endpoint processes email thread: select recent emails → call OpenAI service
 6. Endpoint returns response:
    ```json
    {
@@ -661,34 +628,6 @@ so that **I can quickly document additional work without manual note-writing**.
 
 ---
 
-### Story 7.10: Smart Minification for Short Emails
-
-As a **system**,
-I want **to adjust AI summary length proportionally to email input length**,
-so that **2-sentence emails don't get over-summarized into verbose notes**.
-
-**Acceptance Criteria:**
-
-1. Email thread processor classifies emails by length:
-   - **Short**: <200 words total
-   - **Medium**: 200-1000 words total
-   - **Long**: >1000 words total
-2. System prompt includes length-appropriate instructions:
-   - Short: "Provide a brief 1-2 sentence summary"
-   - Medium: "Provide a concise paragraph summary"
-   - Long: "Provide a detailed multi-paragraph summary"
-3. Classification is passed to OpenAI service as part of prompt
-4. Description field remains one-line regardless of email length
-5. Notes field length varies: 1-2 sentences (short), 1 paragraph (medium), 2-3 paragraphs (long)
-
-**Integration Verification:**
-
-- **IV1:** Very short emails ("Thanks!") generate appropriately brief notes, not verbose summaries
-- **IV2:** Long technical email threads generate comprehensive notes with all relevant details
-- **IV3:** Classification logic does not add significant processing time (<10ms)
-
----
-
 ### Story 7.11: End-to-End Integration Testing & Deployment
 
 As a **product team**,
@@ -698,11 +637,10 @@ so that **we can confidently deploy to production without breaking existing add-
 **Acceptance Criteria:**
 
 1. Manual test plan covers:
-   - New ticket creation with AI (short/medium/long emails)
+   - New ticket creation with AI (various email lengths)
    - Ticket update with AI (Epic 6 integration)
    - AI failure scenarios (invalid key, timeout, rate limit)
    - Admin settings CRUD (save, edit, test connection)
-   - Email sanitization (signatures removed, content preserved)
    - Thread truncation (>5 emails, >4,000 words)
 2. Test with real OpenAI API key in staging environment
 3. Verify existing epics still function:
@@ -730,16 +668,15 @@ so that **we can confidently deploy to production without breaking existing add-
 
 1. **Backend-first approach (7.1-7.5):** Build complete AI infrastructure before touching frontend, allowing isolated testing
 2. **Settings before processing (7.1 first):** Must configure before using—establishes foundation
-3. **Service layers before endpoints (7.2-7.4 before 7.5):** Build composable services that endpoint orchestrates
+3. **Service layers before endpoints (7.2, 7.4 before 7.5):** Build composable services that endpoint orchestrates
 4. **Admin UI mid-sequence (7.6-7.7):** Can test backend with Postman before building UI, but UI comes before frontend integration for configuration access
 5. **Frontend integration late (7.8-7.9):** Only integrate with add-in after backend is proven stable
-6. **Optimizations last (7.10):** Smart minification is quality enhancement, not blocker for MVP
-7. **Deployment final (7.11):** Comprehensive testing gate before production
+6. **Deployment final (7.11):** Comprehensive testing gate before production
 
 **Dependencies:**
 - 7.2 depends on 7.1 (needs settings to configure API)
-- 7.5 depends on 7.2-7.4 (orchestrates all services)
+- 7.4 depends on 7.2 (needs OpenAI service for thread processing)
+- 7.5 depends on 7.2, 7.4 (orchestrates all services)
 - 7.6-7.7 depend on 7.1 (settings endpoints must exist)
 - 7.8-7.9 depend on 7.5 (require summarize endpoint)
-- 7.10 can be parallel with 7.8-7.9 (independent optimization)
 - 7.11 depends on all previous stories
