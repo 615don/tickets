@@ -55,11 +55,14 @@ export function AiSettingsSection() {
   };
 
   const handleSave = async () => {
-    // Validate API key format (client-side check)
-    if (!apiKey || !apiKey.startsWith('sk-') || apiKey.length < 20) {
+    // Validate system prompt
+    if (!systemPrompt) return;
+
+    // Validate API key format (only if not masked)
+    const isMasked = apiKey && apiKey.includes('***');
+    if (!isMasked && (!apiKey || !apiKey.startsWith('sk-') || apiKey.length < 20)) {
       return; // Button should be disabled, but extra safety
     }
-    if (!systemPrompt) return;
 
     await updateMutation.mutateAsync({
       openaiApiKey: apiKey,
