@@ -78,12 +78,21 @@ export const TicketForm = ({
     }
   }, [selectedTicket]);
 
-  // Story 7.8: Auto-populate description and notes from AI summary
+  // Story 7.8 & 7.9: Auto-populate fields from AI summary based on mode
   useEffect(() => {
-    if (aiSummary && !selectedTicket) {
-      // Only auto-populate when not in add-time-entry mode
-      setDescription(aiSummary.description);
-      setNotes(aiSummary.notes);
+    if (aiSummary) {
+      // Derive form mode from selectedTicket (Epic 6 pattern)
+      const isUpdateMode = !!selectedTicket;
+
+      if (isUpdateMode) {
+        // Story 7.9 AC3: In update mode, only populate notes (not description)
+        // AC4: Description field NOT modified (already disabled and pre-filled with ticket description)
+        setNotes(aiSummary.notes);
+      } else {
+        // Story 7.8: New ticket mode - populate both fields
+        setDescription(aiSummary.description);
+        setNotes(aiSummary.notes);
+      }
     }
   }, [aiSummary, selectedTicket]);
 
