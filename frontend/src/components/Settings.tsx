@@ -7,6 +7,7 @@ import { XeroConnectionCard } from '@/components/XeroConnectionCard';
 import { XeroContactsDialog } from '@/components/XeroContactsDialog';
 import { BackupSection } from '@/components/BackupSection';
 import { RestoreSection } from '@/components/RestoreSection';
+import { AiSettingsSection } from '@/components/AiSettingsSection';
 import { XeroConnectionStatus } from '@/types/xero';
 import { useToast } from '@/hooks/use-toast';
 import { useXeroStatus, useDisconnectXero } from '@/hooks/useXero';
@@ -196,6 +197,14 @@ export const Settings = () => {
                 </p>
               </div>
             )}
+          </SettingsSection>
+
+          {/* AI Email Summarization Section */}
+          <SettingsSection
+            title="AI Email Summarization"
+            description="Configure OpenAI integration for automatic email summarization in the Outlook add-in."
+          >
+            <AiSettingsSection />
           </SettingsSection>
 
           {/* Invoice Configuration Section */}

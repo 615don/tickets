@@ -3,7 +3,8 @@ import {
   getInvoiceConfig,
   updateInvoiceConfig,
   getAiSettings,
-  updateAiSettings
+  updateAiSettings,
+  testAiConnection
 } from '../controllers/settingsController.js';
 import { requireAuth } from '../middleware/auth.js';
 
@@ -20,5 +21,8 @@ router.get('/ai', requireAuth, getAiSettings);
 
 // POST /api/settings/ai - Update AI settings (requires auth)
 router.post('/ai', requireAuth, updateAiSettings);
+
+// POST /api/settings/ai/test-connection - Test OpenAI connection (requires auth)
+router.post('/ai/test-connection', requireAuth, testAiConnection);
 
 export default router;

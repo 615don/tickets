@@ -1,6 +1,7 @@
 import { InvoiceConfig } from '../models/InvoiceConfig.js';
 import { AiSettings } from '../models/AiSettings.js';
 import { maskApiKey } from '../utils/maskApiKey.js';
+import OpenAI from 'openai';
 
 /**
  * GET /api/settings/invoice-config
@@ -139,6 +140,121 @@ export async function updateAiSettings(req, res) {
     res.status(500).json({
       error: 'ServerError',
       message: 'Failed to update AI settings'
+    });
+  }
+}
+
+/**
+ * POST /api/settings/ai/test-connection
+ * Test OpenAI connection without saving settings
+ */
+export async function testAiConnection(req, res) {
+  try {
+    const { openaiApiKey, openaiModel } = req.body;
+
+    // Validate required fields
+    if (!openaiApiKey) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'openaiApiKey is required'
+      });
+    }
+
+    if (!openaiModel) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'openaiModel is required'
+      });
+    }
+
+    // Create minimal test payload for OpenAI
+    const testPayload = {
+      model: openaiModel,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a test assistant. Respond with "OK".'
+        },
+        {
+          role: 'user',
+          content: 'Test connection'
+        }
+      ],
+      max_tokens: 50,
+      temperature: 0
+    };
+
+    // Initialize OpenAI client with test API key and 10-second timeout
+    const openai = new OpenAI({
+      apiKey: openaiApiKey,
+      timeout: 10000  // 10 second timeout (AC5)
+    });
+
+    // Log test attempt (never log API key)
+    console.log('Test connection attempt:', { model: openaiModel, timestamp: Date.now() });
+
+    // Make minimal chat completion call to validate connection
+    const startTime = Date.now();
+    await openai.chat.completions.create(testPayload);
+    const latency = Date.now() - startTime;
+
+    // Log success with latency
+    console.log('Test connection success:', { model: openaiModel, latency });
+
+    // Return success response
+    res.json({
+      success: true,
+      message: 'Connection successful. API key is valid and model is accessible.',
+      model: openaiModel,
+      latency: latency
+    });
+
+  } catch (error) {
+    // Handle specific OpenAI error types with clear messages
+
+    // 401 Unauthorized - Invalid API key
+    if (error.status === 401) {
+      return res.json({
+        success: false,
+        error: 'Invalid API key. Please check your OpenAI API key and try again.'
+      });
+    }
+
+    // 429 Rate Limit
+    if (error.status === 429) {
+      return res.json({
+        success: false,
+        error: 'Rate limit exceeded. Please wait a moment and try again.'
+      });
+    }
+
+    // 404 Model Not Found
+    if (error.status === 404) {
+      return res.json({
+        success: false,
+        error: `Model "${req.body.openaiModel}" not found. Please check model name.`
+      });
+    }
+
+    // Timeout or network errors
+    if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
+      return res.json({
+        success: false,
+        error: 'Network error - unable to reach OpenAI. Check your internet connection.'
+      });
+    }
+
+    // Log error with details (never include API key)
+    console.error('Test connection error:', {
+      status: error.status,
+      code: error.code,
+      message: error.message
+    });
+
+    // Generic error fallback
+    return res.json({
+      success: false,
+      error: error.message || 'Connection test failed. Please try again.'
     });
   }
 }
