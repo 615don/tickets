@@ -180,8 +180,8 @@ export async function testAiConnection(req, res) {
           content: 'Test connection'
         }
       ],
-      max_completion_tokens: 50,
-      temperature: 0
+      max_completion_tokens: 50
+      // Note: temperature omitted - some models only support default value
     };
 
     // Initialize OpenAI client with test API key and 10-second timeout
