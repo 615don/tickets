@@ -61,11 +61,26 @@ Body: ${email.body}
     // Parse JSON response and extract description and notes
     let responseText = completion.choices[0].message.content;
 
+    // Log raw response for debugging (before any processing)
+    console.log('[OpenAI] Raw response received:', {
+      timestamp: new Date().toISOString(),
+      model: settings.openaiModel,
+      lengthClass: lengthClass,
+      responseLength: responseText ? responseText.length : 0,
+      responsePreview: responseText ? responseText.substring(0, 200) : '(null or undefined)',
+      finishReason: completion.choices[0].finish_reason
+    });
+
     // GPT-5 sometimes wraps JSON in markdown code blocks despite instructions
     // Strip markdown code blocks if present: ```json ... ``` or ``` ... ```
     responseText = responseText.trim();
     if (responseText.startsWith('```')) {
+      const beforeStrip = responseText;
       responseText = responseText.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+      console.log('[OpenAI] Stripped markdown blocks:', {
+        before: beforeStrip.substring(0, 100),
+        after: responseText.substring(0, 100)
+      });
     }
 
     let parsed;
