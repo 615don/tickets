@@ -68,7 +68,20 @@ Body: ${email.body}
       responseText = responseText.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
     }
 
-    const parsed = JSON.parse(responseText);
+    let parsed;
+    try {
+      parsed = JSON.parse(responseText);
+    } catch (parseError) {
+      // Log the actual response text for debugging (truncate to 500 chars for privacy)
+      console.error('[OpenAI] JSON parse error - Response text:', {
+        timestamp: new Date().toISOString(),
+        model: settings.openaiModel,
+        lengthClass: lengthClass,
+        responsePreview: responseText.substring(0, 500),
+        parseError: parseError.message
+      });
+      throw parseError; // Re-throw to be caught by outer catch block
+    }
 
     // Validate parsed object has required fields
     if (!parsed.description || !parsed.notes) {
