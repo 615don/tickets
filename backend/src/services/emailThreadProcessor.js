@@ -87,8 +87,10 @@ export function processEmailThread(emails, maxWords = DEFAULT_MAX_WORDS) {
   const olderEmails = sortedEmails.slice(0, -1);
 
   // Process most recent email FIRST (it's always included - AC6)
-  const recentSanitized = sanitizeEmail(mostRecentEmail.body);
-  let recentBody = recentSanitized.sanitized;
+  // BYPASSING SANITIZER: Let AI handle signature removal via system prompt instead
+  // const recentSanitized = sanitizeEmail(mostRecentEmail.body);
+  // let recentBody = recentSanitized.sanitized;
+  let recentBody = mostRecentEmail.body; // Pass through unsanitized
   let recentWordCount = countWords(recentBody);
 
   // Truncate most recent email if it alone exceeds maxWords
@@ -109,8 +111,11 @@ export function processEmailThread(emails, maxWords = DEFAULT_MAX_WORDS) {
       break;
     }
 
-    const sanitized = sanitizeEmail(email.body);
-    const emailWordCount = countWords(sanitized.sanitized);
+    // BYPASSING SANITIZER: Let AI handle signature removal via system prompt instead
+    // const sanitized = sanitizeEmail(email.body);
+    // const emailWordCount = countWords(sanitized.sanitized);
+    const emailBody = email.body; // Pass through unsanitized
+    const emailWordCount = countWords(emailBody);
 
     // Check if adding this email would exceed word limit
     if (totalWordCount + emailWordCount > remainingWords) {
@@ -121,7 +126,7 @@ export function processEmailThread(emails, maxWords = DEFAULT_MAX_WORDS) {
     selectedEmails.push({
       from: email.from,
       subject: email.subject,
-      body: sanitized.sanitized
+      body: emailBody
     });
     totalWordCount += emailWordCount;
   }
