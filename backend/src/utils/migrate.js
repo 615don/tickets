@@ -201,6 +201,45 @@ const migrations = [
       CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp DESC);
       CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
     `
+  },
+  {
+    name: '012_create_ai_settings_table',
+    sql: `
+      CREATE TABLE IF NOT EXISTS ai_settings (
+        id SERIAL PRIMARY KEY CHECK (id = 1),
+        openai_api_key TEXT NOT NULL,
+        openai_model VARCHAR(50) NOT NULL DEFAULT 'gpt-5-mini',
+        system_prompt TEXT NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      INSERT INTO ai_settings (id, openai_api_key, openai_model, system_prompt)
+      VALUES (
+        1,
+        '',
+        'gpt-5-mini',
+        'You are an AI assistant helping to summarize email threads for IT consulting ticket creation.
+
+Generate two outputs:
+1. Description: A concise one-line summary suitable for invoice line items (max 100 characters)
+2. Notes: A detailed summary of the email thread for billing reference and memory jogging
+
+Rules:
+- Focus on technical issues, requests, and context
+- Preserve important details (error messages, dates, versions, steps taken)
+- Omit pleasantries and signature content
+- Adjust summary length based on email content length (short emails = brief notes, long threads = detailed notes)
+- Use professional, neutral tone
+
+Respond with JSON format:
+{
+  "description": "one-line summary here",
+  "notes": "detailed multi-paragraph summary here"
+}'
+      )
+      ON CONFLICT (id) DO NOTHING;
+    `
   }
 ];
 

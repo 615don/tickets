@@ -1,7 +1,9 @@
 import express from 'express';
 import {
   getInvoiceConfig,
-  updateInvoiceConfig
+  updateInvoiceConfig,
+  getAiSettings,
+  updateAiSettings
 } from '../controllers/settingsController.js';
 import { requireAuth } from '../middleware/auth.js';
 
@@ -12,5 +14,11 @@ router.get('/invoice-config', requireAuth, getInvoiceConfig);
 
 // PUT /api/settings/invoice-config - Update invoice configuration (requires auth)
 router.put('/invoice-config', requireAuth, updateInvoiceConfig);
+
+// GET /api/settings/ai - Get AI settings (requires auth)
+router.get('/ai', requireAuth, getAiSettings);
+
+// POST /api/settings/ai - Update AI settings (requires auth)
+router.post('/ai', requireAuth, updateAiSettings);
 
 export default router;
