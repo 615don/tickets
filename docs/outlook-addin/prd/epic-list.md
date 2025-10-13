@@ -18,4 +18,7 @@
 **Epic 6: Open Ticket Re-entry Workflow** (Brownfield Enhancement)
 *Enable users to add time to existing open tickets by displaying up to three open tickets for matched contacts and transforming the ticket creation form into a time entry form, reducing duplicate ticket creation and improving workflow efficiency.*
 
+**Epic 7: AI-Powered Email Summarization** (Brownfield Enhancement)
+*Automatically generate invoice-friendly ticket descriptions and detailed notes from email content using GPT-5 mini, eliminating manual note-taking friction while improving quality beyond current practice of using email subject lines.*
+
 ---
