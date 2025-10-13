@@ -41,21 +41,11 @@ export function sanitizeEmail(emailBody) {
     const line = lines[i];
     const trimmedLine = line.trim();
 
-    // Check for signature delimiters (must be at start of line and match exactly)
-    if (/^--\s*$/.test(trimmedLine) || /^___+$/.test(trimmedLine) || /^---+$/.test(trimmedLine)) {
-      inSignature = true;
-      continue;
-    }
-
-    // Check for mobile signatures
-    if (/sent from my (iphone|android)/i.test(line) || /get outlook for (ios|android)/i.test(line)) {
-      inSignature = true;
-      continue;
-    }
-
-    // Check for email confidentiality disclaimers
-    if (/confidential|intended only|not the intended recipient/i.test(line)) {
-      inSignature = true;
+    // Skip empty lines but track them (don't start signature detection on blank lines)
+    if (trimmedLine.length === 0) {
+      if (!inSignature) {
+        sanitizedLines.push(line);
+      }
       continue;
     }
 
@@ -69,10 +59,31 @@ export function sanitizeEmail(emailBody) {
       continue; // Skip Outlook quote headers
     }
 
-    // If not in signature and not quoted, keep the line
-    if (!inSignature) {
-      sanitizedLines.push(line);
+    // Once we're in a signature, remove everything after
+    if (inSignature) {
+      continue;
     }
+
+    // Check for signature delimiters (must be at start of line and match exactly)
+    if (/^--\s*$/.test(trimmedLine) || /^___+$/.test(trimmedLine) || /^---+$/.test(trimmedLine)) {
+      inSignature = true;
+      continue; // Don't include the delimiter itself
+    }
+
+    // Check for mobile signatures - these mark the START of signature block
+    if (/^sent from my (iphone|android)/i.test(trimmedLine) || /^get outlook for (ios|android)/i.test(trimmedLine)) {
+      inSignature = true;
+      continue; // Don't include the signature line itself
+    }
+
+    // Check for email confidentiality disclaimers
+    if (/confidential|intended only|not the intended recipient/i.test(line)) {
+      inSignature = true;
+      continue;
+    }
+
+    // Not in signature and not quoted - keep the line
+    sanitizedLines.push(line);
   }
 
   const sanitized = sanitizedLines.join('\n').trim();
