@@ -17,6 +17,7 @@ import xeroRoutes from './routes/xero.js';
 import invoiceRoutes from './routes/invoices.js';
 import settingsRoutes from './routes/settings.js';
 import backupRoutes from './routes/backup.js';
+import aiRoutes from './routes/ai.js';
 
 // Load environment variables
 dotenv.config();
@@ -49,8 +50,8 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '500kb' }));
+app.use(express.urlencoded({ extended: true, limit: '500kb' }));
 app.use(cookieParser(process.env.SESSION_SECRET || 'change-this-secret-in-production')); // For signed cookies
 
 // Session configuration
@@ -154,6 +155,7 @@ app.use('/api/xero', xeroRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/backup', backupRoutes);
+app.use('/api/ai', aiRoutes);
 
 // 404 handler
 app.use((req, res) => {
