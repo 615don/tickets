@@ -15,7 +15,7 @@ export async function summarizeEmail(emailThread, settings, lengthClass) {
     // Create OpenAI client (not global - allows dynamic API key changes)
     const client = new OpenAI({
       apiKey: settings.openaiApiKey,
-      timeout: 5000, // 5-second timeout (AC5)
+      timeout: 15000, // 15-second timeout (GPT-5 models need more time than GPT-4)
     });
 
     // Format email thread for OpenAI user message
