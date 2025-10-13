@@ -1,3 +1,10 @@
+/**
+ * ⚠️ DEPRECATED: Tests for deprecated emailSanitizer module.
+ *
+ * These tests are preserved for reference. The sanitizer is no longer used
+ * in production - AI handles signature removal via system prompt instead.
+ */
+
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { sanitizeEmail } from '../emailSanitizer.js';

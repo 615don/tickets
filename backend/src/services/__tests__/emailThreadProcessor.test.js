@@ -181,8 +181,8 @@ describe('Email Thread Processor', () => {
     });
   });
 
-  describe('Email Sanitization Integration', () => {
-    it('should sanitize email bodies', () => {
+  describe('Email Pass-Through (Sanitization Disabled)', () => {
+    it('should pass email bodies through unsanitized', () => {
       const emails = [
         {
           from: 'test@example.com',
@@ -194,11 +194,11 @@ describe('Email Thread Processor', () => {
       const result = processEmailThread(emails);
 
       assert.strictEqual(result.emailCount, 1);
-      // Sanitizer should remove signature
-      assert.strictEqual(result.selectedEmails[0].body, 'Email content');
+      // Body should pass through unchanged (AI handles signature removal)
+      assert.strictEqual(result.selectedEmails[0].body, 'Email content\n--\nJohn Doe\nCEO');
     });
 
-    it('should handle empty email body after sanitization', () => {
+    it('should pass signature-only emails through unchanged', () => {
       const emails = [
         {
           from: 'test@example.com',
@@ -210,11 +210,12 @@ describe('Email Thread Processor', () => {
       const result = processEmailThread(emails);
 
       assert.strictEqual(result.emailCount, 1);
-      assert.strictEqual(result.wordCount, 0);
-      assert.strictEqual(result.selectedEmails[0].body, '');
+      // Body passes through unchanged (word count includes signature)
+      assert.strictEqual(result.selectedEmails[0].body, '--\nJohn Doe\nCEO');
+      assert(result.wordCount > 0, 'Word count should include signature text');
     });
 
-    it('should handle emails with quoted replies', () => {
+    it('should pass emails with quoted replies through unchanged', () => {
       const emails = [
         {
           from: 'test@example.com',
@@ -226,8 +227,8 @@ describe('Email Thread Processor', () => {
       const result = processEmailThread(emails);
 
       assert.strictEqual(result.emailCount, 1);
-      // Sanitizer should remove quoted replies
-      assert.strictEqual(result.selectedEmails[0].body, 'New content');
+      // Body should pass through unchanged (AI handles quote removal)
+      assert.strictEqual(result.selectedEmails[0].body, 'New content\n> Quoted reply\n> More quoted');
     });
   });
 
@@ -363,7 +364,7 @@ describe('Email Thread Processor', () => {
       );
     });
 
-    it('should handle all emails with empty bodies', () => {
+    it('should handle emails with signature-like content (passed through)', () => {
       const emails = [
         { from: 'user1@example.com', subject: 'Test 1', body: '--\nSignature only' },
         { from: 'user2@example.com', subject: 'Test 2', body: '___\nAnother signature' },
@@ -373,7 +374,8 @@ describe('Email Thread Processor', () => {
       const result = processEmailThread(emails);
 
       assert.strictEqual(result.emailCount, 3);
-      assert.strictEqual(result.wordCount, 0);
+      // Word count now includes signature text (not sanitized)
+      assert(result.wordCount > 0, 'Word count should include all text');
       assert.strictEqual(result.lengthClass, 'short');
     });
 

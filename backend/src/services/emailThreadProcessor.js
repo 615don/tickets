@@ -11,9 +11,12 @@
  * Limits:
  * - Max 5 emails (prevents excessive context)
  * - Max words configurable (default 4,000 words ~5,333 tokens, cost optimization)
+ *
+ * Note: Email sanitization (signature removal) is handled by the AI via system prompt
+ * instead of pre-processing. The emailSanitizer module is deprecated but kept for reference.
  */
 
-import { sanitizeEmail } from './emailSanitizer.js';
+// import { sanitizeEmail } from './emailSanitizer.js'; // DEPRECATED: AI handles sanitization
 
 const MAX_EMAILS = 5;
 const DEFAULT_MAX_WORDS = 4000;

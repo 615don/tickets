@@ -1,6 +1,15 @@
 /**
  * Email Sanitizer Service
  *
+ * ⚠️ DEPRECATED: This module is no longer used in production.
+ *
+ * Email sanitization (signature/disclaimer removal) is now handled by the AI
+ * via system prompt instructions, which provides more intelligent context-aware
+ * filtering without the risk of removing legitimate content from email chains.
+ *
+ * This code is preserved for reference and potential future use cases.
+ *
+ * Original Purpose:
  * Removes signatures, disclaimers, and quoted replies from email bodies
  * before AI processing to reduce token costs and improve summary quality.
  *
