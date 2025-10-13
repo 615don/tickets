@@ -331,4 +331,104 @@ Second paragraph with more details.
 
 Third paragraph with action items.`);
   });
+
+  it('should handle email chain with embedded signatures and preserve all content', () => {
+    // Real-world email chain where signatures appear in the middle
+    // but subsequent replies contain important content
+    const input = `Okay. I wanted to get into it to see vendors we used for Xmas holiday party for patients. If you reopen will the old emails be there? I'm guessing no.
+
+
+
+Lana Privette, RN, BSN
+
+Practice Manager
+
+615-771-1881 ext. 2112
+
+
+
+Franklin Dermatology Group
+
+740 Cool Springs Blvd., Suite 200
+
+Franklin, TN 37067
+
+
+
+NOTICE:  The materials and information in this email are confidential and may contain Protected Health Information covered under the HIPAA Privacy Rule.  If you are not the intended recipient, be advised that any unauthorized use, disclosure, copying, distribution, or action taken in reliance on the contents of this information is strictly forbidden by law.  If you have received this e-mail in error, please notify me by reply e-mail and then delete this message.  Do not pass any of this information to anyone else.  Thank you for your cooperation.
+
+From: Don Givens <dgivens@zollc.com>
+Sent: Friday, October 10, 2025 8:20 AM
+To: Lana Privette <lanaprivette@franklinderm.net>
+Subject: Re: Denise Marques email
+
+
+
+Hi Lana,
+
+
+
+Denise's mailbox is gone. I was advised to delete it at the last quarterly check-in. If you need me to re-create it so you can receive a password reset or something, let me know.
+
+
+
+
+
+
+
+Best Regards,
+
+
+
+Don Givens
+
+P: 6156490313
+E: dgivens@zollc.com
+
+
+
+Can you give me access to her email please?
+
+
+
+Lana Privette, RN, BSN
+
+Practice Manager
+
+615-771-1881 ext. 2112
+
+
+
+Franklin Dermatology Group
+
+740 Cool Springs Blvd., Suite 200
+
+Franklin, TN 37067
+
+
+
+NOTICE:  The materials and information in this email are confidential and may contain Protected Health Information covered under the HIPAA Privacy Rule.  If you are not the intended recipient, be advised that any unauthorized use, disclosure, copying, distribution, or action taken in reliance on the contents of this information is strictly forbidden by law.  If you have received this e-mail in error, please notify me by reply e-mail and then delete this message.  Do not pass any of this information to anyone else.  Thank you for your cooperation.`;
+
+    const result = sanitizeEmail(input);
+
+    // Should preserve the actual content from all three email segments:
+    // 1. "Okay. I wanted to get into it..."
+    // 2. "Hi Lana, Denise's mailbox is gone..."
+    // 3. "Can you give me access to her email please?"
+    assert(result.sanitized.includes('Okay. I wanted to get into it to see vendors'), 'Should preserve first message content');
+    assert(result.sanitized.includes("Denise's mailbox is gone"), 'Should preserve second message content');
+    assert(result.sanitized.includes('Can you give me access to her email please'), 'Should preserve third message content');
+
+    // Should remove NOTICE disclaimers (these trigger signature removal)
+    assert(!result.sanitized.includes('NOTICE:'), 'Should remove NOTICE disclaimers');
+
+    // NOTE: Signature blocks that appear BEFORE disclaimers in email chains are challenging to remove
+    // without risking removal of legitimate content. The current implementation prioritizes preserving
+    // real content over aggressive signature removal. This is acceptable for the use case.
+
+    assert(result.tokensRemoved > 0, 'Should have removed disclaimer content');
+
+    // Verify substantial token reduction occurred (removing disclaimers)
+    assert(result.tokensRemoved > 100, 'Should have removed significant boilerplate content');
+  });
 });
