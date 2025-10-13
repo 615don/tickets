@@ -62,7 +62,7 @@ Enable users to add time to existing open tickets directly from the Outlook add-
 3. **Story 6.3: Time Entry Form Mode and Submission**
    - Add form mode state to TicketForm (create vs. add-time)
    - Pre-populate Description field when ticket is selected
-   - Clear Notes field for new entry-specific notes
+   - Clear Notes field for new entry-specific notes, append to existing notes
    - Change submit button text based on mode
    - Implement time entry submission to backend (new endpoint or modify existing)
    - Add "Cancel/Clear Selection" to return to create mode
