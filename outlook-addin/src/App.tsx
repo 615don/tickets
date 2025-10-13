@@ -198,6 +198,7 @@ function App() {
             onNameChange={handleContactNameChange}
             nameError={contactNameError}
             emailError={contactEmailError}
+            hasAiSummary={!!aiSummary}
           />
           <TicketForm
             selectedClient={selectedClient}

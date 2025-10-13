@@ -10,6 +10,7 @@ export interface EmailContextProps {
   onNameChange?: (newName: string) => void;
   nameError?: string;
   emailError?: string;
+  hasAiSummary?: boolean;
 }
 
 export const EmailContext = ({
@@ -21,11 +22,15 @@ export const EmailContext = ({
   onNameChange,
   nameError,
   emailError,
+  hasAiSummary = false,
 }: EmailContextProps) => {
   const isEditable = matchStatus !== "matched" && matchStatus !== "loading" && matchStatus !== "ai-loading";
   const getStatusText = () => {
     switch (matchStatus) {
       case "matched":
+        if (hasAiSummary) {
+          return `✓ Matched with AI summary: ${clientName} - ${contactName}`;
+        }
         return `✓ Matched: ${clientName} - ${contactName}`;
       case "warning":
         return `⚠ New contact at ${clientName}`;
@@ -45,6 +50,9 @@ export const EmailContext = ({
       case "ai-loading":
         return "Generating AI-powered summary and notes...";
       case "matched":
+        if (hasAiSummary) {
+          return "Contact and client found in database. AI summary generated for description and notes.";
+        }
         return "Contact and client found in database";
       case "warning":
         return "Client found, but contact will be created when ticket is submitted";
