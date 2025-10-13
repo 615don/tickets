@@ -38,6 +38,11 @@ Body: ${email.body}
       modifiedSystemPrompt += '\n\nProvide a detailed multi-paragraph summary for notes, preserving key technical details.';
     }
 
+    // For GPT-5 models, add explicit JSON formatting instructions (no response_format support)
+    if (settings.openaiModel.startsWith('gpt-5')) {
+      modifiedSystemPrompt += '\n\nIMPORTANT: You must respond with ONLY valid JSON. Do not include any text before or after the JSON object. Do not use markdown code blocks. Output raw JSON only.';
+    }
+
     // Call OpenAI Chat Completions API
     // GPT-5 models use different API parameters than GPT-4
     const requestParams = {
@@ -47,18 +52,27 @@ Body: ${email.body}
         { role: 'user', content: emailContent }
       ],
       max_completion_tokens: 500, // GPT-5 uses max_completion_tokens (not max_tokens)
-      response_format: { type: 'json_object' } // Enforce JSON output
     };
 
-    // Only add temperature for GPT-4 models (GPT-5 may not support it or use different defaults)
+    // GPT-4 specific parameters
     if (settings.openaiModel.startsWith('gpt-4')) {
       requestParams.temperature = 0.3;
+      requestParams.response_format = { type: 'json_object' }; // GPT-4 supports json_object
     }
+    // Note: GPT-5 doesn't support response_format, relies on system prompt for JSON
 
     const completion = await client.chat.completions.create(requestParams);
 
     // Parse JSON response and extract description and notes
-    const responseText = completion.choices[0].message.content;
+    let responseText = completion.choices[0].message.content;
+
+    // GPT-5 sometimes wraps JSON in markdown code blocks despite instructions
+    // Strip markdown code blocks if present: ```json ... ``` or ``` ... ```
+    responseText = responseText.trim();
+    if (responseText.startsWith('```')) {
+      responseText = responseText.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+    }
+
     const parsed = JSON.parse(responseText);
 
     // Validate parsed object has required fields
