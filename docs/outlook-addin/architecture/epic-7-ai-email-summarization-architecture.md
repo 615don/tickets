@@ -26,7 +26,7 @@ This document supplements existing project architecture by defining how new comp
 
 ### Enhancement Summary
 
-This architecture defines the approach for adding AI-powered email summarization to the existing Outlook add-in ticketing system. The enhancement adds automatic generation of ticket descriptions and notes using GPT-4o-mini, triggered on contact-match events.
+This architecture defines the approach for adding AI-powered email summarization to the existing Outlook add-in ticketing system. The enhancement adds automatic generation of ticket descriptions and notes using gpt-5-mini, triggered on contact-match events.
 
 **Relationship to Existing Architecture:**
 This supplements existing Outlook add-in architecture by defining:
@@ -103,7 +103,7 @@ Based on analysis of the codebase, the existing system has the following charact
 
 **Enhancement Type:** New Feature Addition + Integration with New External System
 
-**Scope:** Add AI-powered automatic generation of ticket descriptions and detailed notes from email content. The system will use GPT-4o-mini (via OpenAI API) to summarize email threads into two outputs:
+**Scope:** Add AI-powered automatic generation of ticket descriptions and detailed notes from email content. The system will use gpt-5-mini (via OpenAI API) to summarize email threads into two outputs:
 1. **Description:** One-line, invoice-friendly ticket title
 2. **Notes:** Detailed summary for billing dispute reference and memory jogging
 
@@ -154,7 +154,7 @@ This enhancement eliminates manual note-taking friction while improving quality 
 CREATE TABLE IF NOT EXISTS ai_settings (
   id SERIAL PRIMARY KEY CHECK (id = 1),  -- Singleton constraint
   openai_api_key TEXT NOT NULL,
-  openai_model VARCHAR(50) NOT NULL DEFAULT 'gpt-4o-mini',
+  openai_model VARCHAR(50) NOT NULL DEFAULT 'gpt-5-mini',
   system_prompt TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -202,7 +202,7 @@ POST /api/settings/ai/test-connection  // Validate API key before saving
 - **New section:** "AI Email Summarization Settings" on settings page
 - **Form fields:**
   - OpenAI API Key (password input with show/hide toggle)
-  - AI Model Selection (dropdown: gpt-4o-mini, gpt-4o)
+  - AI Model Selection (dropdown: gpt-5-mini, gpt-5, gpt-5-nano)
   - System Prompt (textarea with character count)
 - **Buttons:**
   - "Save Settings" (validates and saves configuration)
@@ -302,7 +302,7 @@ All existing technologies will be maintained at current versions to ensure compa
 **Key Attributes:**
 - `id` (SERIAL PRIMARY KEY) - Always 1 (singleton pattern)
 - `openai_api_key` (TEXT NOT NULL) - Encrypted OpenAI API key (never sent to frontend)
-- `openai_model` (VARCHAR(50) DEFAULT 'gpt-4o-mini') - Model selection (gpt-4o-mini, gpt-4o, future models)
+- `openai_model` (VARCHAR(50) DEFAULT 'gpt-5-mini') - Model selection (gpt-5-mini, gpt-5, gpt-5-nano, future models)
 - `system_prompt` (TEXT NOT NULL) - Customizable prompt for AI summarization behavior
 - `created_at` (TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP) - Record creation timestamp
 - `updated_at` (TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP) - Last modification timestamp
@@ -341,7 +341,7 @@ export const AiSettings = {
 CREATE TABLE IF NOT EXISTS ai_settings (
   id SERIAL PRIMARY KEY CHECK (id = 1),  -- Singleton constraint
   openai_api_key TEXT NOT NULL,
-  openai_model VARCHAR(50) NOT NULL DEFAULT 'gpt-4o-mini',
+  openai_model VARCHAR(50) NOT NULL DEFAULT 'gpt-5-mini',
   system_prompt TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -352,7 +352,7 @@ INSERT INTO ai_settings (id, openai_api_key, openai_model, system_prompt)
 VALUES (
   1,
   '',  -- Empty string until admin configures
-  'gpt-4o-mini',
+  'gpt-5-mini',
   'You are an AI assistant helping to summarize email threads for IT consulting ticket creation.
 
 Generate two outputs:
@@ -805,7 +805,7 @@ graph TB
 ```json
 {
   "openaiApiKey": "sk-***abc123",
-  "openaiModel": "gpt-4o-mini",
+  "openaiModel": "gpt-5-mini",
   "systemPrompt": "You are an AI assistant helping to summarize email threads...",
   "configured": true
 }
@@ -825,7 +825,7 @@ graph TB
 ```json
 {
   "openaiApiKey": "sk-proj-abc123def456...",
-  "openaiModel": "gpt-4o-mini",
+  "openaiModel": "gpt-5-mini",
   "systemPrompt": "You are an AI assistant..."
 }
 ```
@@ -844,7 +844,7 @@ graph TB
 ```json
 {
   "openaiApiKey": "sk-proj-abc123def456...",
-  "openaiModel": "gpt-4o-mini"
+  "openaiModel": "gpt-5-mini"
 }
 ```
 
@@ -854,7 +854,7 @@ graph TB
 {
   "success": true,
   "message": "Connection successful. API key is valid and model is accessible.",
-  "model": "gpt-4o-mini",
+  "model": "gpt-5-mini",
   "latency": 847
 }
 ```
@@ -879,7 +879,7 @@ graph TB
 
 1. **Chat Completions** (`POST /v1/chat/completions`)
    - Purpose: Generate email summaries
-   - Model: `gpt-4o-mini` (default), `gpt-4o` (optional)
+   - Model: `gpt-5-mini` (default), `gpt-5` (optional), `gpt-5-nano` (optional)
    - Input: System prompt + formatted email thread
    - Output: JSON with description and notes
    - Parameters:
@@ -902,7 +902,7 @@ graph TB
 - Email sanitization reduces tokens by 30-50%
 - 5-email/4K-word limit caps maximum cost per request
 - Contact-match gating prevents processing non-ticket emails
-- Estimated cost: $0.0001-0.0005 per summary (gpt-4o-mini pricing)
+- Estimated cost: $0.0001-0.0005 per summary (gpt-5-mini pricing)
 
 **Security Considerations:**
 - API key stored encrypted in database (AES-256)

@@ -571,7 +571,7 @@ so that **I can configure the OpenAI API key, select the model, and customize th
 1. New section added to existing settings page: "AI Email Summarization Settings"
 2. Form includes three fields:
    - **OpenAI API Key**: Password input with show/hide toggle, placeholder "sk-..."
-   - **AI Model**: Dropdown with options ("gpt-5-mini" [default], "gpt-4o-mini", "gpt-4o"), displays current selection
+   - **AI Model**: Dropdown with options ("gpt-5-mini" [default], "gpt-5-mini", "gpt-5", "gpt-5-nano"), displays current selection
    - **System Prompt**: Multiline textarea (8-10 rows), character count displayed, pre-populated with default prompt
 3. "Save Settings" button validates and submits to `POST /api/settings/ai`
 4. "Test Connection" button calls `POST /api/settings/ai/test-connection` (validates API key works before saving)
