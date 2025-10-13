@@ -12,9 +12,9 @@ import { maskApiKey } from '../../utils/maskApiKey.js';
 describe('AI Settings API', () => {
   // Set up encryption key for tests
   beforeEach(async () => {
-    // Ensure ENCRYPTION_KEY is set for tests
-    if (!process.env.ENCRYPTION_KEY) {
-      process.env.ENCRYPTION_KEY = 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2';
+    // Ensure AI_ENCRYPTION_KEY is set for tests
+    if (!process.env.AI_ENCRYPTION_KEY) {
+      process.env.AI_ENCRYPTION_KEY = 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2';
     }
 
     // Clean up test data before each test
@@ -151,8 +151,8 @@ describe('AI Settings API', () => {
       await AiSettings.updateSettings(plainKey, 'gpt-5-mini', 'Test prompt');
 
       // Change encryption key
-      const originalKey = process.env.ENCRYPTION_KEY;
-      process.env.ENCRYPTION_KEY = 'f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff';
+      const originalKey = process.env.AI_ENCRYPTION_KEY;
+      process.env.AI_ENCRYPTION_KEY = 'f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff';
 
       // Try to get settings with wrong key
       const settings = await AiSettings.getSettings();
@@ -162,7 +162,7 @@ describe('AI Settings API', () => {
       assert.equal(settings.configured, false);
 
       // Restore original key
-      process.env.ENCRYPTION_KEY = originalKey;
+      process.env.AI_ENCRYPTION_KEY = originalKey;
     });
   });
 

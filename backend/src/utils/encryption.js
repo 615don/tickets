@@ -9,19 +9,19 @@ const KEY_LENGTH = 32; // 32 bytes (256 bits)
  * Encrypts plaintext using AES-256-GCM authenticated encryption
  * @param {string} plaintext - The text to encrypt
  * @returns {string} Encrypted data in format: iv:authTag:ciphertext (hex-encoded)
- * @throws {Error} If ENCRYPTION_KEY environment variable is not configured
+ * @throws {Error} If AI_ENCRYPTION_KEY environment variable is not configured
  */
 export function encrypt(plaintext) {
   // Validate encryption key is configured
-  const encryptionKey = process.env.ENCRYPTION_KEY;
+  const encryptionKey = process.env.AI_ENCRYPTION_KEY;
   if (!encryptionKey) {
-    throw new Error('ENCRYPTION_KEY environment variable is not configured');
+    throw new Error('AI_ENCRYPTION_KEY environment variable is not configured');
   }
 
   // Convert hex string to buffer
   const key = Buffer.from(encryptionKey, 'hex');
   if (key.length !== KEY_LENGTH) {
-    throw new Error(`ENCRYPTION_KEY must be ${KEY_LENGTH} bytes (${KEY_LENGTH * 2} hex characters)`);
+    throw new Error(`AI_ENCRYPTION_KEY must be ${KEY_LENGTH} bytes (${KEY_LENGTH * 2} hex characters)`);
   }
 
   // Generate random IV for this encryption
@@ -49,15 +49,15 @@ export function encrypt(plaintext) {
  */
 export function decrypt(encryptedData) {
   // Validate encryption key is configured
-  const encryptionKey = process.env.ENCRYPTION_KEY;
+  const encryptionKey = process.env.AI_ENCRYPTION_KEY;
   if (!encryptionKey) {
-    throw new Error('ENCRYPTION_KEY environment variable is not configured');
+    throw new Error('AI_ENCRYPTION_KEY environment variable is not configured');
   }
 
   // Convert hex string to buffer
   const key = Buffer.from(encryptionKey, 'hex');
   if (key.length !== KEY_LENGTH) {
-    throw new Error(`ENCRYPTION_KEY must be ${KEY_LENGTH} bytes (${KEY_LENGTH * 2} hex characters)`);
+    throw new Error(`AI_ENCRYPTION_KEY must be ${KEY_LENGTH} bytes (${KEY_LENGTH * 2} hex characters)`);
   }
 
   try {
