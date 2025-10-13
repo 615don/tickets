@@ -16,7 +16,9 @@ Rules:
 - Adjust summary length based on email content length (short emails = brief notes, long threads = detailed notes)
 - Use professional, neutral tone
 
-Respond with JSON format:
+IMPORTANT: You must respond with ONLY valid JSON. Do not include any text before or after the JSON object. Do not use markdown code blocks. Output raw JSON only.
+
+Respond with this exact JSON format:
 {
   "description": "one-line summary here",
   "notes": "detailed multi-paragraph summary here"

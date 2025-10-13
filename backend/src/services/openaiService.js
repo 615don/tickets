@@ -38,11 +38,6 @@ Body: ${email.body}
       modifiedSystemPrompt += '\n\nProvide a detailed multi-paragraph summary for notes, preserving key technical details.';
     }
 
-    // For GPT-5 models, add explicit JSON formatting instructions (no response_format support)
-    if (settings.openaiModel.startsWith('gpt-5')) {
-      modifiedSystemPrompt += '\n\nIMPORTANT: You must respond with ONLY valid JSON. Do not include any text before or after the JSON object. Do not use markdown code blocks. Output raw JSON only.';
-    }
-
     // Call OpenAI Chat Completions API
     // GPT-5 models use different API parameters than GPT-4
     const requestParams = {
