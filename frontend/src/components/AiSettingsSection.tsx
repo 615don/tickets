@@ -70,7 +70,9 @@ export function AiSettingsSection() {
   }
 
   // Client-side validation
-  const isApiKeyValid = apiKey && apiKey.startsWith('sk-') && apiKey.length >= 20;
+  // Note: Masked keys (containing '***') are considered valid since they're already saved
+  const isMaskedKey = apiKey && apiKey.includes('***');
+  const isApiKeyValid = isMaskedKey || (apiKey && apiKey.startsWith('sk-') && apiKey.length >= 20);
   const isSaveDisabled =
     !isModified ||
     !isApiKeyValid ||
@@ -109,17 +111,24 @@ export function AiSettingsSection() {
             API key must start with "sk-" and be at least 20 characters
           </p>
         )}
-        <p className="text-xs text-muted-foreground">
-          Get your API key from{' '}
-          <a
-            href="https://platform.openai.com/api-keys"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline"
-          >
-            OpenAI Platform
-          </a>
-        </p>
+        {isMaskedKey && (
+          <p className="text-xs text-muted-foreground">
+            API key is saved and masked for security. Enter a new key to update or test.
+          </p>
+        )}
+        {!isMaskedKey && (
+          <p className="text-xs text-muted-foreground">
+            Get your API key from{' '}
+            <a
+              href="https://platform.openai.com/api-keys"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              OpenAI Platform
+            </a>
+          </p>
+        )}
       </div>
 
       {/* AI Model Selection */}
@@ -180,7 +189,8 @@ export function AiSettingsSection() {
         <Button
           variant="outline"
           onClick={handleTestConnection}
-          disabled={!apiKey || testConnectionMutation.isPending}
+          disabled={!apiKey || isMaskedKey || testConnectionMutation.isPending}
+          title={isMaskedKey ? "Enter a new API key to test connection" : ""}
         >
           {testConnectionMutation.isPending ? 'Testing...' : 'Test Connection'}
         </Button>
