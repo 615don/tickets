@@ -172,7 +172,6 @@ export function AiSettingsSection() {
           type="number"
           min="100"
           max="128000"
-          step="100"
           value={maxCompletionTokens}
           onChange={(e) => {
             const value = parseInt(e.target.value);
@@ -182,6 +181,7 @@ export function AiSettingsSection() {
             }
           }}
           aria-label="Maximum completion tokens"
+          className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
         <p className="text-xs text-muted-foreground">
           Token limit for AI responses (100-128,000). GPT-5 uses tokens for both reasoning and output. Default: 2000
@@ -196,7 +196,6 @@ export function AiSettingsSection() {
           type="number"
           min="100"
           max="10000"
-          step="100"
           value={maxWordCount}
           onChange={(e) => {
             const value = parseInt(e.target.value);
@@ -206,6 +205,7 @@ export function AiSettingsSection() {
             }
           }}
           aria-label="Maximum word count"
+          className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
         <p className="text-xs text-muted-foreground">
           Word limit for email threads sent to AI (100-10,000). Higher values increase token costs. Default: 4000
@@ -220,7 +220,6 @@ export function AiSettingsSection() {
           type="number"
           min="5000"
           max="60000"
-          step="1000"
           value={apiTimeoutMs}
           onChange={(e) => {
             const value = parseInt(e.target.value);
@@ -230,6 +229,7 @@ export function AiSettingsSection() {
             }
           }}
           aria-label="API timeout in milliseconds"
+          className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
         <p className="text-xs text-muted-foreground">
           Timeout for OpenAI API requests (5,000-60,000ms). GPT-5 models may need longer timeouts. Default: 15000ms (15s)

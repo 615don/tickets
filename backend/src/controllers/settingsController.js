@@ -145,16 +145,32 @@ export async function updateAiSettings(req, res) {
       }
     }
 
-    // Optional: Basic API key format validation for immediate feedback
-    if (!openaiApiKey.startsWith('sk-') || openaiApiKey.length < 20) {
-      return res.status(400).json({
-        error: 'ValidationError',
-        message: 'Invalid API key format. OpenAI API keys should start with "sk-" and be at least 20 characters'
-      });
+    // Handle masked API key (user didn't change it)
+    let finalApiKey = openaiApiKey;
+    const isMaskedKey = openaiApiKey.includes('***');
+
+    if (isMaskedKey) {
+      // Retrieve existing API key from database
+      const existingSettings = await AiSettings.getSettings();
+      if (!existingSettings || !existingSettings.openaiApiKey) {
+        return res.status(400).json({
+          error: 'ValidationError',
+          message: 'Cannot update settings with masked key when no key exists in database'
+        });
+      }
+      finalApiKey = existingSettings.openaiApiKey;
+    } else {
+      // Validate new API key format
+      if (!openaiApiKey.startsWith('sk-') || openaiApiKey.length < 20) {
+        return res.status(400).json({
+          error: 'ValidationError',
+          message: 'Invalid API key format. OpenAI API keys should start with "sk-" and be at least 20 characters'
+        });
+      }
     }
 
     // Update settings (with defaults for optional fields)
-    await AiSettings.updateSettings(openaiApiKey, openaiModel, systemPrompt, maxCompletionTokens, maxWordCount, apiTimeoutMs);
+    await AiSettings.updateSettings(finalApiKey, openaiModel, systemPrompt, maxCompletionTokens, maxWordCount, apiTimeoutMs);
 
     res.json({
       success: true,
