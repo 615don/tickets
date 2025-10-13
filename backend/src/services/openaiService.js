@@ -46,7 +46,7 @@ Body: ${email.body}
         { role: 'user', content: emailContent }
       ],
       temperature: 0.3, // Consistent, less creative (AC3)
-      max_tokens: 500, // Sufficient for description + notes
+      max_completion_tokens: 500, // Sufficient for description + notes (max_tokens deprecated for newer models)
       response_format: { type: 'json_object' } // Enforce JSON output
     });
 
