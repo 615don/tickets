@@ -7,16 +7,18 @@ import { apiClient } from '@/lib/api-client';
 
 // Type definitions
 export interface AiSettings {
-  openaiApiKey: string;      // Masked on GET (e.g., "sk-***abc123")
-  openaiModel: string;        // Model name (e.g., "gpt-5-mini")
-  systemPrompt: string;       // Full system prompt text
-  configured: boolean;        // Is API key configured?
+  openaiApiKey: string;           // Masked on GET (e.g., "sk-***abc123")
+  openaiModel: string;            // Model name (e.g., "gpt-5-mini")
+  systemPrompt: string;           // Full system prompt text
+  maxCompletionTokens: number;    // Token limit for AI responses (100-128000)
+  configured: boolean;            // Is API key configured?
 }
 
 export interface UpdateAiSettingsPayload {
-  openaiApiKey: string;       // Full API key (only sent on POST)
+  openaiApiKey: string;           // Full API key (only sent on POST)
   openaiModel: string;
   systemPrompt: string;
+  maxCompletionTokens?: number;   // Optional, defaults to 2000 on backend
 }
 
 export interface TestConnectionPayload {

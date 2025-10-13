@@ -88,7 +88,7 @@ export async function getAiSettings(req, res) {
  */
 export async function updateAiSettings(req, res) {
   try {
-    const { openaiApiKey, openaiModel, systemPrompt } = req.body;
+    const { openaiApiKey, openaiModel, systemPrompt, maxCompletionTokens } = req.body;
 
     // Validate required fields
     if (!openaiApiKey) {
@@ -112,6 +112,17 @@ export async function updateAiSettings(req, res) {
       });
     }
 
+    // Validate maxCompletionTokens (optional, defaults to 2000)
+    if (maxCompletionTokens !== undefined) {
+      const tokens = parseInt(maxCompletionTokens);
+      if (isNaN(tokens) || tokens < 100 || tokens > 128000) {
+        return res.status(400).json({
+          error: 'ValidationError',
+          message: 'maxCompletionTokens must be between 100 and 128000'
+        });
+      }
+    }
+
     // Optional: Basic API key format validation for immediate feedback
     if (!openaiApiKey.startsWith('sk-') || openaiApiKey.length < 20) {
       return res.status(400).json({
@@ -120,8 +131,8 @@ export async function updateAiSettings(req, res) {
       });
     }
 
-    // Update settings
-    await AiSettings.updateSettings(openaiApiKey, openaiModel, systemPrompt);
+    // Update settings (maxCompletionTokens defaults to 2000 if not provided)
+    await AiSettings.updateSettings(openaiApiKey, openaiModel, systemPrompt, maxCompletionTokens);
 
     res.json({
       success: true,

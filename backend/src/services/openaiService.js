@@ -46,9 +46,9 @@ Body: ${email.body}
         { role: 'system', content: modifiedSystemPrompt },
         { role: 'user', content: emailContent }
       ],
+      // Use max_completion_tokens from settings (configurable via GUI)
       // GPT-5 reasoning models use tokens for both reasoning AND output
-      // Need higher limit: reasoning tokens + visible output tokens
-      max_completion_tokens: settings.openaiModel.startsWith('gpt-5') ? 2000 : 500,
+      max_completion_tokens: settings.maxCompletionTokens || 2000,
     };
 
     // GPT-4 specific parameters

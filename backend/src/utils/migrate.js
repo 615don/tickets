@@ -240,6 +240,19 @@ Respond with JSON format:
       )
       ON CONFLICT (id) DO NOTHING;
     `
+  },
+  {
+    name: '013_add_max_completion_tokens_to_ai_settings',
+    sql: `
+      -- Add max_completion_tokens column to ai_settings table
+      ALTER TABLE ai_settings
+      ADD COLUMN IF NOT EXISTS max_completion_tokens INTEGER NOT NULL DEFAULT 2000;
+
+      -- Add constraint to ensure reasonable token limits (min 100, max 128000 per GPT-5 docs)
+      ALTER TABLE ai_settings
+      ADD CONSTRAINT check_max_completion_tokens
+      CHECK (max_completion_tokens >= 100 AND max_completion_tokens <= 128000);
+    `
   }
 ];
 

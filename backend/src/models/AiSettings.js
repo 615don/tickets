@@ -36,7 +36,7 @@ export const AiSettings = {
    */
   async getSettings() {
     const result = await pool.query(
-      'SELECT openai_api_key, openai_model, system_prompt FROM ai_settings WHERE id = 1'
+      'SELECT openai_api_key, openai_model, system_prompt, max_completion_tokens FROM ai_settings WHERE id = 1'
     );
 
     if (result.rows.length === 0) {
@@ -45,6 +45,7 @@ export const AiSettings = {
         openaiApiKey: '',
         openaiModel: 'gpt-5-mini',
         systemPrompt: DEFAULT_SYSTEM_PROMPT,
+        maxCompletionTokens: 2000,
         configured: false
       };
     }
@@ -67,6 +68,7 @@ export const AiSettings = {
       openaiApiKey,
       openaiModel: row.openai_model,
       systemPrompt: row.system_prompt,
+      maxCompletionTokens: row.max_completion_tokens || 2000,
       configured: openaiApiKey !== ''
     };
   },
@@ -76,10 +78,11 @@ export const AiSettings = {
    * @param {string} apiKey - OpenAI API key
    * @param {string} model - Model name (gpt-5, gpt-5-mini, gpt-5-nano)
    * @param {string} systemPrompt - System prompt text
-   * @returns {Promise<{openaiApiKey: string, openaiModel: string, systemPrompt: string, configured: boolean}>}
+   * @param {number} maxCompletionTokens - Maximum completion tokens (100-128000)
+   * @returns {Promise<{openaiApiKey: string, openaiModel: string, systemPrompt: string, maxCompletionTokens: number, configured: boolean}>}
    * @throws {Error} If validation fails
    */
-  async updateSettings(apiKey, model, systemPrompt) {
+  async updateSettings(apiKey, model, systemPrompt, maxCompletionTokens = 2000) {
     // Validate inputs
     if (!apiKey || apiKey.trim() === '') {
       throw new Error('openaiApiKey is required');
@@ -95,21 +98,28 @@ export const AiSettings = {
       throw new Error('systemPrompt is required');
     }
 
+    // Validate maxCompletionTokens
+    const tokens = parseInt(maxCompletionTokens);
+    if (isNaN(tokens) || tokens < 100 || tokens > 128000) {
+      throw new Error('maxCompletionTokens must be between 100 and 128000');
+    }
+
     // Encrypt API key before storage
     const encryptedApiKey = encrypt(apiKey);
 
     // Update singleton row
     await pool.query(
       `UPDATE ai_settings
-       SET openai_api_key = $1, openai_model = $2, system_prompt = $3, updated_at = NOW()
+       SET openai_api_key = $1, openai_model = $2, system_prompt = $3, max_completion_tokens = $4, updated_at = NOW()
        WHERE id = 1`,
-      [encryptedApiKey, model, systemPrompt]
+      [encryptedApiKey, model, systemPrompt, tokens]
     );
 
     return {
       openaiApiKey: apiKey, // Return unencrypted key
       openaiModel: model,
       systemPrompt,
+      maxCompletionTokens: tokens,
       configured: true
     };
   }

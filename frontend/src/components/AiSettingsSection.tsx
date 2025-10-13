@@ -16,6 +16,7 @@ export function AiSettingsSection() {
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('gpt-5-mini');
   const [systemPrompt, setSystemPrompt] = useState('');
+  const [maxCompletionTokens, setMaxCompletionTokens] = useState(2000);
   const [showApiKey, setShowApiKey] = useState(false);
   const [isModified, setIsModified] = useState(false);
 
@@ -33,6 +34,7 @@ export function AiSettingsSection() {
       }
       setModel(settings.openaiModel);
       setSystemPrompt(settings.systemPrompt);
+      setMaxCompletionTokens(settings.maxCompletionTokens || 2000);
       setIsModified(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -59,6 +61,7 @@ export function AiSettingsSection() {
       openaiApiKey: apiKey,
       openaiModel: model,
       systemPrompt: systemPrompt,
+      maxCompletionTokens: maxCompletionTokens,
     });
 
     setIsModified(false);
@@ -152,6 +155,30 @@ export function AiSettingsSection() {
         </Select>
         <p className="text-xs text-muted-foreground">
           GPT-5 Mini is recommended for cost-effectiveness
+        </p>
+      </div>
+
+      {/* Max Completion Tokens */}
+      <div className="space-y-2">
+        <Label htmlFor="maxCompletionTokens">Max Completion Tokens</Label>
+        <Input
+          id="maxCompletionTokens"
+          type="number"
+          min="100"
+          max="128000"
+          step="100"
+          value={maxCompletionTokens}
+          onChange={(e) => {
+            const value = parseInt(e.target.value);
+            if (!isNaN(value) && value >= 100 && value <= 128000) {
+              setMaxCompletionTokens(value);
+              setIsModified(true);
+            }
+          }}
+          aria-label="Maximum completion tokens"
+        />
+        <p className="text-xs text-muted-foreground">
+          Token limit for AI responses (100-128,000). GPT-5 uses tokens for both reasoning and output. Default: 2000
         </p>
       </div>
 
