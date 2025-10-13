@@ -63,6 +63,9 @@ export function useMatching(emailContext: EmailContext | null) {
             },
           });
 
+          // Clear matching state before starting AI generation
+          setIsMatching(false);
+
           // Story 7.8: Trigger AI summarization after contact match
           setIsGeneratingAi(true);
           setAiError(null);
