@@ -39,16 +39,23 @@ Body: ${email.body}
     }
 
     // Call OpenAI Chat Completions API
-    const completion = await client.chat.completions.create({
-      model: settings.openaiModel, // e.g., 'gpt-4o-mini'
+    // GPT-5 models use different API parameters than GPT-4
+    const requestParams = {
+      model: settings.openaiModel, // e.g., 'gpt-5-mini'
       messages: [
         { role: 'system', content: modifiedSystemPrompt },
         { role: 'user', content: emailContent }
       ],
-      temperature: 0.3, // Consistent, less creative (AC3)
-      max_completion_tokens: 500, // Sufficient for description + notes (max_tokens deprecated for newer models)
+      max_completion_tokens: 500, // GPT-5 uses max_completion_tokens (not max_tokens)
       response_format: { type: 'json_object' } // Enforce JSON output
-    });
+    };
+
+    // Only add temperature for GPT-4 models (GPT-5 may not support it or use different defaults)
+    if (settings.openaiModel.startsWith('gpt-4')) {
+      requestParams.temperature = 0.3;
+    }
+
+    const completion = await client.chat.completions.create(requestParams);
 
     // Parse JSON response and extract description and notes
     const responseText = completion.choices[0].message.content;
