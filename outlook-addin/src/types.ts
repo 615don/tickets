@@ -36,7 +36,7 @@ export interface MatchResult {
   contact: Contact;
 }
 
-export type MatchStatus = "loading" | "matched" | "warning" | "neutral";
+export type MatchStatus = "loading" | "matched" | "warning" | "neutral" | "ai-loading";
 export type SubmissionStatus = "idle" | "loading" | "success" | "error";
 
 /**

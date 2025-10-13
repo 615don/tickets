@@ -22,7 +22,7 @@ export const EmailContext = ({
   nameError,
   emailError,
 }: EmailContextProps) => {
-  const isEditable = matchStatus !== "matched" && matchStatus !== "loading";
+  const isEditable = matchStatus !== "matched" && matchStatus !== "loading" && matchStatus !== "ai-loading";
   const getStatusText = () => {
     switch (matchStatus) {
       case "matched":
@@ -33,6 +33,8 @@ export const EmailContext = ({
         return "? No match found - manual selection required";
       case "loading":
         return "Matching contact and client...";
+      case "ai-loading":
+        return "Generating AI summary...";
     }
   };
 
@@ -40,6 +42,8 @@ export const EmailContext = ({
     switch (matchStatus) {
       case "loading":
         return "Searching for matching contact and client...";
+      case "ai-loading":
+        return "Generating AI-powered summary and notes...";
       case "matched":
         return "Contact and client found in database";
       case "warning":

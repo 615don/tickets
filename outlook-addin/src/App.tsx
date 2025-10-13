@@ -42,8 +42,10 @@ function App() {
    * @returns {MatchStatus} Badge variant to display
    */
   const getMatchStatus = (): MatchStatus => {
-    // Story 7.8: Include AI generation in loading state
-    if (isMatching || isGeneratingAi) return 'loading'
+    // Matching is in progress
+    if (isMatching) return 'loading'
+    // AI generation is in progress (after matching completed)
+    if (isGeneratingAi) return 'ai-loading'
     if (!matchingResult) return 'loading' // Default before matching runs
     if (matchingResult.type === 'contact-matched') return 'matched'
     if (matchingResult.type === 'domain-matched') return 'warning'

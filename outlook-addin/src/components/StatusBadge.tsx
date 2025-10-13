@@ -1,6 +1,6 @@
 import { CheckCircle, AlertCircle, HelpCircle } from "lucide-react";
 
-export type BadgeVariant = "matched" | "warning" | "neutral" | "loading";
+export type BadgeVariant = "matched" | "warning" | "neutral" | "loading" | "ai-loading";
 
 interface StatusBadgeProps {
   variant: BadgeVariant;
@@ -14,6 +14,7 @@ export const StatusBadge = ({ variant, text, tooltip }: StatusBadgeProps) => {
     warning: "bg-warning text-warning-foreground",
     neutral: "bg-muted text-muted-foreground",
     loading: "bg-primary text-primary-foreground",
+    "ai-loading": "bg-primary text-primary-foreground",
   };
 
   const Icon = {
@@ -21,6 +22,7 @@ export const StatusBadge = ({ variant, text, tooltip }: StatusBadgeProps) => {
     warning: AlertCircle,
     neutral: HelpCircle,
     loading: null,
+    "ai-loading": null,
   }[variant];
 
   return (
@@ -29,7 +31,7 @@ export const StatusBadge = ({ variant, text, tooltip }: StatusBadgeProps) => {
       title={tooltip}
       tabIndex={0}
     >
-      {variant === "loading" ? (
+      {variant === "loading" || variant === "ai-loading" ? (
         <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
       ) : Icon ? (
         <Icon className="h-4 w-4" />
