@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import type { EmailContext, MatchingResult, MatchingError } from '../types';
 import { matchContactByEmail, matchClientByDomain } from '../lib/api/matching';
 import { extractDomain } from '../lib/utils/domainExtractor';
+import { summarizeEmail } from '../lib/api/ai';
+import { buildEmailThread } from '../lib/utils/emailThreadBuilder';
 
 /**
  * React hook to trigger contact/domain matching when email context changes
@@ -18,6 +20,9 @@ export function useMatching(emailContext: EmailContext | null) {
   const [matchingResult, setMatchingResult] = useState<MatchingResult | null>(null);
   const [isMatching, setIsMatching] = useState(false);
   const [error, setError] = useState<MatchingError | null>(null);
+  const [aiSummary, setAiSummary] = useState<{ description: string; notes: string } | null>(null);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   useEffect(() => {
     // Reset state when no email context
@@ -25,6 +30,9 @@ export function useMatching(emailContext: EmailContext | null) {
       setMatchingResult(null);
       setIsMatching(false);
       setError(null);
+      setAiSummary(null);
+      setIsGeneratingAi(false);
+      setAiError(null);
       return;
     }
 
@@ -54,6 +62,45 @@ export function useMatching(emailContext: EmailContext | null) {
               email: contactMatches[0].contact.email,
             },
           });
+
+          // Story 7.8: Trigger AI summarization after contact match
+          setIsGeneratingAi(true);
+          setAiError(null);
+
+          try {
+            // Validate mailItem exists and is a message type
+            const mailItem = Office.context.mailbox.item;
+            if (!mailItem || mailItem.itemType !== Office.MailboxEnums.ItemType.Message) {
+              throw new Error('AI summarization only available for email messages');
+            }
+
+            // Build email thread from Office.js
+            const emailThread = await buildEmailThread(mailItem as Office.MessageRead);
+
+            // Call AI API
+            const summary = await summarizeEmail(emailThread);
+
+            if (summary.success !== false) {
+              // AI success - store summary for form auto-population
+              setAiSummary({
+                description: summary.description,
+                notes: summary.notes,
+              });
+              console.info('[AI] Summarization completed successfully');
+            } else {
+              // AI returned error - log and leave fields empty
+              console.error('AI summarization failed:', summary.error);
+              setAiError(summary.error || 'AI summarization unavailable');
+              setAiSummary(null);
+            }
+          } catch (aiErr) {
+            // Network or API error - log and degrade gracefully
+            console.error('AI summarization error:', aiErr);
+            setAiError(aiErr instanceof Error ? aiErr.message : 'AI summarization failed');
+            setAiSummary(null);
+          } finally {
+            setIsGeneratingAi(false);
+          }
         } else {
           // STEP 2: No contact match - try domain matching (Story 4.2)
           const domain = extractDomain(emailContext.senderEmail);
@@ -115,5 +162,5 @@ export function useMatching(emailContext: EmailContext | null) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [emailContext?.senderEmail]);
 
-  return { matchingResult, isMatching, error };
+  return { matchingResult, isMatching, error, aiSummary, isGeneratingAi, aiError };
 }

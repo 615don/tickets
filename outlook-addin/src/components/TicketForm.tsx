@@ -23,6 +23,7 @@ export interface TicketFormProps {
   contactEmailError?: string;
   onContactNameErrorChange?: (error: string) => void;
   onContactEmailErrorChange?: (error: string) => void;
+  aiSummary?: { description: string; notes: string } | null;
 }
 
 export const TicketForm = ({
@@ -36,6 +37,7 @@ export const TicketForm = ({
   contactEmailError: externalContactEmailError,
   onContactNameErrorChange,
   onContactEmailErrorChange,
+  aiSummary,
 }: TicketFormProps) => {
   const [timeValue, setTimeValue] = useState("2m");
   const [parsedHours, setParsedHours] = useState<number | null>(0.03); // 2m = 0.0333h ≈ 0.03h
@@ -75,6 +77,15 @@ export const TicketForm = ({
       setDescription('');
     }
   }, [selectedTicket]);
+
+  // Story 7.8: Auto-populate description and notes from AI summary
+  useEffect(() => {
+    if (aiSummary && !selectedTicket) {
+      // Only auto-populate when not in add-time-entry mode
+      setDescription(aiSummary.description);
+      setNotes(aiSummary.notes);
+    }
+  }, [aiSummary, selectedTicket]);
 
   const isValidEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

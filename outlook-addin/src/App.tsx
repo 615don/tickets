@@ -19,8 +19,8 @@ function App() {
   // Use custom hook for email context management
   const emailContext = useEmailContext()
 
-  // Use matching hook for automatic contact matching (Story 4.1)
-  const { matchingResult, isMatching } = useMatching(emailContext)
+  // Use matching hook for automatic contact matching (Story 4.1, Story 7.8)
+  const { matchingResult, isMatching, aiSummary, isGeneratingAi } = useMatching(emailContext)
 
   // Client selection state (Story 4.4)
   const [selectedClient, setSelectedClient] = useState<{ id: number; name: string } | null>(null)
@@ -42,7 +42,8 @@ function App() {
    * @returns {MatchStatus} Badge variant to display
    */
   const getMatchStatus = (): MatchStatus => {
-    if (isMatching) return 'loading'
+    // Story 7.8: Include AI generation in loading state
+    if (isMatching || isGeneratingAi) return 'loading'
     if (!matchingResult) return 'loading' // Default before matching runs
     if (matchingResult.type === 'contact-matched') return 'matched'
     if (matchingResult.type === 'domain-matched') return 'warning'
@@ -207,6 +208,7 @@ function App() {
             contactEmailError={contactEmailError}
             onContactNameErrorChange={setContactNameError}
             onContactEmailErrorChange={setContactEmailError}
+            aiSummary={aiSummary}
           />
         </div>
       )}
