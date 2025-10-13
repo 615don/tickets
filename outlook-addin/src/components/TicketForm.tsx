@@ -80,10 +80,10 @@ export const TicketForm = ({
 
   // Story 7.8 & 7.9: Auto-populate fields from AI summary based on mode
   useEffect(() => {
-    if (aiSummary) {
-      // Derive form mode from selectedTicket (Epic 6 pattern)
-      const isUpdateMode = !!selectedTicket;
+    // Derive form mode from selectedTicket (Epic 6 pattern)
+    const isUpdateMode = !!selectedTicket;
 
+    if (aiSummary) {
       if (isUpdateMode) {
         // Story 7.9 AC3: In update mode, only populate notes (not description)
         // AC4: Description field NOT modified (already disabled and pre-filled with ticket description)
@@ -93,6 +93,11 @@ export const TicketForm = ({
         setDescription(aiSummary.description);
         setNotes(aiSummary.notes);
       }
+    } else if (!isUpdateMode) {
+      // Clear fields when aiSummary is null and not in update mode
+      // (when switching emails, aiSummary resets to null)
+      setDescription('');
+      setNotes('');
     }
   }, [aiSummary, selectedTicket]);
 

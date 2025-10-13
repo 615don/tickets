@@ -60,6 +60,25 @@ Body: ${email.body}
 
     const completion = await client.chat.completions.create(requestParams);
 
+    // Check if response was truncated due to token limit
+    const finishReason = completion.choices[0].finish_reason;
+    if (finishReason === 'length') {
+      console.error('[OpenAI] Summarization failed:', {
+        timestamp: new Date().toISOString(),
+        error: 'TokenLimitExceeded',
+        message: 'Response truncated due to max_completion_tokens limit',
+        emailCount: emailThread.length,
+        maxTokens: settings.maxCompletionTokens || 2000,
+        finishReason: finishReason
+      });
+
+      return {
+        success: false,
+        error: 'TokenLimitExceeded',
+        message: `AI response exceeded token limit (${settings.maxCompletionTokens || 2000} tokens). Increase max_completion_tokens in AI settings.`
+      };
+    }
+
     // Parse JSON response and extract description and notes
     let responseText = completion.choices[0].message.content;
 
@@ -70,7 +89,7 @@ Body: ${email.body}
       lengthClass: lengthClass,
       responseLength: responseText ? responseText.length : 0,
       responsePreview: responseText ? responseText.substring(0, 200) : '(null or undefined)',
-      finishReason: completion.choices[0].finish_reason
+      finishReason: finishReason
     });
 
     // GPT-5 sometimes wraps JSON in markdown code blocks despite instructions
