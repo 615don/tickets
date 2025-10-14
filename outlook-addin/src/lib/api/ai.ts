@@ -51,6 +51,7 @@ function isSummarizeEmailResponse(obj: unknown): obj is SummarizeEmailResponse {
  * Calls POST /api/ai/summarize-email endpoint
  *
  * @param emails - Array of email objects to summarize (1-5 emails)
+ * @param signal - Optional AbortSignal to cancel the request
  * @returns Promise resolving to AI-generated summary with description and notes
  * @throws Error for authentication failures (401) or network errors
  *
@@ -59,11 +60,12 @@ function isSummarizeEmailResponse(obj: unknown): obj is SummarizeEmailResponse {
  * - 400 (AI not configured): Returns response with success=false and error message
  * - 500 (AI service failure): Returns response with success=false and user-friendly message
  * - Network errors: Throws error with descriptive message
+ * - Aborted requests: Throws AbortError
  *
  * **Usage:**
  * ```typescript
  * try {
- *   const summary = await summarizeEmail(emails);
+ *   const summary = await summarizeEmail(emails, abortSignal);
  *   if (summary.success !== false) {
  *     // Use summary.description and summary.notes
  *   } else {
@@ -79,7 +81,8 @@ function isSummarizeEmailResponse(obj: unknown): obj is SummarizeEmailResponse {
  * Story 7.8: AI Summarization Integration (New Tickets)
  */
 export async function summarizeEmail(
-  emails: EmailForSummarization[]
+  emails: EmailForSummarization[],
+  signal?: AbortSignal
 ): Promise<SummarizeEmailResponse> {
   // Validate input
   if (!emails || emails.length === 0) {
@@ -96,6 +99,7 @@ export async function summarizeEmail(
       {
         method: 'POST',
         body: JSON.stringify({ emails }),
+        signal, // Pass abort signal to apiClient
       }
     );
 

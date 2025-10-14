@@ -82,8 +82,8 @@ export function useMatching(emailContext: EmailContext | null) {
             // Build email thread from Office.js
             const emailThread = await buildEmailThread(mailItem as Office.MessageRead);
 
-            // Call AI API
-            const summary = await summarizeEmail(emailThread);
+            // Call AI API with abort signal to cancel if user switches emails
+            const summary = await summarizeEmail(emailThread, abortController.signal);
 
             if (summary.success !== false) {
               // AI success - store summary for form auto-population
@@ -99,12 +99,22 @@ export function useMatching(emailContext: EmailContext | null) {
               setAiSummary(null);
             }
           } catch (aiErr) {
+            // Check if request was aborted (user switched emails)
+            if (aiErr instanceof Error && aiErr.name === 'AbortError') {
+              console.info('[AI] Summarization cancelled (user switched emails)');
+              // Don't set error state - this is intentional cancellation
+              return;
+            }
+
             // Network or API error - log and degrade gracefully
             console.error('AI summarization error:', aiErr);
             setAiError(aiErr instanceof Error ? aiErr.message : 'AI summarization failed');
             setAiSummary(null);
           } finally {
-            setIsGeneratingAi(false);
+            // Only update state if request wasn't aborted
+            if (!abortController.signal.aborted) {
+              setIsGeneratingAi(false);
+            }
           }
         } else {
           // STEP 2: No contact match - try domain matching (Story 4.2)
