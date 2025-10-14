@@ -141,7 +141,10 @@ async function getTableSchema(tableName) {
     } else if (constraint.type === 'UNIQUE') {
       sql += `,\n  UNIQUE (${constraint.columns.map(c => format.ident(c)).join(', ')})`;
     } else if (constraint.type === 'CHECK') {
-      sql += `,\n  CHECK ${constraint.checkClause}`;
+      // Ensure CHECK clause is wrapped in parentheses if not already
+      const clause = constraint.checkClause.trim();
+      const wrappedClause = clause.startsWith('(') ? clause : `(${clause})`;
+      sql += `,\n  CHECK ${wrappedClause}`;
     }
   });
 
