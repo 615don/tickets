@@ -119,6 +119,11 @@ export async function summarizeEmail(
 
     return response;
   } catch (error) {
+    // Propagate AbortError (request was cancelled) - let caller handle it
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw error;
+    }
+
     // apiClient throws for 401 (auth required) - propagate to caller
     if (error instanceof Error && error.message.includes('Authentication required')) {
       throw error;
