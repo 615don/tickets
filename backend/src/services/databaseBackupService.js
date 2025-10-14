@@ -153,7 +153,9 @@ async function getTableSchema(tableName) {
   // Add indexes (excluding primary key indexes)
   indexes.rows.forEach(index => {
     if (!index.indexname.endsWith('_pkey')) {
-      sql += `${index.indexdef};\n`;
+      // Add IF NOT EXISTS to CREATE INDEX statements for idempotent restores
+      const indexDef = index.indexdef.replace(/^CREATE INDEX/i, 'CREATE INDEX IF NOT EXISTS');
+      sql += `${indexDef};\n`;
     }
   });
 

@@ -160,6 +160,22 @@ export async function restoreBackup(req, res) {
 
     // Execute database restore programmatically (no psql binary required)
     try {
+      console.log('[Restore] Clearing existing data...');
+
+      // Get all tables to truncate (except session table - will be cleared later)
+      const tablesResult = await pool.query(`
+        SELECT tablename FROM pg_tables
+        WHERE schemaname = 'public' AND tablename != 'session'
+        ORDER BY tablename
+      `);
+
+      // Truncate all tables with CASCADE to handle foreign keys
+      if (tablesResult.rows.length > 0) {
+        const tableNames = tablesResult.rows.map(r => r.tablename).join(', ');
+        await pool.query(`TRUNCATE TABLE ${tableNames} RESTART IDENTITY CASCADE`);
+        console.log(`[Restore] Cleared ${tablesResult.rows.length} tables`);
+      }
+
       // Read SQL file
       let sqlContent = await fs.promises.readFile(databaseSqlPath, 'utf-8');
 
