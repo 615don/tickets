@@ -1,16 +1,28 @@
 import { Client } from '../models/Client.js';
+import { getCache, setCache, CacheKeys, invalidateClientCache } from '../utils/cache.js';
 
 // GET /api/clients - Get all clients
 export const getAllClients = async (req, res) => {
   try {
     const { search } = req.query;
 
-    let clients;
+    // If search query present, bypass cache (dynamic results)
     if (search) {
-      clients = await Client.search(search);
-    } else {
-      clients = await Client.findAll();
+      const clients = await Client.search(search);
+      return res.json(clients);
     }
+
+    // Check cache first
+    const cachedClients = getCache(CacheKeys.ALL_CLIENTS);
+    if (cachedClients) {
+      return res.json(cachedClients);
+    }
+
+    // Cache miss - fetch from database
+    const clients = await Client.findAll();
+
+    // Store in cache for future requests
+    setCache(CacheKeys.ALL_CLIENTS, clients);
 
     res.json(clients);
   } catch (error) {
@@ -57,6 +69,9 @@ export const createClient = async (req, res) => {
       domains
     });
 
+    // Invalidate cache after mutation
+    invalidateClientCache();
+
     res.status(201).json(client);
   } catch (error) {
     console.error('Create client error:', error);
@@ -88,6 +103,9 @@ export const updateClient = async (req, res) => {
       maintenanceContractType,
       domains
     });
+
+    // Invalidate cache after mutation
+    invalidateClientCache();
 
     res.json(client);
   } catch (error) {
@@ -154,6 +172,9 @@ export const deleteClient = async (req, res) => {
     const { id } = req.params;
 
     const result = await Client.delete(id);
+
+    // Invalidate cache after mutation
+    invalidateClientCache();
 
     res.json({
       message: 'Client deleted successfully',
