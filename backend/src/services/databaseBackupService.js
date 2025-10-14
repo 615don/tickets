@@ -202,7 +202,7 @@ async function getSequences() {
     SELECT
       sequence_name,
       start_value,
-      increment_by
+      increment
     FROM information_schema.sequences
     WHERE sequence_schema = 'public'
   `);
