@@ -5,6 +5,7 @@ import pool from '../config/database.js';
 import { createBackupZip } from '../services/databaseBackupService.js';
 import { uploadBackup, isAuthenticated, getAuthUrl, exchangeCodeForTokens, listBackups, deleteOldBackups } from '../services/googleDriveService.js';
 import { triggerManualBackup, restartScheduler } from '../services/backupScheduler.js';
+import { safeError } from '../utils/logSanitizer.js';
 
 /**
  * POST /api/backup/generate
@@ -31,17 +32,17 @@ export async function generateBackup(req, res) {
       try {
         await fs.promises.unlink(tempBackupPath);
       } catch (cleanupError) {
-        console.error('Failed to clean up temp file:', cleanupError);
+        safeError('Failed to clean up temp file:', cleanupError);
       }
     });
 
     fileStream.on('error', async (err) => {
-      console.error('File stream error:', err);
+      safeError('File stream error:', err);
       // Clean up temp file
       try {
         await fs.promises.unlink(tempBackupPath);
       } catch (cleanupError) {
-        console.error('Failed to clean up temp file:', cleanupError);
+        safeError('Failed to clean up temp file:', cleanupError);
       }
 
       if (!res.headersSent) {
@@ -55,7 +56,7 @@ export async function generateBackup(req, res) {
     fileStream.pipe(res);
 
   } catch (error) {
-    console.error('Error generating backup:', error);
+    safeError('Error generating backup:', error);
 
     // Clean up temp file
     try {
@@ -241,7 +242,7 @@ export async function restoreBackup(req, res) {
       await fs.promises.rm(extractDir, { recursive: true, force: true });
       await fs.promises.unlink(uploadedFile);
 
-      console.error('[Restore] Database restore error:', dbError);
+      safeError('[Restore] Database restore error:', dbError);
 
       // Handle specific database errors
       if (dbError.code === 'ECONNREFUSED' || dbError.message.includes('connect')) {
@@ -276,7 +277,7 @@ export async function restoreBackup(req, res) {
     try {
       await pool.query('TRUNCATE TABLE session');
     } catch (sessionError) {
-      console.error('Failed to invalidate sessions:', sessionError);
+      safeError('Failed to invalidate sessions:', sessionError);
       // Continue even if session invalidation fails - restore was successful
     }
 
@@ -328,7 +329,7 @@ Respond with this exact JSON format:
         console.log('[Restore] backup_settings initialized successfully');
       }
     } catch (singletonError) {
-      console.error('[Restore] Error initializing singleton tables:', singletonError);
+      safeError('[Restore] Error initializing singleton tables:', singletonError);
       // Continue even if singleton initialization fails - restore was successful
     }
 
@@ -343,19 +344,19 @@ Respond with this exact JSON format:
     });
 
   } catch (error) {
-    console.error('Error restoring backup:', error);
+    safeError('Error restoring backup:', error);
 
     // Clean up temporary files
     try {
       await fs.promises.rm(extractDir, { recursive: true, force: true });
     } catch (cleanupError) {
-      console.error('Failed to clean up extraction directory:', cleanupError);
+      safeError('Failed to clean up extraction directory:', cleanupError);
     }
 
     try {
       await fs.promises.unlink(uploadedFile);
     } catch (cleanupError) {
-      console.error('Failed to clean up uploaded file:', cleanupError);
+      safeError('Failed to clean up uploaded file:', cleanupError);
     }
 
     // Handle file system errors
@@ -391,7 +392,7 @@ export async function getGoogleDriveAuthUrl(req, res) {
     const authUrl = getAuthUrl();
     return res.json({ authUrl });
   } catch (error) {
-    console.error('Error generating auth URL:', error);
+    safeError('Error generating auth URL:', error);
     return res.status(500).json({
       error: 'ServerError',
       message: 'Failed to generate Google Drive authorization URL'
@@ -423,7 +424,7 @@ export async function handleGoogleDriveCallback(req, res) {
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
     return res.redirect(`${frontendUrl}/settings?google_drive=connected`);
   } catch (error) {
-    console.error('Error exchanging code for tokens:', error);
+    safeError('Error exchanging code for tokens:', error);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
     return res.redirect(`${frontendUrl}/settings?google_drive=error`);
   }
@@ -438,7 +439,7 @@ export async function getGoogleDriveStatus(req, res) {
     const authenticated = await isAuthenticated();
     return res.json({ authenticated });
   } catch (error) {
-    console.error('Error checking Google Drive status:', error);
+    safeError('Error checking Google Drive status:', error);
     return res.status(500).json({
       error: 'ServerError',
       message: 'Failed to check Google Drive status'
@@ -463,7 +464,7 @@ export async function getBackupSettings(req, res) {
 
     return res.json(result.rows[0]);
   } catch (error) {
-    console.error('Error fetching backup settings:', error);
+    safeError('Error fetching backup settings:', error);
     return res.status(500).json({
       error: 'ServerError',
       message: 'Failed to fetch backup settings'
@@ -537,7 +538,7 @@ export async function updateBackupSettings(req, res) {
 
     return res.json(result.rows[0]);
   } catch (error) {
-    console.error('Error updating backup settings:', error);
+    safeError('Error updating backup settings:', error);
     return res.status(500).json({
       error: 'ServerError',
       message: 'Failed to update backup settings'
@@ -560,14 +561,14 @@ export async function triggerManual(req, res) {
         fileId: result.fileId
       });
     } else {
-      console.error('[triggerManual] Backup failed:', result.error);
+      safeError('[triggerManual] Backup failed:', result.error);
       return res.status(500).json({
         error: 'ServerError',
         message: result.error || 'Backup failed'
       });
     }
   } catch (error) {
-    console.error('[triggerManual] Error triggering manual backup:', error);
+    safeError('[triggerManual] Error triggering manual backup:', error);
     return res.status(500).json({
       error: 'ServerError',
       message: error.message || 'Failed to trigger backup'
@@ -584,7 +585,7 @@ export async function listGoogleDriveBackups(req, res) {
     const backups = await listBackups();
     return res.json({ backups });
   } catch (error) {
-    console.error('Error listing backups:', error);
+    safeError('Error listing backups:', error);
     return res.status(500).json({
       error: 'ServerError',
       message: 'Failed to list backups'

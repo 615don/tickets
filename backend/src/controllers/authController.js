@@ -1,6 +1,7 @@
 import { User } from '../models/User.js';
 import { invalidateAllSessions } from '../utils/sessionHelpers.js';
 import { logAudit } from '../utils/auditLogger.js';
+import { safeError } from '../utils/logSanitizer.js';
 
 // Register a new user
 export const register = async (req, res) => {
@@ -22,7 +23,7 @@ export const register = async (req, res) => {
     // Regenerate session to prevent session fixation
     req.session.regenerate((err) => {
       if (err) {
-        console.error('Session regeneration error:', err);
+        safeError('Session regeneration error:', err);
         return res.status(500).json({
           error: 'Registration failed',
           message: 'An error occurred during session creation'
@@ -45,7 +46,7 @@ export const register = async (req, res) => {
       });
     });
   } catch (error) {
-    console.error('Registration error:', error);
+    safeError('Registration error:', error);
     res.status(500).json({
       error: 'Registration failed',
       message: 'An error occurred during registration'
@@ -76,7 +77,7 @@ export const login = async (req, res) => {
     // Regenerate session to prevent session fixation
     req.session.regenerate((err) => {
       if (err) {
-        console.error('Session regeneration error:', err);
+        safeError('Session regeneration error:', err);
         return res.status(500).json({
           error: 'Login failed',
           message: 'An error occurred during session creation'
@@ -98,7 +99,7 @@ export const login = async (req, res) => {
       });
     });
   } catch (error) {
-    console.error('Login error:', error);
+    safeError('Login error:', error);
     res.status(500).json({
       error: 'Login failed',
       message: 'An error occurred during login'
@@ -111,7 +112,7 @@ export const logout = async (req, res) => {
   try {
     req.session.destroy((err) => {
       if (err) {
-        console.error('Logout error:', err);
+        safeError('Logout error:', err);
         return res.status(500).json({
           error: 'Logout failed',
           message: 'An error occurred during logout'
@@ -124,7 +125,7 @@ export const logout = async (req, res) => {
       });
     });
   } catch (error) {
-    console.error('Logout error:', error);
+    safeError('Logout error:', error);
     res.status(500).json({
       error: 'Logout failed',
       message: 'An error occurred during logout'
@@ -163,7 +164,7 @@ export const getCurrentUser = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get current user error:', error);
+    safeError('Get current user error:', error);
     res.status(500).json({
       error: 'Failed to get user',
       message: 'An error occurred while fetching user data'
@@ -243,7 +244,7 @@ export const updateProfile = async (req, res) => {
     // Regenerate current session to keep user logged in
     req.session.regenerate((err) => {
       if (err) {
-        console.error('Session regeneration error:', err);
+        safeError('Session regeneration error:', err);
         return res.status(500).json({
           error: 'Update failed',
           message: 'An error occurred during session update'
@@ -256,7 +257,7 @@ export const updateProfile = async (req, res) => {
 
       req.session.save(async (saveErr) => {
         if (saveErr) {
-          console.error('Session save error:', saveErr);
+          safeError('Session save error:', saveErr);
           return res.status(500).json({
             error: 'Update failed',
             message: 'An error occurred during session update'
@@ -283,7 +284,7 @@ export const updateProfile = async (req, res) => {
       });
     });
   } catch (error) {
-    console.error('Update profile error:', error);
+    safeError('Update profile error:', error);
     res.status(500).json({
       error: 'Update failed',
       message: 'An error occurred while updating your profile'
@@ -359,7 +360,7 @@ export const updatePassword = async (req, res) => {
     // Regenerate current session to keep user logged in
     req.session.regenerate((err) => {
       if (err) {
-        console.error('Session regeneration error:', err);
+        safeError('Session regeneration error:', err);
         return res.status(500).json({
           error: 'Update failed',
           message: 'An error occurred during session update'
@@ -372,7 +373,7 @@ export const updatePassword = async (req, res) => {
 
       req.session.save(async (saveErr) => {
         if (saveErr) {
-          console.error('Session save error:', saveErr);
+          safeError('Session save error:', saveErr);
           return res.status(500).json({
             error: 'Update failed',
             message: 'An error occurred during session update'
@@ -394,7 +395,7 @@ export const updatePassword = async (req, res) => {
       });
     });
   } catch (error) {
-    console.error('Update password error:', error);
+    safeError('Update password error:', error);
     res.status(500).json({
       error: 'Update failed',
       message: 'An error occurred while updating your password'
