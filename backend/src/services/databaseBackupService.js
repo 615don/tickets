@@ -154,7 +154,9 @@ async function getTableSchema(tableName) {
   indexes.rows.forEach(index => {
     if (!index.indexname.endsWith('_pkey')) {
       // Add IF NOT EXISTS to CREATE INDEX statements for idempotent restores
-      const indexDef = index.indexdef.replace(/^CREATE INDEX/i, 'CREATE INDEX IF NOT EXISTS');
+      let indexDef = index.indexdef;
+      indexDef = indexDef.replace(/^CREATE UNIQUE INDEX/i, 'CREATE UNIQUE INDEX IF NOT EXISTS');
+      indexDef = indexDef.replace(/^CREATE INDEX/i, 'CREATE INDEX IF NOT EXISTS');
       sql += `${indexDef};\n`;
     }
   });
