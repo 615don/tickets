@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Eye, EyeOff } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Eye, EyeOff, ChevronDown } from 'lucide-react';
 
 /**
  * AI Settings Section Component
@@ -13,6 +14,7 @@ import { Eye, EyeOff } from 'lucide-react';
  */
 export function AiSettingsSection() {
   // State management
+  const [isOpen, setIsOpen] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('gpt-5-mini');
   const [systemPrompt, setSystemPrompt] = useState('');
@@ -92,9 +94,27 @@ export function AiSettingsSection() {
     updateMutation.isPending;
 
   return (
-    <div className="space-y-6">
-      {/* OpenAI API Key Field */}
-      <div className="space-y-2">
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger asChild>
+        <Button
+          variant="ghost"
+          className="flex w-full justify-between p-2 hover:bg-muted/50 rounded-md mb-4"
+        >
+          <span className="text-sm font-medium">
+            {isOpen ? 'Hide AI settings' : 'Show AI settings'}
+          </span>
+          <ChevronDown
+            className={`h-4 w-4 transition-transform duration-200 ${
+              isOpen ? 'rotate-180' : ''
+            }`}
+          />
+        </Button>
+      </CollapsibleTrigger>
+
+      <CollapsibleContent>
+        <div className="space-y-6">
+          {/* OpenAI API Key Field */}
+          <div className="space-y-2">
         <Label htmlFor="apiKey">OpenAI API Key</Label>
         <div className="relative">
           <Input
@@ -286,20 +306,22 @@ export function AiSettingsSection() {
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          onClick={handleTestConnection}
-          disabled={!apiKey || isMaskedKey || testConnectionMutation.isPending}
-          title={isMaskedKey ? "Enter a new API key to test connection" : ""}
-        >
-          {testConnectionMutation.isPending ? 'Testing...' : 'Test Connection'}
-        </Button>
-        <Button onClick={handleSave} disabled={isSaveDisabled}>
-          {updateMutation.isPending ? 'Saving...' : 'Save Settings'}
-        </Button>
-      </div>
-    </div>
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleTestConnection}
+              disabled={!apiKey || isMaskedKey || testConnectionMutation.isPending}
+              title={isMaskedKey ? "Enter a new API key to test connection" : ""}
+            >
+              {testConnectionMutation.isPending ? 'Testing...' : 'Test Connection'}
+            </Button>
+            <Button onClick={handleSave} disabled={isSaveDisabled}>
+              {updateMutation.isPending ? 'Saving...' : 'Save Settings'}
+            </Button>
+          </div>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }

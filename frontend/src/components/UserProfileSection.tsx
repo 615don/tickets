@@ -81,7 +81,7 @@ export const UserProfileSection = () => {
         <CollapsibleTrigger asChild>
           <Button
             variant="ghost"
-            className="flex w-full justify-between p-0 hover:bg-transparent -mt-2 mb-4"
+            className="flex w-full justify-between p-2 hover:bg-muted/50 rounded-md -mt-2 mb-4"
           >
             <span className="text-sm font-medium">
               {isOpen ? 'Hide profile settings' : 'Show profile settings'}
