@@ -317,10 +317,12 @@ export async function handleGoogleDriveCallback(req, res) {
     await restartScheduler();
 
     // Redirect to settings page with success message
-    return res.redirect('/settings?google_drive=connected');
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+    return res.redirect(`${frontendUrl}/settings?google_drive=connected`);
   } catch (error) {
     console.error('Error exchanging code for tokens:', error);
-    return res.redirect('/settings?google_drive=error');
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
+    return res.redirect(`${frontendUrl}/settings?google_drive=error`);
   }
 }
 
