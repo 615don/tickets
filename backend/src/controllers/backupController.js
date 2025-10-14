@@ -163,28 +163,43 @@ export async function restoreBackup(req, res) {
       // Read SQL file
       const sqlContent = await fs.promises.readFile(databaseSqlPath, 'utf-8');
 
-      // Split SQL into individual statements
-      // Remove comments and split by semicolons
-      const statements = sqlContent
+      // Remove comment lines first
+      const cleanedContent = sqlContent
         .split('\n')
-        .filter(line => !line.trim().startsWith('--')) // Remove comment lines
-        .join('\n')
-        .split(';')
-        .map(stmt => stmt.trim())
-        .filter(stmt => stmt.length > 0); // Remove empty statements
+        .filter(line => !line.trim().startsWith('--'))
+        .join('\n');
 
-      console.log(`[Restore] Executing ${statements.length} SQL statements...`);
+      // Split SQL into individual statements by semicolon followed by newline
+      // This avoids splitting on semicolons within statements (like in DEFAULT clauses)
+      const statements = [];
+      let currentStatement = '';
+
+      for (const line of cleanedContent.split('\n')) {
+        currentStatement += line + '\n';
+        // If line ends with semicolon, it's the end of a statement
+        if (line.trim().endsWith(';')) {
+          statements.push(currentStatement.trim().slice(0, -1)); // Remove trailing semicolon
+          currentStatement = '';
+        }
+      }
+
+      // Add any remaining statement
+      if (currentStatement.trim()) {
+        statements.push(currentStatement.trim());
+      }
+
+      const validStatements = statements.filter(stmt => stmt.length > 0);
+      console.log(`[Restore] Executing ${validStatements.length} SQL statements...`);
 
       // Execute each statement sequentially
-      for (let i = 0; i < statements.length; i++) {
-        const statement = statements[i];
-        if (statement.trim()) {
-          try {
-            await pool.query(statement);
-          } catch (stmtError) {
-            console.error(`[Restore] Error in statement ${i + 1}:`, statement.substring(0, 100));
-            throw stmtError;
-          }
+      for (let i = 0; i < validStatements.length; i++) {
+        const statement = validStatements[i];
+        try {
+          await pool.query(statement);
+        } catch (stmtError) {
+          console.error(`[Restore] Error in statement ${i + 1}:`);
+          console.error(statement.substring(0, 200));
+          throw stmtError;
         }
       }
 
