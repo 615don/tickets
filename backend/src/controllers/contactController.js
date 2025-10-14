@@ -1,14 +1,39 @@
 import { Contact } from '../models/Contact.js';
+import { getCache, setCache, CacheKeys, invalidateContactCache } from '../utils/cache.js';
 
 // GET /api/contacts - Get all contacts
 export const getAllContacts = async (req, res) => {
   try {
     const { clientId, search } = req.query;
 
+    // If search query present, bypass cache (dynamic results)
+    if (search) {
+      const contacts = await Contact.findAll({
+        clientId: clientId ? parseInt(clientId) : undefined,
+        search
+      });
+      return res.json(contacts);
+    }
+
+    // Determine cache key based on filter
+    const cacheKey = clientId
+      ? CacheKeys.CONTACTS_BY_CLIENT(parseInt(clientId))
+      : CacheKeys.ALL_CONTACTS;
+
+    // Check cache first
+    const cachedContacts = getCache(cacheKey);
+    if (cachedContacts) {
+      return res.json(cachedContacts);
+    }
+
+    // Cache miss - fetch from database
     const contacts = await Contact.findAll({
       clientId: clientId ? parseInt(clientId) : undefined,
       search
     });
+
+    // Store in cache for future requests
+    setCache(cacheKey, contacts);
 
     res.json(contacts);
   } catch (error) {
@@ -63,6 +88,9 @@ export const createContact = async (req, res) => {
       email
     });
 
+    // Invalidate cache after mutation
+    invalidateContactCache();
+
     res.status(201).json(contact);
   } catch (error) {
     console.error('Create contact error:', error);
@@ -103,6 +131,9 @@ export const updateContact = async (req, res) => {
       email
     });
 
+    // Invalidate cache after mutation
+    invalidateContactCache();
+
     res.json(contact);
   } catch (error) {
     console.error('Update contact error:', error);
@@ -135,6 +166,9 @@ export const deleteContact = async (req, res) => {
     const { id } = req.params;
 
     const result = await Contact.delete(id);
+
+    // Invalidate cache after mutation
+    invalidateContactCache();
 
     res.json({
       message: 'Contact deleted successfully',
