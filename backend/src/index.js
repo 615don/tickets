@@ -18,6 +18,7 @@ import invoiceRoutes from './routes/invoices.js';
 import settingsRoutes from './routes/settings.js';
 import backupRoutes from './routes/backup.js';
 import aiRoutes from './routes/ai.js';
+import { startScheduler } from './services/backupScheduler.js';
 
 // Load environment variables
 dotenv.config();
@@ -187,6 +188,17 @@ async function startServer() {
 
     // Test database connection with retry logic
     await testConnection();
+
+    // Start backup scheduler
+    console.log('⚙️  Initializing backup scheduler...');
+    try {
+      await startScheduler();
+      console.log('✓ Backup scheduler initialized');
+    } catch (error) {
+      console.warn('⚠️  Failed to initialize backup scheduler:', error.message);
+      console.warn('   Automated backups will not run until configuration is fixed.');
+      // Don't fail startup - allow app to run without automated backups
+    }
 
     app.listen(PORT, () => {
       console.log(`\n🚀 Server running on port ${PORT}`);

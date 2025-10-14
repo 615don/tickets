@@ -1,171 +1,71 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import archiver from 'archiver';
 import AdmZip from 'adm-zip';
 import fs from 'fs';
 import path from 'path';
 import pool from '../config/database.js';
+import { createBackupZip } from '../services/databaseBackupService.js';
+import { uploadBackup, isAuthenticated, getAuthUrl, exchangeCodeForTokens, listBackups, deleteOldBackups } from '../services/googleDriveService.js';
+import { triggerManualBackup, restartScheduler } from '../services/backupScheduler.js';
 
 const execFileAsync = promisify(execFile);
 
 /**
  * POST /api/backup/generate
  * Generate and download a complete database backup with environment configuration
+ * Now uses programmatic backup (no pg_dump required)
  */
 export async function generateBackup(req, res) {
   const timestamp = new Date().toISOString().replace(/:/g, '').replace(/\..+/, '').replace('T', '-').substring(0, 17);
-  const tempDir = `/tmp/backup-${timestamp}`;
   const zipFilename = `backup-${timestamp}.zip`;
+  const tempBackupPath = `/tmp/${zipFilename}`;
 
   try {
-    // Create temporary directory
-    await fs.promises.mkdir(tempDir, { recursive: true });
+    // Create backup ZIP using new programmatic method
+    await createBackupZip(tempBackupPath);
 
-    // Extract database credentials from environment
-    const dbHost = process.env.DB_HOST || 'localhost';
-    const dbUser = process.env.DB_USER || 'postgres';
-    const dbName = process.env.DB_NAME || 'ticketing_system';
-    const dbPassword = process.env.DB_PASSWORD || '';
-
-    // Execute pg_dump command using execFile for security (prevents shell injection)
-    const dumpFile = path.join(tempDir, 'database.sql');
-
-    try {
-      // Use execFile with array arguments to prevent shell injection
-      const { stdout, stderr } = await execFileAsync('pg_dump', [
-        '-h', dbHost,
-        '-U', dbUser,
-        '-d', dbName,
-        '-f', dumpFile  // Output to file directly instead of shell redirection
-      ], {
-        env: { ...process.env, PGPASSWORD: dbPassword },
-        timeout: 300000, // 5 minutes
-        maxBuffer: 50 * 1024 * 1024 // 50MB buffer for large databases
-      });
-    } catch (pgDumpError) {
-      // Clean up temp directory
-      await fs.promises.rm(tempDir, { recursive: true, force: true });
-
-      // Handle specific pg_dump errors
-      if (pgDumpError.message.includes('command not found') || pgDumpError.message.includes('not found')) {
-        return res.status(500).json({
-          error: 'ServerError',
-          message: 'Database backup tool not available on this server. Please contact support.'
-        });
-      }
-
-      if (pgDumpError.message.includes('timeout')) {
-        return res.status(500).json({
-          error: 'ServerError',
-          message: 'Backup generation timed out. Please try again or contact support.'
-        });
-      }
-
-      if (pgDumpError.message.includes('connection') || pgDumpError.message.includes('could not connect')) {
-        return res.status(500).json({
-          error: 'ServerError',
-          message: 'Failed to connect to database. Please try again later.'
-        });
-      }
-
-      if (pgDumpError.message.includes('password authentication failed') || pgDumpError.message.includes('authentication')) {
-        return res.status(500).json({
-          error: 'ServerError',
-          message: 'Database authentication failed. Please contact support.'
-        });
-      }
-
-      // Generic pg_dump error
-      console.error('pg_dump error:', pgDumpError);
-      return res.status(500).json({
-        error: 'ServerError',
-        message: 'Failed to generate database backup. Please try again.'
-      });
-    }
-
-    // Create sanitized environment configuration
-    const sanitizedConfig = {
-      XERO_CLIENT_ID: process.env.XERO_CLIENT_ID || '',
-      XERO_CLIENT_SECRET: process.env.XERO_CLIENT_SECRET || '',
-      XERO_REDIRECT_URI: process.env.XERO_REDIRECT_URI || '',
-      ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || '',
-      SESSION_SECRET: process.env.SESSION_SECRET || ''
-    };
-
-    // Write sanitized config to file
-    const configFile = path.join(tempDir, 'environment-config.json');
-    await fs.promises.writeFile(configFile, JSON.stringify(sanitizedConfig, null, 2));
-
-    // Create ZIP archive
-    const archive = archiver('zip', {
-      zlib: { level: 9 } // Maximum compression
-    });
-
-    // Set response headers
+    // Stream file to response
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename=${zipFilename}`);
 
-    // Handle archiver errors
-    archive.on('error', async (err) => {
-      console.error('Archiver error:', err);
+    const fileStream = fs.createReadStream(tempBackupPath);
 
-      // Clean up temp directory
+    fileStream.on('end', async () => {
+      // Clean up temp file
       try {
-        await fs.promises.rm(tempDir, { recursive: true, force: true });
+        await fs.promises.unlink(tempBackupPath);
       } catch (cleanupError) {
-        console.error('Failed to clean up temp directory:', cleanupError);
+        console.error('Failed to clean up temp file:', cleanupError);
+      }
+    });
+
+    fileStream.on('error', async (err) => {
+      console.error('File stream error:', err);
+      // Clean up temp file
+      try {
+        await fs.promises.unlink(tempBackupPath);
+      } catch (cleanupError) {
+        console.error('Failed to clean up temp file:', cleanupError);
       }
 
       if (!res.headersSent) {
         return res.status(500).json({
           error: 'ServerError',
-          message: 'Failed to create backup archive. Please try again.'
+          message: 'Failed to download backup. Please try again.'
         });
       }
     });
 
-    // Clean up temp directory after streaming completes
-    archive.on('end', async () => {
-      try {
-        await fs.promises.rm(tempDir, { recursive: true, force: true });
-      } catch (cleanupError) {
-        console.error('Failed to clean up temp directory:', cleanupError);
-      }
-    });
-
-    // Pipe archive to response
-    archive.pipe(res);
-
-    // Add files to archive
-    archive.file(dumpFile, { name: 'database.sql' });
-    archive.file(configFile, { name: 'environment-config.json' });
-
-    // Finalize the archive
-    await archive.finalize();
+    fileStream.pipe(res);
 
   } catch (error) {
     console.error('Error generating backup:', error);
 
-    // Clean up temp directory
+    // Clean up temp file
     try {
-      await fs.promises.rm(tempDir, { recursive: true, force: true });
+      await fs.promises.unlink(tempBackupPath);
     } catch (cleanupError) {
-      console.error('Failed to clean up temp directory:', cleanupError);
-    }
-
-    // Handle file system errors
-    if (error.code === 'EACCES' || error.code === 'EPERM') {
-      return res.status(500).json({
-        error: 'ServerError',
-        message: 'Permission denied while creating backup. Please contact support.'
-      });
-    }
-
-    if (error.code === 'ENOSPC') {
-      return res.status(500).json({
-        error: 'ServerError',
-        message: 'Insufficient disk space to create backup. Please contact support.'
-      });
+      // Ignore cleanup errors
     }
 
     if (!res.headersSent) {
@@ -376,5 +276,212 @@ export async function restoreBackup(req, res) {
         message: 'Failed to restore backup. Please try again.'
       });
     }
+  }
+}
+
+/**
+ * GET /api/backup/google-drive/auth-url
+ * Get Google Drive OAuth authorization URL
+ */
+export async function getGoogleDriveAuthUrl(req, res) {
+  try {
+    const authUrl = getAuthUrl();
+    return res.json({ authUrl });
+  } catch (error) {
+    console.error('Error generating auth URL:', error);
+    return res.status(500).json({
+      error: 'ServerError',
+      message: 'Failed to generate Google Drive authorization URL'
+    });
+  }
+}
+
+/**
+ * GET /api/backup/google-drive/callback
+ * Handle Google Drive OAuth callback
+ */
+export async function handleGoogleDriveCallback(req, res) {
+  const { code } = req.query;
+
+  if (!code) {
+    return res.status(400).json({
+      error: 'ValidationError',
+      message: 'Authorization code not provided'
+    });
+  }
+
+  try {
+    await exchangeCodeForTokens(code);
+
+    // Restart scheduler if backups are enabled
+    await restartScheduler();
+
+    // Redirect to settings page with success message
+    return res.redirect('/settings?google_drive=connected');
+  } catch (error) {
+    console.error('Error exchanging code for tokens:', error);
+    return res.redirect('/settings?google_drive=error');
+  }
+}
+
+/**
+ * GET /api/backup/google-drive/status
+ * Check if authenticated with Google Drive
+ */
+export async function getGoogleDriveStatus(req, res) {
+  try {
+    const authenticated = await isAuthenticated();
+    return res.json({ authenticated });
+  } catch (error) {
+    console.error('Error checking Google Drive status:', error);
+    return res.status(500).json({
+      error: 'ServerError',
+      message: 'Failed to check Google Drive status'
+    });
+  }
+}
+
+/**
+ * GET /api/backup/settings
+ * Get backup settings
+ */
+export async function getBackupSettings(req, res) {
+  try {
+    const result = await pool.query('SELECT * FROM backup_settings WHERE id = 1');
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: 'NotFound',
+        message: 'Backup settings not found'
+      });
+    }
+
+    return res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching backup settings:', error);
+    return res.status(500).json({
+      error: 'ServerError',
+      message: 'Failed to fetch backup settings'
+    });
+  }
+}
+
+/**
+ * PUT /api/backup/settings
+ * Update backup settings
+ */
+export async function updateBackupSettings(req, res) {
+  const { enabled, schedule_cron, retention_days } = req.body;
+
+  try {
+    // Validate inputs
+    if (enabled !== undefined && typeof enabled !== 'boolean') {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'enabled must be a boolean'
+      });
+    }
+
+    if (retention_days !== undefined && (typeof retention_days !== 'number' || retention_days < 1 || retention_days > 365)) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'retention_days must be a number between 1 and 365'
+      });
+    }
+
+    // Build update query
+    const updates = [];
+    const values = [];
+    let paramIndex = 1;
+
+    if (enabled !== undefined) {
+      updates.push(`enabled = $${paramIndex++}`);
+      values.push(enabled);
+    }
+
+    if (schedule_cron !== undefined) {
+      updates.push(`schedule_cron = $${paramIndex++}`);
+      values.push(schedule_cron);
+    }
+
+    if (retention_days !== undefined) {
+      updates.push(`retention_days = $${paramIndex++}`);
+      values.push(retention_days);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'No valid fields to update'
+      });
+    }
+
+    updates.push('updated_at = NOW()');
+
+    const sql = `
+      UPDATE backup_settings
+      SET ${updates.join(', ')}
+      WHERE id = 1
+      RETURNING *
+    `;
+
+    const result = await pool.query(sql, values);
+
+    // Restart scheduler with new settings
+    await restartScheduler();
+
+    return res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating backup settings:', error);
+    return res.status(500).json({
+      error: 'ServerError',
+      message: 'Failed to update backup settings'
+    });
+  }
+}
+
+/**
+ * POST /api/backup/trigger-manual
+ * Manually trigger a backup now
+ */
+export async function triggerManual(req, res) {
+  try {
+    const result = await triggerManualBackup();
+
+    if (result.success) {
+      return res.json({
+        message: 'Backup completed successfully',
+        fileName: result.fileName,
+        fileId: result.fileId
+      });
+    } else {
+      return res.status(500).json({
+        error: 'ServerError',
+        message: `Backup failed: ${result.error}`
+      });
+    }
+  } catch (error) {
+    console.error('Error triggering manual backup:', error);
+    return res.status(500).json({
+      error: 'ServerError',
+      message: 'Failed to trigger backup'
+    });
+  }
+}
+
+/**
+ * GET /api/backup/list
+ * List all backups in Google Drive
+ */
+export async function listGoogleDriveBackups(req, res) {
+  try {
+    const backups = await listBackups();
+    return res.json({ backups });
+  } catch (error) {
+    console.error('Error listing backups:', error);
+    return res.status(500).json({
+      error: 'ServerError',
+      message: 'Failed to list backups'
+    });
   }
 }

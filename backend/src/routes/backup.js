@@ -1,7 +1,17 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import multer from 'multer';
-import { generateBackup, restoreBackup } from '../controllers/backupController.js';
+import {
+  generateBackup,
+  restoreBackup,
+  getGoogleDriveAuthUrl,
+  handleGoogleDriveCallback,
+  getGoogleDriveStatus,
+  getBackupSettings,
+  updateBackupSettings,
+  triggerManual,
+  listGoogleDriveBackups
+} from '../controllers/backupController.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -36,5 +46,20 @@ router.post('/generate', requireAuth, backupRateLimiter, generateBackup);
 
 // POST /api/backup/restore - Restore database from backup ZIP file
 router.post('/restore', requireAuth, upload.single('backup'), restoreBackup);
+
+// Google Drive OAuth routes
+router.get('/google-drive/auth-url', requireAuth, getGoogleDriveAuthUrl);
+router.get('/google-drive/callback', handleGoogleDriveCallback);
+router.get('/google-drive/status', requireAuth, getGoogleDriveStatus);
+
+// Backup settings routes
+router.get('/settings', requireAuth, getBackupSettings);
+router.put('/settings', requireAuth, updateBackupSettings);
+
+// Manual backup trigger
+router.post('/trigger-manual', requireAuth, backupRateLimiter, triggerManual);
+
+// List backups in Google Drive
+router.get('/list', requireAuth, listGoogleDriveBackups);
 
 export default router;

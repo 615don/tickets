@@ -253,6 +253,39 @@ Respond with JSON format:
       ADD CONSTRAINT check_max_completion_tokens
       CHECK (max_completion_tokens >= 100 AND max_completion_tokens <= 128000);
     `
+  },
+  {
+    name: '014_create_google_drive_tokens_table',
+    sql: `
+      CREATE TABLE IF NOT EXISTS google_drive_tokens (
+        id SERIAL PRIMARY KEY CHECK (id = 1),
+        access_token TEXT NOT NULL,
+        refresh_token TEXT,
+        expiry_date BIGINT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `
+  },
+  {
+    name: '015_create_backup_settings_table',
+    sql: `
+      CREATE TABLE IF NOT EXISTS backup_settings (
+        id SERIAL PRIMARY KEY CHECK (id = 1),
+        enabled BOOLEAN NOT NULL DEFAULT false,
+        schedule_cron VARCHAR(100) NOT NULL DEFAULT '0 0 * * *',
+        retention_days INTEGER NOT NULL DEFAULT 10,
+        last_backup_at TIMESTAMP WITH TIME ZONE,
+        last_backup_status VARCHAR(50),
+        last_backup_error TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
+      INSERT INTO backup_settings (id, enabled, schedule_cron, retention_days)
+      VALUES (1, false, '0 0 * * *', 10)
+      ON CONFLICT (id) DO NOTHING;
+    `
   }
 ];
 
