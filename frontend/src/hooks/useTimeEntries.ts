@@ -19,6 +19,10 @@ export function useCreateTimeEntry(ticketId: number) {
     onSuccess: () => {
       // Invalidate ticket detail to refresh time entries list and totalHours
       queryClient.invalidateQueries({ queryKey: ticketKeys.detail(ticketId) });
+      // Invalidate lists to update totalHours display
+      queryClient.invalidateQueries({ queryKey: ticketKeys.lists() });
+      // Invalidate stats to update currentMonthHours
+      queryClient.invalidateQueries({ queryKey: ticketKeys.stats() });
     },
   });
 }
@@ -35,6 +39,10 @@ export function useUpdateTimeEntry(ticketId: number) {
     onSuccess: () => {
       // Invalidate ticket detail to refresh time entries list and totalHours
       queryClient.invalidateQueries({ queryKey: ticketKeys.detail(ticketId) });
+      // Invalidate lists to update totalHours display
+      queryClient.invalidateQueries({ queryKey: ticketKeys.lists() });
+      // Invalidate stats to update currentMonthHours
+      queryClient.invalidateQueries({ queryKey: ticketKeys.stats() });
     },
   });
 }
@@ -50,6 +58,10 @@ export function useDeleteTimeEntry(ticketId: number) {
     onSuccess: () => {
       // Invalidate ticket detail to refresh time entries list and totalHours
       queryClient.invalidateQueries({ queryKey: ticketKeys.detail(ticketId) });
+      // Invalidate lists to update totalHours display
+      queryClient.invalidateQueries({ queryKey: ticketKeys.lists() });
+      // Invalidate stats to update currentMonthHours
+      queryClient.invalidateQueries({ queryKey: ticketKeys.stats() });
     },
   });
 }

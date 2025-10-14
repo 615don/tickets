@@ -93,10 +93,17 @@ export function useUpdateTicket() {
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: UpdateTicketRequest }) =>
       ticketsApi.update(id, data),
-    onSuccess: (_, { id }) => {
-      // Invalidate both list and detail queries
-      queryClient.invalidateQueries({ queryKey: ticketKeys.lists() });
+    onSuccess: (_, { id, data }) => {
+      // Invalidate detail query
       queryClient.invalidateQueries({ queryKey: ticketKeys.detail(id) });
+      // Invalidate list queries
+      queryClient.invalidateQueries({ queryKey: ticketKeys.lists() });
+
+      // If state was changed, also invalidate stats and recently closed
+      if (data.state) {
+        queryClient.invalidateQueries({ queryKey: ticketKeys.stats() });
+        queryClient.invalidateQueries({ queryKey: ticketKeys.recentlyClosed() });
+      }
     },
   });
 }
@@ -105,11 +112,17 @@ export function useUpdateTicket() {
  * Close ticket (convenience wrapper)
  */
 export function useCloseTicket() {
-  const updateTicket = useUpdateTicket();
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) =>
-      updateTicket.mutateAsync({ id, data: { state: 'closed' } }),
+    mutationFn: (id: number) => ticketsApi.update(id, { state: 'closed' }),
+    onSuccess: (_, id) => {
+      // Invalidate all relevant queries
+      queryClient.invalidateQueries({ queryKey: ticketKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.stats() });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.recentlyClosed() });
+    },
   });
 }
 
@@ -117,11 +130,17 @@ export function useCloseTicket() {
  * Re-open ticket (convenience wrapper)
  */
 export function useReopenTicket() {
-  const updateTicket = useUpdateTicket();
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: number) =>
-      updateTicket.mutateAsync({ id, data: { state: 'open' } }),
+    mutationFn: (id: number) => ticketsApi.update(id, { state: 'open' }),
+    onSuccess: (_, id) => {
+      // Invalidate all relevant queries
+      queryClient.invalidateQueries({ queryKey: ticketKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.stats() });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.recentlyClosed() });
+    },
   });
 }
 
