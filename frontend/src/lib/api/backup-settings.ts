@@ -36,37 +36,31 @@ export interface ManualBackupResponse {
 export const backupSettingsApi = {
   // Get Google Drive authentication URL
   getAuthUrl: async (): Promise<{ authUrl: string }> => {
-    const response = await apiClient.get('/backup/google-drive/auth-url');
-    return response.data;
+    return await apiClient.get('/api/backup/google-drive/auth-url');
   },
 
   // Get Google Drive connection status
   getStatus: async (): Promise<GoogleDriveStatus> => {
-    const response = await apiClient.get('/backup/google-drive/status');
-    return response.data;
+    return await apiClient.get('/api/backup/google-drive/status');
   },
 
   // Get backup settings
   getSettings: async (): Promise<BackupSettings> => {
-    const response = await apiClient.get('/backup/settings');
-    return response.data;
+    return await apiClient.get('/api/backup/settings');
   },
 
   // Update backup settings
   updateSettings: async (settings: Partial<Pick<BackupSettings, 'enabled' | 'schedule_cron' | 'retention_days'>>): Promise<BackupSettings> => {
-    const response = await apiClient.put('/backup/settings', settings);
-    return response.data;
+    return await apiClient.put('/api/backup/settings', settings);
   },
 
   // Trigger manual backup
   triggerManual: async (): Promise<ManualBackupResponse> => {
-    const response = await apiClient.post('/backup/trigger-manual');
-    return response.data;
+    return await apiClient.post('/api/backup/trigger-manual');
   },
 
   // List backups in Google Drive
   listBackups: async (): Promise<BackupsListResponse> => {
-    const response = await apiClient.get('/backup/list');
-    return response.data;
+    return await apiClient.get('/api/backup/list');
   },
 };
