@@ -280,6 +280,58 @@ export async function restoreBackup(req, res) {
       // Continue even if session invalidation fails - restore was successful
     }
 
+    // Initialize singleton configuration tables if they are empty after restore
+    // This handles cases where backups were taken before these features existed
+    try {
+      console.log('[Restore] Checking singleton configuration tables...');
+
+      // Check and initialize ai_settings if empty
+      const aiSettingsCheck = await pool.query('SELECT COUNT(*) FROM ai_settings');
+      if (parseInt(aiSettingsCheck.rows[0].count) === 0) {
+        console.log('[Restore] Initializing ai_settings with default row...');
+        await pool.query(`
+          INSERT INTO ai_settings (id, openai_api_key, openai_model, system_prompt, max_completion_tokens, max_word_count, api_timeout_ms)
+          VALUES (1, '', 'gpt-5-mini', 'You are an AI assistant helping to summarize email threads for IT consulting ticket creation.
+
+Generate two outputs:
+1. Description: A concise one-line summary suitable for invoice line items (max 100 characters)
+2. Notes: A detailed summary of the email thread for billing reference and memory jogging
+
+Rules:
+- Focus on technical issues, requests, and context
+- Preserve important details (error messages, dates, versions, steps taken)
+- Omit pleasantries and signature content
+- Adjust summary length based on email content length (short emails = brief notes, long threads = detailed notes)
+- Use professional, neutral tone
+
+IMPORTANT: You must respond with ONLY valid JSON. Do not include any text before or after the JSON object. Do not use markdown code blocks. Output raw JSON only.
+
+Respond with this exact JSON format:
+{
+  "description": "one-line summary here",
+  "notes": "detailed multi-paragraph summary here"
+}', 2000, 4000, 15000)
+          ON CONFLICT (id) DO NOTHING
+        `);
+        console.log('[Restore] ai_settings initialized successfully');
+      }
+
+      // Check and initialize backup_settings if empty
+      const backupSettingsCheck = await pool.query('SELECT COUNT(*) FROM backup_settings');
+      if (parseInt(backupSettingsCheck.rows[0].count) === 0) {
+        console.log('[Restore] Initializing backup_settings with default row...');
+        await pool.query(`
+          INSERT INTO backup_settings (id, enabled, schedule_cron, retention_days)
+          VALUES (1, false, '0 0 * * *', 10)
+          ON CONFLICT (id) DO NOTHING
+        `);
+        console.log('[Restore] backup_settings initialized successfully');
+      }
+    } catch (singletonError) {
+      console.error('[Restore] Error initializing singleton tables:', singletonError);
+      // Continue even if singleton initialization fails - restore was successful
+    }
+
     // Clean up temporary files
     await fs.promises.rm(extractDir, { recursive: true, force: true });
     await fs.promises.unlink(uploadedFile);
