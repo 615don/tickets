@@ -7,11 +7,13 @@ import { XeroConnectionCard } from '@/components/XeroConnectionCard';
 import { XeroContactsDialog } from '@/components/XeroContactsDialog';
 import { BackupSection } from '@/components/BackupSection';
 import { RestoreSection } from '@/components/RestoreSection';
+import { AutomatedBackupSection } from '@/components/AutomatedBackupSection';
 import { AiSettingsSection } from '@/components/AiSettingsSection';
 import { XeroConnectionStatus } from '@/types/xero';
 import { useToast } from '@/hooks/use-toast';
 import { useXeroStatus, useDisconnectXero } from '@/hooks/useXero';
 import { useInvoiceConfig, useUpdateInvoiceConfig } from '@/hooks/useInvoiceConfig';
+import { useGoogleDriveStatus } from '@/hooks/useBackupSettings';
 import { xeroApi } from '@/lib/api/xero';
 import { Button } from '@/components/ui/button';
 
@@ -30,6 +32,9 @@ export const Settings = () => {
   const { data: invoiceConfig, isLoading: isConfigLoading } = useInvoiceConfig();
   const updateConfigMutation = useUpdateInvoiceConfig();
 
+  // Fetch Google Drive status for refetch on callback
+  const { refetch: refetchDriveStatus } = useGoogleDriveStatus();
+
   // Transform API response to component format
   const connectionStatus: XeroConnectionStatus = {
     isConnected: xeroStatus?.isConnected || false,
@@ -40,11 +45,13 @@ export const Settings = () => {
     isValid: xeroStatus?.isConnected || false,
   };
 
-  // Handle OAuth callback
+  // Handle OAuth callbacks (Xero and Google Drive)
   useEffect(() => {
     const success = searchParams.get('success');
     const errorParam = searchParams.get('error');
+    const googleDrive = searchParams.get('google_drive');
 
+    // Handle Xero OAuth callback
     if (success === 'true') {
       toast({
         title: 'Connected to Xero',
@@ -75,7 +82,29 @@ export const Settings = () => {
       searchParams.delete('error');
       setSearchParams(searchParams);
     }
-  }, [searchParams, setSearchParams, toast, refetch]);
+
+    // Handle Google Drive OAuth callback
+    if (googleDrive === 'connected') {
+      toast({
+        title: 'Connected to Google Drive',
+        description: 'Your Google Drive has been successfully connected for backups.',
+      });
+      // Refetch Google Drive status
+      refetchDriveStatus();
+      // Clear query params
+      searchParams.delete('google_drive');
+      setSearchParams(searchParams);
+    } else if (googleDrive === 'error') {
+      toast({
+        title: 'Connection Failed',
+        description: 'Failed to connect to Google Drive. Please try again.',
+        variant: 'destructive',
+      });
+      // Clear query params
+      searchParams.delete('google_drive');
+      setSearchParams(searchParams);
+    }
+  }, [searchParams, setSearchParams, toast, refetch, refetchDriveStatus]);
 
   const handleConnect = () => {
     xeroApi.initiateConnect();
@@ -243,17 +272,32 @@ export const Settings = () => {
           {/* Backup & Restore Section */}
           <SettingsSection
             title="Backup & Restore"
-            description="Download backups of your database and restore from previous backups."
+            description="Configure automated backups to Google Drive and manage manual backups."
           >
             <div className="space-y-6">
-              {/* Backup download */}
-              <BackupSection />
+              {/* Automated Backups */}
+              <div>
+                <h3 className="text-sm font-medium mb-3">Automated Backups</h3>
+                <AutomatedBackupSection />
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-border" />
+
+              {/* Manual Backup Download */}
+              <div>
+                <h3 className="text-sm font-medium mb-3">Manual Backup</h3>
+                <BackupSection />
+              </div>
 
               {/* Divider */}
               <div className="border-t border-border" />
 
               {/* Restore upload */}
-              <RestoreSection />
+              <div>
+                <h3 className="text-sm font-medium mb-3">Restore from Backup</h3>
+                <RestoreSection />
+              </div>
             </div>
           </SettingsSection>
 
