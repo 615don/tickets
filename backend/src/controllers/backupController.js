@@ -457,16 +457,17 @@ export async function triggerManual(req, res) {
         fileId: result.fileId
       });
     } else {
+      console.error('[triggerManual] Backup failed:', result.error);
       return res.status(500).json({
         error: 'ServerError',
-        message: `Backup failed: ${result.error}`
+        message: result.error || 'Backup failed'
       });
     }
   } catch (error) {
-    console.error('Error triggering manual backup:', error);
+    console.error('[triggerManual] Error triggering manual backup:', error);
     return res.status(500).json({
       error: 'ServerError',
-      message: 'Failed to trigger backup'
+      message: error.message || 'Failed to trigger backup'
     });
   }
 }
