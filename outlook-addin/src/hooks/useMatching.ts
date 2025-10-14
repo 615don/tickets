@@ -85,6 +85,12 @@ export function useMatching(emailContext: EmailContext | null) {
             // Call AI API with abort signal to cancel if user switches emails
             const summary = await summarizeEmail(emailThread, abortController.signal);
 
+            // Check if request was aborted while waiting for response
+            if (abortController.signal.aborted) {
+              console.info('[AI] Summarization cancelled (user switched emails) - ignoring results');
+              return;
+            }
+
             if (summary.success !== false) {
               // AI success - store summary for form auto-population
               setAiSummary({
@@ -173,6 +179,7 @@ export function useMatching(emailContext: EmailContext | null) {
       clearTimeout(timeoutId);
       abortController.abort();
       setIsMatching(false);
+      setIsGeneratingAi(false); // Stop AI loading indicator immediately
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [emailContext?.senderEmail]);
