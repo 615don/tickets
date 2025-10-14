@@ -8,6 +8,7 @@ import { contactsApi, CreateContactRequest } from '@/lib/api/contacts';
 import { Contact } from '@/types';
 import { ApiError } from '@/lib/api-client';
 import { clientKeys } from './useClients';
+import { queryConfig } from '@/lib/queryConfig';
 
 // Query keys for cache management
 export const contactKeys = {
@@ -25,7 +26,8 @@ export function useContacts(clientId?: number) {
   return useQuery({
     queryKey: contactKeys.list(clientId),
     queryFn: () => contactsApi.getAll(clientId),
-    staleTime: 30000, // Consider data fresh for 30 seconds
+    staleTime: queryConfig.contacts.staleTime,
+    refetchOnWindowFocus: queryConfig.contacts.refetchOnWindowFocus,
   });
 }
 
@@ -37,6 +39,8 @@ export function useContact(id: number) {
     queryKey: contactKeys.detail(id),
     queryFn: () => contactsApi.getById(id),
     enabled: !!id, // Only fetch if ID is provided
+    staleTime: queryConfig.contacts.staleTime,
+    refetchOnWindowFocus: queryConfig.contacts.refetchOnWindowFocus,
   });
 }
 

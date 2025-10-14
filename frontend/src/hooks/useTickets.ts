@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ticketsApi } from '@/lib/api/tickets';
 import { CreateTicketRequest, UpdateTicketRequest } from '@/types';
 import { ApiError } from '@/lib/api-client';
+import { queryConfig } from '@/lib/queryConfig';
 
 // Query keys for cache management
 export const ticketKeys = {
@@ -26,8 +27,8 @@ export function useOpenTickets() {
   return useQuery({
     queryKey: ticketKeys.list('state=open'),
     queryFn: () => ticketsApi.getAll({ state: 'open' }),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true,
+    staleTime: queryConfig.tickets.staleTime,
+    refetchOnWindowFocus: queryConfig.tickets.refetchOnWindowFocus,
   });
 }
 
@@ -38,8 +39,8 @@ export function useRecentlyClosedTickets() {
   return useQuery({
     queryKey: ticketKeys.recentlyClosed(),
     queryFn: () => ticketsApi.getRecentlyClosed(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true,
+    staleTime: queryConfig.tickets.staleTime,
+    refetchOnWindowFocus: queryConfig.tickets.refetchOnWindowFocus,
   });
 }
 
@@ -50,8 +51,8 @@ export function useDashboardStats() {
   return useQuery({
     queryKey: ticketKeys.stats(),
     queryFn: () => ticketsApi.getStats(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true,
+    staleTime: queryConfig.dashboard.staleTime,
+    refetchOnWindowFocus: queryConfig.dashboard.refetchOnWindowFocus,
   });
 }
 
@@ -63,6 +64,8 @@ export function useTicket(id: number | undefined) {
     queryKey: ticketKeys.detail(id!),
     queryFn: () => ticketsApi.getById(id!),
     enabled: !!id, // Only fetch if id is provided
+    staleTime: queryConfig.tickets.staleTime,
+    refetchOnWindowFocus: queryConfig.tickets.refetchOnWindowFocus,
   });
 }
 

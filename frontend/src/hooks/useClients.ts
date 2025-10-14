@@ -7,8 +7,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { clientsApi, CreateClientRequest, DeleteClientResponse } from '@/lib/api/clients';
 import { Client } from '@/types';
 import { ApiError } from '@/lib/api-client';
+import { queryConfig } from '@/lib/queryConfig';
 
-// Query keys for cache management
+// Query keys for cache management (maintain backward compatibility)
 export const clientKeys = {
   all: ['clients'] as const,
   lists: () => [...clientKeys.all, 'list'] as const,
@@ -24,7 +25,8 @@ export function useClients(search?: string) {
   return useQuery({
     queryKey: clientKeys.list(search),
     queryFn: () => clientsApi.getAll(search),
-    staleTime: 30000, // Consider data fresh for 30 seconds
+    staleTime: queryConfig.clients.staleTime,
+    refetchOnWindowFocus: queryConfig.clients.refetchOnWindowFocus,
   });
 }
 
@@ -36,6 +38,8 @@ export function useClient(id: number) {
     queryKey: clientKeys.detail(id),
     queryFn: () => clientsApi.getById(id),
     enabled: !!id, // Only fetch if ID is provided
+    staleTime: queryConfig.clients.staleTime,
+    refetchOnWindowFocus: queryConfig.clients.refetchOnWindowFocus,
   });
 }
 

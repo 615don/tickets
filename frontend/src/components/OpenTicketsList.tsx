@@ -6,6 +6,7 @@
 
 import { Ticket } from '@/types';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Table,
   TableBody,
@@ -16,6 +17,9 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDistanceToNow } from 'date-fns';
+import { ticketKeys } from '@/hooks/useTickets';
+import { ticketsApi } from '@/lib/api/tickets';
+import { queryConfig } from '@/lib/queryConfig';
 
 interface OpenTicketsListProps {
   tickets: Ticket[];
@@ -23,9 +27,19 @@ interface OpenTicketsListProps {
 
 export const OpenTicketsList = ({ tickets }: OpenTicketsListProps) => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const handleTicketClick = (id: number) => {
     navigate(`/tickets/${id}`);
+  };
+
+  // Prefetch ticket details on hover for instant navigation
+  const prefetchTicket = (id: number) => {
+    queryClient.prefetchQuery({
+      queryKey: ticketKeys.detail(id),
+      queryFn: () => ticketsApi.getById(id),
+      staleTime: queryConfig.tickets.staleTime,
+    });
   };
 
   const formatHours = (hours: number) => {
@@ -56,6 +70,7 @@ export const OpenTicketsList = ({ tickets }: OpenTicketsListProps) => {
                 key={ticket.id}
                 className="cursor-pointer hover:bg-muted/50"
                 onClick={() => handleTicketClick(ticket.id)}
+                onMouseEnter={() => prefetchTicket(ticket.id)}
               >
                 <TableCell className="font-medium">#{ticket.id}</TableCell>
                 <TableCell>{ticket.clientName}</TableCell>
@@ -77,6 +92,7 @@ export const OpenTicketsList = ({ tickets }: OpenTicketsListProps) => {
             key={ticket.id}
             className="cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => handleTicketClick(ticket.id)}
+            onMouseEnter={() => prefetchTicket(ticket.id)}
           >
             <CardContent className="p-4">
               <div className="flex justify-between items-start mb-2">

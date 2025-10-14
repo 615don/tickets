@@ -17,7 +17,21 @@ import { InvoiceReview } from "./components/InvoiceReview";
 import { InvoicePreview } from "./pages/InvoicePreview";
 import { Settings } from "./components/Settings";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // Default 5 min for backward compatibility
+      refetchOnMount: false,    // Don't refetch if data is fresh
+      refetchOnWindowFocus: false, // Override per-query where needed
+      refetchOnReconnect: true, // Refresh after network reconnection
+      retry: 1,                 // Reduce retry attempts for faster failures
+    },
+    mutations: {
+      // Mutations should still invalidate queries immediately
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
