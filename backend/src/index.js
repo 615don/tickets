@@ -18,6 +18,8 @@ import invoiceRoutes from './routes/invoices.js';
 import settingsRoutes from './routes/settings.js';
 import backupRoutes from './routes/backup.js';
 import aiRoutes from './routes/ai.js';
+import debugRoutes from './routes/debug.js';
+import { sessionDebugMiddleware } from './middleware/sessionDebug.js';
 import { startScheduler } from './services/backupScheduler.js';
 
 // Load environment variables
@@ -76,6 +78,9 @@ app.use(session({
     domain: process.env.COOKIE_DOMAIN || undefined, // Share cookies across subdomains (set to .zollc.com in production)
   },
 }));
+
+// Session debugging middleware (only active when DEBUG_SESSIONS=true)
+app.use(sessionDebugMiddleware);
 
 // CSRF protection middleware
 const csrfProtection = csrf({ cookie: false }); // Use session instead of cookies
@@ -147,6 +152,7 @@ app.get('/api/health', async (req, res) => {
 });
 
 // Routes
+app.use('/api/debug', debugRoutes); // Debug routes (only active when DEBUG_SESSIONS=true)
 app.use('/api/auth', authRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/contacts', contactRoutes);
