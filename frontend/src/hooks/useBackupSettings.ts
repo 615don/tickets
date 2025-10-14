@@ -17,6 +17,8 @@ export function useGoogleDriveStatus() {
     queryKey: backupSettingsKeys.status(),
     queryFn: backupSettingsApi.getStatus,
     staleTime: 30000, // 30 seconds
+    retry: 1, // Only retry once
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 }
 
@@ -28,6 +30,8 @@ export function useBackupSettings() {
     queryKey: backupSettingsKeys.settings(),
     queryFn: backupSettingsApi.getSettings,
     staleTime: 10000, // 10 seconds
+    retry: 1, // Only retry once
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 }
 
@@ -66,11 +70,14 @@ export function useTriggerManualBackup() {
 /**
  * List backups in Google Drive
  */
-export function useListBackups() {
+export function useListBackups(enabled: boolean = true) {
   return useQuery({
     queryKey: backupSettingsKeys.list(),
     queryFn: backupSettingsApi.listBackups,
     staleTime: 30000, // 30 seconds
+    retry: 1, // Only retry once
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    enabled, // Only fetch when explicitly enabled
   });
 }
 

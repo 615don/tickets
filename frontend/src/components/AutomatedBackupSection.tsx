@@ -33,14 +33,17 @@ export const AutomatedBackupSection = () => {
   // Queries
   const { data: driveStatus, isLoading: isStatusLoading } = useGoogleDriveStatus();
   const { data: settings, isLoading: isSettingsLoading, refetch: refetchSettings } = useBackupSettings();
-  const { data: backupsList, isLoading: isBackupsLoading } = useListBackups();
+
+  const isAuthenticated = driveStatus?.authenticated ?? false;
+
+  // Only fetch backup list if authenticated with Google Drive
+  const { data: backupsList, isLoading: isBackupsLoading } = useListBackups(isAuthenticated);
 
   // Mutations
   const connectMutation = useConnectGoogleDrive();
   const updateSettingsMutation = useUpdateBackupSettings();
   const triggerBackupMutation = useTriggerManualBackup();
 
-  const isAuthenticated = driveStatus?.authenticated ?? false;
   const isLoading = isStatusLoading || isSettingsLoading;
 
   // Handle connect to Google Drive
