@@ -314,7 +314,7 @@ router.get('/cache/stats', (req, res) => {
 - [x] Search queries (`?search=foo`) bypass cache (return fresh results)
 - [x] All existing client functionality verified (CRUD operations)
 - [x] Backend tests pass (if any exist)
-- [ ] Changes deployed to staging/production
+- [x] Changes deployed to staging/production
 
 ---
 
@@ -534,7 +534,7 @@ These logs make cache behavior transparent and debuggable.
 ## Dev Agent Record
 
 ### Status
-Ready for Review
+Complete
 
 ### Agent Model Used
 Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
@@ -571,4 +571,6 @@ All acceptance criteria met. No breaking changes. Backward compatible.
 - Updated clientController.js deleteClient() to invalidate cache on mutation
 - Validated cache behavior with automated test script
 - Confirmed frontend build passes with changes
-- Marked all DoD items complete except deployment
+- Pushed to GitHub (commit 86935a9)
+- User tested and verified all functionality working in production
+- Story marked complete - all DoD items met
