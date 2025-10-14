@@ -163,9 +163,30 @@ export async function restoreBackup(req, res) {
       // Read SQL file
       const sqlContent = await fs.promises.readFile(databaseSqlPath, 'utf-8');
 
-      // Execute SQL using pg pool
-      // Note: The SQL dump uses CREATE TABLE IF NOT EXISTS, so it's safe to run multiple times
-      await pool.query(sqlContent);
+      // Split SQL into individual statements
+      // Remove comments and split by semicolons
+      const statements = sqlContent
+        .split('\n')
+        .filter(line => !line.trim().startsWith('--')) // Remove comment lines
+        .join('\n')
+        .split(';')
+        .map(stmt => stmt.trim())
+        .filter(stmt => stmt.length > 0); // Remove empty statements
+
+      console.log(`[Restore] Executing ${statements.length} SQL statements...`);
+
+      // Execute each statement sequentially
+      for (let i = 0; i < statements.length; i++) {
+        const statement = statements[i];
+        if (statement.trim()) {
+          try {
+            await pool.query(statement);
+          } catch (stmtError) {
+            console.error(`[Restore] Error in statement ${i + 1}:`, statement.substring(0, 100));
+            throw stmtError;
+          }
+        }
+      }
 
       console.log('[Restore] Database restored successfully');
     } catch (dbError) {
