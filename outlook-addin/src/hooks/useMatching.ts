@@ -43,6 +43,8 @@ export function useMatching(emailContext: EmailContext | null) {
     const timeoutId = setTimeout(async () => {
       setIsMatching(true);
       setError(null);
+      setAiSummary(null); // Clear previous AI summary when switching emails
+      setAiError(null);
 
       try {
         // STEP 1: Try contact matching first (Story 4.1)
