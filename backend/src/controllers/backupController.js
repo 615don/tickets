@@ -1,5 +1,3 @@
-import { execFile } from 'child_process';
-import { promisify } from 'util';
 import AdmZip from 'adm-zip';
 import fs from 'fs';
 import path from 'path';
@@ -7,8 +5,6 @@ import pool from '../config/database.js';
 import { createBackupZip } from '../services/databaseBackupService.js';
 import { uploadBackup, isAuthenticated, getAuthUrl, exchangeCodeForTokens, listBackups, deleteOldBackups } from '../services/googleDriveService.js';
 import { triggerManualBackup, restartScheduler } from '../services/backupScheduler.js';
-
-const execFileAsync = promisify(execFile);
 
 /**
  * POST /api/backup/generate
@@ -162,62 +158,48 @@ export async function restoreBackup(req, res) {
       });
     }
 
-    // Execute database restore using psql (with execFile for security - prevents shell injection)
-    const dbHost = process.env.DB_HOST || 'localhost';
-    const dbUser = process.env.DB_USER || 'postgres';
-    const dbName = process.env.DB_NAME || 'ticketing_system';
-    const dbPassword = process.env.DB_PASSWORD || '';
-
+    // Execute database restore programmatically (no psql binary required)
     try {
-      // Use execFile with array arguments to prevent shell injection
-      await execFileAsync('psql', [
-        '-h', dbHost,
-        '-U', dbUser,
-        '-d', dbName,
-        '-f', databaseSqlPath
-      ], {
-        env: { ...process.env, PGPASSWORD: dbPassword },
-        timeout: 300000, // 5 minutes
-        maxBuffer: 50 * 1024 * 1024 // 50MB buffer
-      });
-    } catch (psqlError) {
+      // Read SQL file
+      const sqlContent = await fs.promises.readFile(databaseSqlPath, 'utf-8');
+
+      // Execute SQL using pg pool
+      // Note: The SQL dump uses CREATE TABLE IF NOT EXISTS, so it's safe to run multiple times
+      await pool.query(sqlContent);
+
+      console.log('[Restore] Database restored successfully');
+    } catch (dbError) {
       await fs.promises.rm(extractDir, { recursive: true, force: true });
       await fs.promises.unlink(uploadedFile);
 
-      // Handle specific psql errors
-      if (psqlError.message.includes('command not found') || psqlError.message.includes('not found')) {
-        return res.status(500).json({
-          error: 'ServerError',
-          message: 'Database restore failed. psql command not available.'
-        });
-      }
+      console.error('[Restore] Database restore error:', dbError);
 
-      if (psqlError.message.includes('timeout')) {
-        return res.status(500).json({
-          error: 'ServerError',
-          message: 'Database restore timed out. Please try again with a smaller backup.'
-        });
-      }
-
-      if (psqlError.message.includes('connection') || psqlError.message.includes('could not connect')) {
+      // Handle specific database errors
+      if (dbError.code === 'ECONNREFUSED' || dbError.message.includes('connect')) {
         return res.status(500).json({
           error: 'ServerError',
           message: 'Unable to connect to database. Please verify database is running.'
         });
       }
 
-      if (psqlError.message.includes('syntax error') || psqlError.message.includes('ERROR:')) {
+      if (dbError.code === '42601' || dbError.message.includes('syntax error')) {
         return res.status(500).json({
           error: 'ServerError',
           message: 'Backup file contains invalid SQL. Please verify backup integrity.'
         });
       }
 
-      // Generic psql error
-      console.error('psql error:', psqlError);
+      if (dbError.message.includes('timeout')) {
+        return res.status(500).json({
+          error: 'ServerError',
+          message: 'Database restore timed out. Please try again with a smaller backup.'
+        });
+      }
+
+      // Generic database error
       return res.status(500).json({
         error: 'ServerError',
-        message: 'Database restore failed. Please try again or contact support.'
+        message: `Database restore failed: ${dbError.message}`
       });
     }
 
