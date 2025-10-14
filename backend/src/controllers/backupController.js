@@ -198,20 +198,36 @@ export async function restoreBackup(req, res) {
       console.log(`[Restore] Executing ${statements.length} SQL statements...`);
 
       // Execute each statement sequentially
+      let successCount = 0;
+      let skipCount = 0;
+
       for (let i = 0; i < statements.length; i++) {
         const statement = statements[i];
         try {
           await pool.query(statement);
+          successCount++;
           if ((i + 1) % 10 === 0) {
-            console.log(`[Restore] Progress: ${i + 1}/${statements.length} statements executed`);
+            console.log(`[Restore] Progress: ${i + 1}/${statements.length} statements executed (${successCount} successful, ${skipCount} skipped)`);
           }
         } catch (stmtError) {
+          // Skip errors for objects that already exist (idempotent restore)
+          if (stmtError.code === '42P07' || stmtError.code === '23505') {
+            // 42P07 = duplicate object (table, index, etc.)
+            // 23505 = unique violation
+            console.log(`[Restore] Skipping statement ${i + 1} (already exists): ${statement.substring(0, 100)}`);
+            skipCount++;
+            continue;
+          }
+
+          // For other errors, log and fail
           console.error(`[Restore] Error in statement ${i + 1}:`);
           console.error(`First 300 chars: ${statement.substring(0, 300)}`);
           console.error(`Error: ${stmtError.message}`);
           throw stmtError;
         }
       }
+
+      console.log(`[Restore] Restore completed: ${successCount} successful, ${skipCount} skipped`);
 
       console.log('[Restore] Database restored successfully');
     } catch (dbError) {
