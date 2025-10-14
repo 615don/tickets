@@ -5,7 +5,6 @@ import { SettingsSection } from '@/components/SettingsSection';
 import { UserProfileSection } from '@/components/UserProfileSection';
 import { XeroConnectionCard } from '@/components/XeroConnectionCard';
 import { XeroContactsDialog } from '@/components/XeroContactsDialog';
-import { BackupSection } from '@/components/BackupSection';
 import { RestoreSection } from '@/components/RestoreSection';
 import { AutomatedBackupSection } from '@/components/AutomatedBackupSection';
 import { AiSettingsSection } from '@/components/AiSettingsSection';
@@ -279,15 +278,6 @@ export const Settings = () => {
               <div>
                 <h3 className="text-sm font-medium mb-3">Automated Backups</h3>
                 <AutomatedBackupSection />
-              </div>
-
-              {/* Divider */}
-              <div className="border-t border-border" />
-
-              {/* Manual Backup Download */}
-              <div>
-                <h3 className="text-sm font-medium mb-3">Manual Backup</h3>
-                <BackupSection />
               </div>
 
               {/* Divider */}
