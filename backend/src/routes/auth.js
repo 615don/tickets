@@ -7,16 +7,53 @@ import { requireAuth, redirectIfAuthenticated } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Rate limiter for authentication endpoints
-const authLimiter = rateLimit({
+/**
+ * Login Rate Limiter
+ * Protects against brute force attacks while allowing reasonable retry attempts for typos
+ * 10 attempts per 15 minutes - balanced security without frustrating legitimate users
+ */
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 attempts per window
+  message: {
+    error: 'Too many attempts',
+    message: 'Too many login attempts, please try again in 15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
+ * Registration Rate Limiter
+ * Prevents spam account creation while allowing legitimate registrations
+ * 5 attempts per 15 minutes - stricter to prevent abuse
+ */
+const registerLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // 5 attempts per window
   message: {
     error: 'Too many attempts',
-    message: 'Too many login attempts, please try again later'
+    message: 'Too many registration attempts, please try again in 15 minutes'
   },
-  standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
-  legacyHeaders: false, // Disable `X-RateLimit-*` headers
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
+ * Profile Update Rate Limiter
+ * For authenticated users making legitimate profile/password changes
+ * 15 attempts per 15 minutes - more generous since users are authenticated
+ * and may need multiple tries to update correctly
+ */
+const profileUpdateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 15, // 15 attempts per window
+  message: {
+    error: 'Too many attempts',
+    message: 'Too many profile update attempts, please try again in 15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 // Validation rules
@@ -68,10 +105,10 @@ const updatePasswordValidation = [
 ];
 
 // POST /api/auth/register - Register new user
-router.post('/register', authLimiter, redirectIfAuthenticated, registerValidation, validate, register);
+router.post('/register', registerLimiter, redirectIfAuthenticated, registerValidation, validate, register);
 
 // POST /api/auth/login - Login
-router.post('/login', authLimiter, redirectIfAuthenticated, loginValidation, validate, login);
+router.post('/login', loginLimiter, redirectIfAuthenticated, loginValidation, validate, login);
 
 // POST /api/auth/logout - Logout
 router.post('/logout', requireAuth, logout);
@@ -80,9 +117,9 @@ router.post('/logout', requireAuth, logout);
 router.get('/me', requireAuth, getCurrentUser);
 
 // PUT /api/auth/profile - Update user email
-router.put('/profile', authLimiter, requireAuth, updateProfileValidation, validate, updateProfile);
+router.put('/profile', profileUpdateLimiter, requireAuth, updateProfileValidation, validate, updateProfile);
 
 // PUT /api/auth/password - Update user password
-router.put('/password', authLimiter, requireAuth, updatePasswordValidation, validate, updatePassword);
+router.put('/password', profileUpdateLimiter, requireAuth, updatePasswordValidation, validate, updatePassword);
 
 export default router;

@@ -44,12 +44,20 @@ function validateState(state) {
 function convertToCamelCase(row) {
   if (!row) return null;
 
+  // Use contact_name_snapshot for display if contact is a system contact and snapshot exists
+  // This shows the original contact name instead of "(Deleted Contact)"
+  const isSystemContact = row.is_system_contact === true;
+  const hasSnapshot = row.contact_name_snapshot != null;
+  const displayName = (isSystemContact && hasSnapshot)
+    ? row.contact_name_snapshot
+    : row.contact_name;
+
   const ticket = {
     id: row.id,
     clientId: row.client_id,
     clientName: row.client_name,
     contactId: row.contact_id,
-    contactName: row.contact_name,
+    contactName: displayName,
     contactEmail: row.contact_email || null,
     description: row.description,
     notes: row.notes,
@@ -78,11 +86,19 @@ export const Ticket = {
     await validateContactExists(contactId);
     validateState(state);
 
+    // Get contact name to capture in snapshot (for audit trail when contact is deleted)
+    const contactResult = await query(
+      'SELECT name FROM contacts WHERE id = $1 AND deleted_at IS NULL',
+      [contactId]
+    );
+
+    const contactName = contactResult.rows[0]?.name || null;
+
     const result = await query(
-      `INSERT INTO tickets (client_id, contact_id, description, notes, state, closed_at, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-       RETURNING id, client_id, contact_id, description, notes, state, closed_at, created_at, updated_at`,
-      [clientId, contactId, description, notes, state, state === 'closed' ? new Date().toISOString() : null]
+      `INSERT INTO tickets (client_id, contact_id, description, notes, state, closed_at, contact_name_snapshot, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+       RETURNING id, client_id, contact_id, description, notes, state, closed_at, contact_name_snapshot, created_at, updated_at`,
+      [clientId, contactId, description, notes, state, state === 'closed' ? new Date().toISOString() : null, contactName]
     );
 
     // Return with client and contact names
@@ -100,10 +116,12 @@ export const Ticket = {
         t.notes,
         t.state,
         t.closed_at,
+        t.contact_name_snapshot,
         t.created_at,
         t.updated_at,
         c.company_name as client_name,
         co.name as contact_name,
+        co.is_system_contact,
         COALESCE(SUM(te.duration_hours) FILTER (WHERE te.deleted_at IS NULL), 0) as total_hours
       FROM tickets t
       JOIN clients c ON t.client_id = c.id
@@ -142,7 +160,7 @@ export const Ticket = {
     }
 
     sql += `
-      GROUP BY t.id, c.company_name, co.name
+      GROUP BY t.id, c.company_name, co.name, co.is_system_contact
       ORDER BY t.updated_at DESC
     `;
 
@@ -179,18 +197,20 @@ export const Ticket = {
         t.notes,
         t.state,
         t.closed_at,
+        t.contact_name_snapshot,
         t.created_at,
         t.updated_at,
         c.company_name as client_name,
         co.name as contact_name,
         co.email as contact_email,
+        co.is_system_contact,
         COALESCE(SUM(te.duration_hours) FILTER (WHERE te.deleted_at IS NULL), 0) as total_hours
       FROM tickets t
       JOIN clients c ON t.client_id = c.id
       JOIN contacts co ON t.contact_id = co.id
       LEFT JOIN time_entries te ON t.id = te.ticket_id
       WHERE t.id = $1
-      GROUP BY t.id, c.company_name, co.name, co.email
+      GROUP BY t.id, c.company_name, co.name, co.email, co.is_system_contact
     `, [id]);
 
     return convertToCamelCase(result.rows[0]);

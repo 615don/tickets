@@ -217,6 +217,15 @@ export const Contact = {
 
       const deletedContactId = deletedContact.rows[0].id;
 
+      // Update contact_name_snapshot for all tickets before reassigning
+      // This preserves the original contact name for historical display
+      await client.query(
+        `UPDATE tickets
+         SET contact_name_snapshot = $1
+         WHERE contact_id = $2 AND contact_name_snapshot IS NULL`,
+        [contact.name, id]
+      );
+
       // Reassign all tickets to deleted contact
       const ticketUpdate = await client.query(
         'UPDATE tickets SET contact_id = $1 WHERE contact_id = $2',

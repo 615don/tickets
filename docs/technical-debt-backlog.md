@@ -50,79 +50,6 @@ Add integration tests covering all 9 acceptance criteria:
 
 ## Medium Priority
 
-### TD-033: Separate Rate Limiters for Auth Endpoints (SEC-106)
-**Source**: Story 7.2 Post-Implementation Review
-**Date Added**: 2025-10-08
-**Priority**: Medium
-**Effort**: Small (1-2 hours)
-
-**Description**:
-Single rate limiter (`authLimiter`) is shared across all authentication endpoints (login, register, profile update, password update). This means failures across different operations count against the same limit pool. For example, 3 failed login attempts + 2 failed email updates = locked out of all auth endpoints for 15 minutes.
-
-**Current Configuration**:
-- **authLimiter**: 5 attempts per 15 minutes
-- **Applied to**: `/api/auth/login`, `/api/auth/register`, `/api/auth/profile`, `/api/auth/password`
-
-**Impact**:
-- User frustration: Can't login if previously tried changing password
-- Login attempts count against profile update attempts and vice versa
-- Too restrictive for single-user system during development
-- Different operations have different security requirements
-
-**Recommendation**:
-Split into separate rate limiters with appropriate limits for each use case:
-- **loginLimiter**: 10 attempts per 15 minutes (prevents brute force but allows typos)
-- **profileUpdateLimiter**: 15 attempts per 15 minutes (authenticated users making legitimate changes)
-- **registerLimiter**: 5 attempts per 15 minutes (prevents spam account creation)
-
-**Files Affected**:
-- `backend/src/routes/auth.js` (create separate limiters)
-
-**Acceptance Criteria**:
-- [ ] Separate rate limiters created for login, register, and profile updates
-- [ ] Login limiter: 10 attempts per 15 minutes
-- [ ] Profile/password update limiter: 15 attempts per 15 minutes
-- [ ] Register limiter: 5 attempts per 15 minutes
-- [ ] Each endpoint uses appropriate limiter
-- [ ] User can attempt login without being blocked by previous profile update attempts
-- [ ] Configuration documented in code comments
-
----
-
-### TD-004: Implement Audit Trail for Deleted Contacts
-**Source**: Story 2.7 QA Review (AC#6 Deferred)
-**Date Added**: 2025-10-01
-**Priority**: Medium
-**Effort**: Large (6-8 hours)
-
-**Description**:
-Original contact names are not preserved after deletion. Tickets show "(Deleted Contact)" instead of historical contact information.
-
-**Impact**:
-Cannot show historical contact information in ticket views, reducing data visibility.
-
-**Deferred Reason**:
-Story 2.7 Task 5 marked as incomplete - implementation deferred to Epic 3+ per story notes.
-
-**Recommendation**:
-Implement one of two options:
-- **Option 1**: Denormalized contact name in tickets table (contact_name_snapshot)
-- **Option 2**: Separate audit table tracking contact changes
-
-**Files Affected**:
-- `backend/src/models/Contact.js`
-- `backend/src/utils/migrate.js` (tickets table schema modification)
-- Potentially: `backend/src/models/Ticket.js`
-
-**Acceptance Criteria**:
-- [ ] Historical contact names preserved after deletion
-- [ ] Migration created to add contact_name_snapshot or audit table
-- [ ] Contact.delete() updates snapshot before reassignment
-- [ ] Ticket views display historical contact names
-- [ ] Tests added for audit trail functionality
-
----
-
 ### TD-005: Standardize Contact Model to Return camelCase
 **Source**: Story 3.3 QA Review
 **Date Added**: 2025-10-01
@@ -790,6 +717,98 @@ Extract validation helpers to separate functions or middleware.
 
 ## Completed Items
 
+### ~~TD-004: Implement Audit Trail for Deleted Contacts~~
+**Source**: Story 2.7 QA Review (AC#6 Deferred)
+**Date Completed**: 2025-10-14
+**Status**: ✅ COMPLETED
+
+**Description**:
+Original contact names were not preserved after deletion. Tickets showed "(Deleted Contact)" instead of historical contact information, reducing data visibility.
+
+**Resolution**:
+Implemented **Option 1: Denormalized Contact Name Snapshot** - Added `contact_name_snapshot VARCHAR(255)` column to tickets table to preserve historical contact names.
+
+**Implementation Details**:
+- **Migration 017**: Added `contact_name_snapshot` column to tickets table with proper documentation
+- **Ticket.create()**: Now captures contact name at ticket creation time and stores in snapshot
+- **Contact.delete()**: Updates `contact_name_snapshot` for all tickets before reassigning to system contact (only if NULL to avoid overwriting)
+- **Display Logic**: Modified `convertToCamelCase()` function to use snapshot when contact is system contact
+- **Queries Updated**: Both `findAll()` and `findById()` now SELECT `contact_name_snapshot` and `is_system_contact` columns
+
+**Display Behavior**:
+- Active contacts → Display current `contact_name`
+- System contacts WITH snapshot → Display `contact_name_snapshot` (original name)
+- System contacts WITHOUT snapshot → Display "(Deleted Contact)" (backward compatibility)
+
+**Files Modified**:
+- `backend/src/utils/migrate.js` (added migration 017)
+- `backend/src/models/Ticket.js` (updated create, findAll, findById, convertToCamelCase)
+- `backend/src/models/Contact.js` (updated delete to capture snapshot)
+
+**Files Created**:
+- `backend/src/models/__tests__/ContactAuditTrail.test.js` (11 comprehensive integration tests)
+
+**Testing**:
+Created extensive test suite covering:
+- ✅ Snapshot capture on ticket creation
+- ✅ Current contact name display for active contacts
+- ✅ Historical name preservation after deletion
+- ✅ Snapshot updates before ticket reassignment
+- ✅ Reassignment to system contact after snapshot
+- ✅ Snapshot only updated if NULL (no overwriting)
+- ✅ Display logic for system contacts
+- ✅ findAll() displays snapshots correctly
+- ✅ Multiple deletions preserve distinct names
+- ✅ Backward compatibility for old tickets without snapshot
+- ✅ Legacy tickets display "(Deleted Contact)" when no snapshot
+
+All 11 tests passed successfully ✅
+
+**Benefits**:
+- Historical contact information preserved for audit and billing purposes
+- Better data visibility in ticket views
+- Minimal performance impact (denormalized data, no additional JOINs)
+- Backward compatible with existing tickets
+- Simple, maintainable solution
+
+---
+
+### ~~TD-033: Separate Rate Limiters for Auth Endpoints~~
+**Source**: Story 7.2 Post-Implementation Review
+**Date Completed**: 2025-10-14
+**Status**: ✅ COMPLETED
+
+**Description**:
+Single rate limiter (`authLimiter`) was shared across all authentication endpoints causing user frustration when different operations counted against the same limit pool.
+
+**Resolution**:
+Implemented three separate rate limiters with appropriate limits for each use case:
+- **loginLimiter**: 10 attempts per 15 minutes (prevents brute force but allows typos)
+- **registerLimiter**: 5 attempts per 15 minutes (prevents spam account creation)
+- **profileUpdateLimiter**: 15 attempts per 15 minutes (authenticated users making legitimate changes)
+
+Each endpoint now uses its appropriate limiter:
+- `/api/auth/login` → loginLimiter
+- `/api/auth/register` → registerLimiter
+- `/api/auth/profile` → profileUpdateLimiter
+- `/api/auth/password` → profileUpdateLimiter
+
+**Files Modified**:
+- `backend/src/routes/auth.js` (replaced single authLimiter with three separate limiters)
+
+**Testing**:
+Created and ran comprehensive test script ([test-rate-limiters.js](backend/test-rate-limiters.js)) confirming:
+- ✅ Login limiter tracks independently (10 attempts, counted down correctly)
+- ✅ Register limiter tracks independently (5 attempts, counted down correctly)
+- ✅ Rate limiters are fully independent (failed login attempts don't affect registration)
+- ✅ All acceptance criteria met
+- ✅ Each limiter includes clear documentation comments explaining its purpose and configuration
+
+**Impact**:
+Users can now attempt login without being blocked by previous profile update attempts, eliminating the frustrating catch-22 situation. Each operation has appropriate security limits matching its use case.
+
+---
+
 ### ~~TD-001: Add Integration Tests for Contact Management UI~~
 **Source**: Story 2.6 QA Review
 **Date Completed**: 2025-10-02
@@ -1017,25 +1036,26 @@ Added 14 comprehensive tests - all passing.
 
 ## Summary Statistics
 
-**Total Active Items**: 26 (was 25)
-**Completed This Session**: 0 items
+**Total Active Items**: 24 (was 26 - completed TD-033, TD-004)
+**Completed This Session**: 2 items (TD-033, TD-004)
 **Previously Completed**: 7 items (TD-001, TD-002, TD-003, TD-005, TD-006, TD-007, TD-009)
+**Total Completed to Date**: 9 items
 
 - **High Priority**: 0 items ✅ All High Priority items complete!
-- **Medium Priority**: 4 items (was 3 - added TD-033)
+- **Medium Priority**: 2 items (was 4 - completed TD-033, TD-004)
 - **Low Priority**: 22 items
 
 **By Category**:
-- **Testing/Quality**: 0 HIGH priority items (completed TD-001, TD-002) ✅
-- **Security**: 5 items (completed TD-007, TD-009, added TD-033)
+- **Testing/Quality**: 0 HIGH priority items (completed TD-001, TD-002, TD-003) ✅
+- **Security**: 4 items (completed TD-007, TD-009, TD-033)
 - **Performance**: 4 items (indexes, debouncing, monitoring)
-- **Maintainability**: 8 items (completed TD-005, TD-006)
-- **Features/Enhancements**: 9 items (2FA, password reset, audit trail)
+- **Maintainability**: 8 items (completed TD-004, TD-005, TD-006)
+- **Features/Enhancements**: 8 items (2FA, password reset)
 
 **Most Critical Items**:
-1. **TD-033**: Separate rate limiters for auth endpoints (MEDIUM priority, affects user experience)
-2. **TD-004**: Implement audit trail for deleted contacts (MEDIUM priority, deferred from Story 2.7)
-3. **TD-008**: Sanitize error logging in production (MEDIUM priority)
+1. **TD-008**: Sanitize error logging in production (MEDIUM priority)
+2. **TD-009**: Make Cookie Name Configurable (MEDIUM priority) - ⚠️ Already marked complete in Completed Items
+3. **TD-010**: Implement Structured Logging Library (LOW priority, but high value)
 
 ---
 
@@ -1047,9 +1067,9 @@ This backlog should be reviewed:
 - At the end of each epic (to prioritize accumulated debt)
 - Monthly for long-running projects
 
-**Last Reviewed**: 2025-10-08
-**Last Updated**: 2025-10-08
+**Last Reviewed**: 2025-10-14
+**Last Updated**: 2025-10-14
 **Next Review**: End of Epic 7 or next sprint planning
-**Items Added This Review**: 1 (TD-033)
-**Items Completed This Session**: 0
-**Total Completed to Date**: 7 items
+**Items Added This Review**: 0
+**Items Completed This Session**: 2 (TD-033, TD-004)
+**Total Completed to Date**: 9 items

@@ -309,6 +309,21 @@ Respond with JSON format:
       ON contacts(client_id)
       WHERE deleted_at IS NULL;
     `
+  },
+  {
+    name: '017_add_contact_name_snapshot_to_tickets',
+    sql: `
+      -- Add contact_name_snapshot column to preserve historical contact names
+      -- This implements TD-004: Audit trail for deleted contacts
+      -- When a contact is deleted, their name is captured in this column
+      -- so tickets can display the original contact name instead of "(Deleted Contact)"
+      ALTER TABLE tickets
+      ADD COLUMN IF NOT EXISTS contact_name_snapshot VARCHAR(255);
+
+      -- Add comment for documentation
+      COMMENT ON COLUMN tickets.contact_name_snapshot IS
+        'Preserves the original contact name when a contact is deleted. Used to display historical information instead of "(Deleted Contact)".';
+    `
   }
 ];
 
