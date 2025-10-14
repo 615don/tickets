@@ -219,6 +219,13 @@ export async function restoreBackup(req, res) {
             continue;
           }
 
+          // Skip session table errors (sessions are temporary and not critical)
+          if (statement.includes('INSERT INTO session') || statement.includes('INSERT INTO "session"')) {
+            console.log(`[Restore] Skipping session data error (non-critical): ${stmtError.message}`);
+            skipCount++;
+            continue;
+          }
+
           // For other errors, log and fail
           console.error(`[Restore] Error in statement ${i + 1}:`);
           console.error(`First 300 chars: ${statement.substring(0, 300)}`);

@@ -188,6 +188,8 @@ async function getTableData(tableName) {
         if (typeof val === 'boolean') return val ? 'TRUE' : 'FALSE';
         if (typeof val === 'number') return val;
         if (val instanceof Date) return format.literal(val.toISOString());
+        // Handle objects (JSON/JSONB columns) - serialize to JSON string
+        if (typeof val === 'object') return format.literal(JSON.stringify(val));
         return format.literal(String(val));
       });
       return `(${rowValues.join(', ')})`;
