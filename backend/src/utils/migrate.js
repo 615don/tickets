@@ -286,6 +286,29 @@ Respond with JSON format:
       VALUES (1, false, '0 0 * * *', 10)
       ON CONFLICT (id) DO NOTHING;
     `
+  },
+  {
+    name: '016_add_composite_indexes',
+    sql: `
+      -- Composite index for dashboard queries (filter by client + state)
+      -- Optimizes: SELECT * FROM tickets WHERE client_id = ? AND state = ?
+      CREATE INDEX IF NOT EXISTS idx_tickets_client_state
+      ON tickets(client_id, state);
+
+      -- Composite index for invoice aggregation (work_date + billable flag)
+      -- Partial index excludes soft-deleted entries
+      -- Optimizes: SELECT SUM(duration_hours) FROM time_entries
+      --            WHERE work_date BETWEEN ? AND ? AND billable = true AND deleted_at IS NULL
+      CREATE INDEX IF NOT EXISTS idx_time_entries_work_date_billable
+      ON time_entries(work_date, billable)
+      WHERE deleted_at IS NULL;
+
+      -- Partial index for active contacts by client
+      -- Optimizes: SELECT * FROM contacts WHERE client_id = ? AND deleted_at IS NULL
+      CREATE INDEX IF NOT EXISTS idx_contacts_client_active
+      ON contacts(client_id)
+      WHERE deleted_at IS NULL;
+    `
   }
 ];
 
