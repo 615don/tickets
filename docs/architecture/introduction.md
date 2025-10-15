@@ -1,20 +1,18 @@
 # Introduction
 
-This document outlines the complete fullstack architecture for the **Lean IT Consulting Ticketing System**, including backend systems, frontend implementation, and their integration. It serves as the single source of truth for AI-driven development, ensuring consistency across the entire technology stack.
+This document outlines the architectural approach for enhancing the Ticketing System with an **Outlook Web Add-in for Email-to-Ticket Conversion**. Its primary goal is to serve as the guiding architectural blueprint for AI-driven development of this new feature while ensuring seamless integration with the existing system.
 
-This unified approach combines what would traditionally be separate backend and frontend architecture documents, streamlining the development process for modern fullstack applications where these concerns are increasingly intertwined.
+**Relationship to Existing Architecture:**
+This document supplements the existing project architecture (documented in `/docs/architecture/`) by defining how the new Outlook Add-in components will integrate with current systems. Where conflicts arise between new and existing patterns, this document provides guidance on maintaining consistency while implementing enhancements. All architectural decisions respect the established technology stack, coding standards, and deployment patterns.
 
-## Starter Template or Existing Project
+**Document Version:** 1.0
+**Created:** 2025-10-09
+**Status:** Final
 
-**Based on:** Monorepo with separate frontend and backend applications
-- **Frontend:** Custom Vite + React + TypeScript setup with shadcn/ui components (Lovable UI builder used for initial UI generation)
-- **Backend:** Custom Node.js + Express setup (no starter template)
-- **Architectural Constraints:**
-  - Monorepo structure already established (`/frontend` and `/backend` directories)
-  - Session-based authentication already implemented
-  - PostgreSQL database with 8 complete migrations
-  - shadcn/ui component library already integrated
+## Change Log
 
-**Current State:** Brownfield project with Epics 1 & 2 backend complete, frontend partially integrated. Architecture document being created retroactively to guide completion and future development.
+| Date | Version | Description | Author |
+|------|---------|-------------|--------|
+| 2025-10-09 | 1.0 | Initial architecture document created | Winston (Architect) |
 
 ---

@@ -2,85 +2,111 @@
 
 ## Repository Structure: Monorepo
 
-Single repository containing both frontend and backend code. This simplifies development, deployment, and dependency management for the MVP. The structure can be separated into polyrepo later if the project scales beyond single-user scope.
+Add-in code will live in `/outlook-addin` directory within the existing monorepo alongside `/frontend` and `/backend`.
 
-**Rationale:** Solo development with tight timeline (4-6 weeks) benefits from unified codebase. No team coordination overhead, simpler CI/CD pipeline, and easier context switching during rapid iteration.
+**Structure:**
+```
+/frontend       (existing React web app)
+/backend        (existing Express API)
+/outlook-addin  (new Office Add-in)
+  /src          (add-in sidebar UI code)
+  /manifest     (Office Add-in manifest XML)
+```
+
+**Rationale:** Keeps all related code together, simplifies cross-cutting changes (e.g., contact matching logic updates affect both web app and add-in), enables code sharing via shared utilities, and maintains single deployment pipeline. The add-in will be a separate build target but lives in the same repository for easier maintenance.
 
 ## Service Architecture
 
-**Monolithic web application** with clear separation between frontend (SPA), backend API layer, and data layer.
+**Office Add-in Task Pane Architecture** communicating with existing backend API:
 
-- **Frontend:** Single-page application (SPA) served as static assets
-- **Backend:** RESTful API server handling business logic, Xero integration, and database operations
-- **Database:** PostgreSQL for relational data (clients, contacts, tickets, time entries)
+- **Add-in Frontend:** Standalone HTML/CSS/JS bundle served from `/outlook-addin` build output, loaded within Outlook Web's iframe sandbox
+- **Backend API:** Existing Express REST API extended with add-in-specific endpoints (`/api/contacts/match-email`, `/api/clients/match-domain`)
+- **Authentication:** Shared session/token-based auth between web app and add-in (research required - may need CORS configuration or token-based approach if session cookies don't cross iframe boundary)
+- **Manifest Hosting:** Manifest XML file hosted at public URL for Office Add-in registration
 
-**Not using microservices or serverless** - unnecessary complexity for single-user system with straightforward workflows. All functionality deployed as single application unit.
+**Not using separate microservice** - add-in integrates with existing monolith. All ticket creation uses same backend logic as web app.
 
-**Rationale:** Brief emphasizes speed of development and minimal hosting costs. Monolith is fastest to build, easiest to deploy, and most cost-effective for expected load (one active user). Future Phase 2 features (Outlook extension, daily emails) can integrate with monolith via API endpoints.
+**Rationale:** Reusing existing infrastructure minimizes development time. The add-in is simply another client of the existing API, similar to how a mobile app would consume the same endpoints. No new business logic needed - only new matching endpoints for email/domain lookup.
 
 ## Testing Requirements
 
-**Unit tests for critical business logic** - Focus testing effort on:
-- Time entry parsing and validation (flexible format handling)
-- Invoice calculation and line item formatting
-- Xero API integration layer (with mocked API responses)
-- Date-based filtering and time entry locking logic
+**Manual testing for MVP:**
+- Manual QA of add-in installation/sideloading in Outlook Web
+- Manual testing of email selection and auto-matching workflows
+- Browser compatibility spot-checking (Chrome, Safari on macOS)
+- Edge case testing: disambiguation, new contact creation, no match scenarios
 
-**Manual testing for UI workflows** - Given tight MVP timeline and single user:
-- Manual QA of ticket creation, editing, and invoice generation workflows
-- Browser compatibility spot-checking on Chrome, Edge, Safari
-- Responsive design manual testing on common mobile viewports
+**Unit tests for matching logic:**
+- Email-to-contact lookup function
+- Domain-to-client matching algorithm
+- Disambiguation logic (contact exists at multiple clients)
 
-**No automated E2E or integration tests for MVP** - Trade-off accepting some risk to meet 4-6 week timeline. User will effectively perform UAT during real-world usage.
+**No E2E tests for MVP** - Office Add-in E2E testing requires complex Outlook automation, not justified for 3-4 week timeline.
 
-**Convenience methods for manual testing:**
-- Seed script to populate test data (sample clients, contacts, tickets)
-- Admin endpoint to reset Xero invoice locks for testing month-end workflow
-- Database snapshot/restore utilities for safe testing
-
-**Rationale:** YAGNI applied to testing pyramid. Critical financial calculations (time totals, invoice amounts) warrant unit tests. Complex E2E test infrastructure would consume significant timeline with marginal benefit for single-user MVP.
+**Rationale:** Testing strategy mirrors main ticketing system's pragmatic approach (unit tests for critical logic, manual testing for UI). Add-in is read-heavy (matching lookups) with single write operation (ticket creation via existing tested endpoint).
 
 ## Additional Technical Assumptions and Requests
 
-**Frontend Framework:** Modern JavaScript framework recommended - **React** or **Vue.js** preferred for:
-- Large ecosystem and component libraries (faster development)
-- Strong TypeScript support (type safety for time calculations)
-- Lightweight build output to meet <2 second page load NFR
+**Add-in Frontend Framework:** **React** (matching existing frontend stack)
+- Reuse React expertise and potentially share components with web app
+- TypeScript for type safety (matching existing frontend)
+- Vite for bundling (consistent with web app build tooling)
+- **Lightweight bundle requirement:** Add-in must load quickly (<2 seconds per NFR1), requiring aggressive tree-shaking and code splitting
 
-**Backend Language/Framework:** **Node.js with Express** or **Python with FastAPI** recommended for:
-- Excellent Xero API SDK availability (both have official/community libraries)
-- Rapid development capability for REST APIs
-- Shared language with frontend (Node.js) or clarity/simplicity (Python)
+**Office.js Integration:**
+- Office.js library loaded from Microsoft CDN (required for all Office Add-ins)
+- Add-in uses Office.js Mail API to access email metadata (sender, display name, subject)
+- Task pane context (persistent sidebar) vs. message compose context
+- **Research spike required:** Validate Office.js provides access to sender email and display name; confirm task pane can stay open across email selections
 
-**Database:** **PostgreSQL** for:
-- Robust relational data model (clients → contacts, tickets → time entries)
-- JSON column support for flexible metadata storage if needed
-- Reliable ACID transactions for invoice locking operations
-- Free tier availability on most cloud hosting platforms
+**New Backend API Endpoints:**
+- `GET /api/contacts/match-email?email={email}` - Returns contact(s) matching email address with associated client(s)
+- `GET /api/clients/match-domain?domain={domain}` - Returns client(s) matching email domain
+- `POST /api/contacts/create-from-email` - Creates new contact with email/name from add-in (may extend existing `/api/contacts` endpoint)
 
-**Hosting/Deployment:** Cloud hosting with minimal DevOps overhead:
-- **Heroku**, **Railway**, **Render**, or **DigitalOcean App Platform** recommended
-- Single-click deployment from Git repository
-- Managed PostgreSQL database (no manual DB administration)
-- Automatic HTTPS and daily backups included
-- Cost target: Under $20/month for MVP (hobby tier acceptable)
+**Authentication Strategy (requires research):**
+- **Option 1:** Session cookie sharing - if Office Add-in iframe can access same session cookies as web app (requires SameSite=None, Secure)
+- **Option 2:** Token-based auth - web app issues JWT/token, add-in passes in Authorization header
+- **Preferred approach:** Attempt session sharing first (simpler UX), fall back to token-based if iframe sandboxing prevents cookie access
 
-**Authentication:** Simple username/password with **bcrypt password hashing** for MVP. Session-based authentication with HTTP-only cookies. OAuth/SSO (Microsoft 365) deferred to post-MVP.
+**CORS Configuration:**
+- Backend must allow CORS requests from add-in's hosted domain
+- Add-in manifest specifies allowed domains for Office.js communication
 
-**Xero Integration:** Official Xero API SDK (Node.js or Python) with OAuth 2.0 flow. Store refresh tokens securely (encrypted at rest). Handle token refresh automatically. Research invoice line item limits during technical spike (identified risk in brief).
+**Add-in Manifest Requirements:**
+- XML manifest file defining add-in metadata, permissions, task pane URL
+- Hosted at publicly accessible HTTPS URL for sideloading
+- Requests Mail.Read permission for accessing email content
+- Specifies minimum Office.js API version required
 
-**Version Control & CI/CD:** Git repository (GitHub/GitLab), automated deployment on merge to main branch, database migrations handled via framework tooling (e.g., Alembic for Python, Sequelize/TypeORM for Node.js).
+**Deployment:**
+- Add-in static files (HTML/JS/CSS) hosted on existing Railway deployment or separate static hosting (GitHub Pages, Netlify)
+- Manifest XML file must be publicly accessible for installation
+- Backend API already hosted on Railway, no changes to hosting infrastructure
 
-**Time Entry Storage:** Store time as decimal hours in database for calculation simplicity. Accept flexible input formats in UI, normalize to decimal on save.
+**Domain-to-Client Matching Logic:**
+- Leverage existing `client_domains` table from main ticketing system (Epic 2, Story 2.1 from main PRD)
+- Matching extracts domain from email address (`user@example.com` → `example.com`) and queries `client_domains` table
+- **Assumption:** Domain matching infrastructure already exists in database schema; if not, requires backend implementation before add-in development
 
-**Timezone Handling:**
-- All users and clients operate in Central Standard Time (CST/CDT)
-- Server should be configured to CST timezone or convert all timestamps to CST for storage
-- Work dates (`time_entries.work_date`) stored as DATE type (no time component, eliminates timezone confusion)
-- Timestamps (`created_at`, `updated_at`, `closed_at`) stored in CST
-- Date pickers in UI default to CST, no timezone conversion needed
-- Month boundaries for invoice generation calculated in CST (e.g., "January 2025" = 2025-01-01 to 2025-01-31 CST)
+**Contact Schema:**
+- Assumes `contacts.email` is unique within a client, but same email can exist across multiple clients
+- Disambiguation UI needed when email matches contacts at 2+ clients
 
-**Rationale:** Single-timezone operation eliminates complexity. All users in same timezone means no conversion logic needed, reducing edge case bugs.
+**Development Workflow:**
+- Local development: Add-in served via `npm run dev` (Vite dev server with HTTPS using self-signed cert - Office Add-ins require HTTPS)
+- Manifest points to localhost during development for fast iteration
+- Production: Manifest points to Railway-hosted add-in URL
+
+**Browser Compatibility:**
+- Target: Modern browsers supporting ES6+, Fetch API, async/await
+- Office.js handles some polyfilling, but add-in should use modern JavaScript features
+- No IE11 support required (matches main app's NFR6)
+
+**Critical Technical Unknowns (require research spike):**
+1. Can Office Add-in task pane share session cookies with main web app for seamless auth?
+2. Does Office.js Mail API provide sufficient email metadata (sender, display name) in Outlook Web?
+3. Can task pane persist across email selections, or does it reload/reset?
+4. Are there Office.js API rate limits or quota restrictions for email access?
 
 ---

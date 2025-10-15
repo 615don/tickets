@@ -2,68 +2,52 @@
 
 ## Functional Requirements
 
-**FR1:** System shall support creating tickets with only three required fields at creation time: Client, Contact, and Time Entry.
+**FR1:** Add-in shall load as a persistent task pane in Outlook Web Access that remains open while navigating through emails.
 
-**FR2:** System shall allow tickets to have optional Description and Notes fields that can be populated at creation or added/edited later before ticket closure.
+**FR2:** Add-in shall automatically detect and populate contact/client information when an email is selected based on sender email address.
 
-**FR3:** System shall require a Description field to be populated before a ticket can be included in invoice generation, prompting the user to add descriptions to any tickets lacking them during the pre-invoice review process.
+**FR3:** Add-in shall match contacts by exact email address lookup against the contacts database as the primary matching strategy.
 
-**FR4:** System shall support ticket states of Open and Closed, with ability to re-open closed tickets within 7 days of closure.
+**FR4:** Add-in shall fall back to domain-based client matching when email address does not match an existing contact, using the sender's email domain against client domain lists.
 
-**FR5:** System shall maintain a Client database with fields for company name, one or more email domains (for auto-detection), Xero customer ID, and maintenance contract type.
+**FR5:** Add-in shall display a disambiguation UI when a contact exists at multiple clients, allowing the user to select the correct client context.
 
-**FR6:** System shall maintain a Contact database with fields for name and email address, with each contact associated with exactly one Client.
+**FR6:** Add-in shall automatically create a new contact record when the sender's domain matches a client but the specific email address doesn't exist, pre-filling name from email display name and email address (editable before ticket creation).
 
-**FR7:** System shall support multiple time entries per ticket, each with a work date, duration, and billable/non-billable flag.
+**FR7:** Add-in shall display a warning indicator when the matched client is marked as inactive, but allow ticket creation to proceed.
 
-**FR8:** System shall allow users to add, edit, or delete time entries for any ticket until the associated month's invoice has been pushed to Xero (invoice lock).
+**FR8:** Add-in shall automatically clear and refresh the form when the user selects a different email in Outlook.
 
-**FR9:** System shall accept time input in flexible formats including hours ("2h", "2"), minutes ("45m", "45"), and decimal hours ("1.5h", "1.5").
+**FR9:** Add-in shall provide a manual ticket creation form with fields: Client (dropdown), Contact (dropdown with auto-selection based on matching), Time (default 0.03 hours / 2 minutes), Description (optional), Notes (optional), and "Mark as closed immediately" checkbox.
 
-**FR10:** System shall provide an Open Tickets view displaying all currently open tickets.
+**FR10:** Add-in form fields shall be pre-filled based on email matching but remain fully editable before ticket submission.
 
-**FR11:** System shall provide a Recently Closed Tickets view displaying tickets closed within the last 7 days.
+**FR11:** Add-in shall submit tickets to the existing ticketing system REST API using the same endpoints as the web application.
 
-**FR12:** System shall provide search capability for historical closed tickets.
+**FR12:** Add-in shall support received emails only in MVP, matching based on the sender's email address.
 
-**FR13:** System shall support manual invoice generation for a specified month that pushes invoices to Xero via API integration.
+**FR13:** Add-in shall require authentication with the ticketing system before allowing ticket creation operations.
 
-**FR14:** System shall format Xero invoices with per-ticket line items using format "Ticket #[ID] - [Description]".
+**FR14:** Add-in shall handle authentication errors gracefully, prompting the user to log in via the web app if session is invalid.
 
-**FR15:** System shall include non-billable tickets as $0 line items in Xero invoices.
-
-**FR16:** System shall display a pre-invoice review screen showing total billable hours, per-client breakdown, and any tickets missing descriptions before allowing invoice push to Xero.
-
-**FR17:** System shall lock all time entries for a month after successful Xero invoice push to prevent accidental modification.
-
-**FR18:** System shall support basic authentication with username and password for single-user access.
-
-**FR19:** System shall allow deletion of contacts with automatic reassignment of their tickets to a system-generated "Deleted Contact" record per client, preserving ticket history.
-
-**FR20:** System shall allow deletion of clients with cascade deletion of all related data (contacts, tickets, time entries), but prevent deletion if invoices have been generated for that client.
+**FR15:** Add-in shall work on macOS using Outlook Web Access in modern browsers (Chrome, Safari, Edge).
 
 ## Non-Functional Requirements
 
-**NFR1:** Ticket creation form submission shall complete in under 500ms under normal operating conditions.
+**NFR1:** Add-in sidebar shall load and render within 2 seconds of Outlook launch.
 
-**NFR2:** Page load times shall not exceed 2 seconds for any view in the system.
+**NFR2:** Contact/client matching shall complete within 500ms of email selection.
 
-**NFR3:** Search and filter operations shall return results in under 1 second.
+**NFR3:** Ticket creation submission shall complete within 1 second under normal operating conditions.
 
-**NFR4:** System shall use HTTPS for all client-server communication.
+**NFR4:** Add-in shall communicate with ticketing system API over HTTPS only.
 
-**NFR5:** System shall securely store Xero API credentials (OAuth tokens) using industry-standard encryption.
+**NFR5:** Add-in shall not store email content on the backend; email data used only for transient AI processing if user explicitly triggers AI generation.
 
-**NFR6:** System shall support modern browsers (Chrome, Edge, Safari, Firefox - last 2 major versions) with no requirement for IE11.
+**NFR6:** Add-in shall handle network failures gracefully with clear error messages and retry capabilities.
 
-**NFR7:** System shall implement automated daily database backups with retention policy.
+**NFR7:** Add-in manifest shall be sideload-compatible for development and testing (no Office Store publishing required for MVP).
 
-**NFR8:** System shall be responsive and usable on mobile browsers (tablet and phone sizes).
-
-**NFR9:** System shall implement soft deletes for time entries to enable audit trail and recovery capability.
-
-**NFR10:** System shall display confirmation dialogs for destructive actions (delete time entry, lock invoice).
-
-**NFR11:** System shall use Xero's "Consulting Services" product/service item for invoice line items. User must have this product configured in their Xero account with appropriate rate and accounting code mappings before invoice generation.
+**NFR8:** Add-in shall be compatible with modern browsers supporting Office.js API (Chrome, Safari, Edge - latest 2 major versions).
 
 ---

@@ -2,23 +2,21 @@
 
 ## Goals
 
-- Eliminate revenue leakage from forgotten billable hours by enabling real-time ticket logging
-- Reduce ticket creation time from minutes to under 10 seconds (target: 5 seconds)
-- Decrease monthly administrative overhead from ~4 hours to under 1 hour
-- Enable same-day invoice generation at month-end through seamless Xero integration
-- Provide transparent, dispute-proof billing documentation for all client work
-- Support 100% billable time capture with minimal friction during active work
+- Enable instant ticket creation from Outlook emails without context switching, capturing 100% of billable time
+- Reduce ticket creation time from 2-3 minutes to under 30 seconds through intelligent auto-matching and pre-filled forms
+- Eliminate forgotten billable work by embedding ticket capture directly in the email workflow
+- Provide contextual awareness of client/contact information without leaving Outlook
+- Increase revenue capture by $5,000-10,000 annually through complete billable time tracking
+- Reduce administrative overhead by 20-30 hours per year in ticket documentation time
 
 ## Background Context
 
-Solo IT consultants and small IT consulting firms billing hourly face a critical challenge: existing ticketing systems designed for team collaboration impose unnecessary complexity that directly causes revenue loss. Current systems require slow-loading dropdowns, multiple forced fields, and multi-step workflows that transform simple billing documentation into a multi-minute interruption. This friction leads consultants to defer ticket creation, resulting in forgotten billable hours—potentially $5,000-10,000 in annual revenue loss for a typical consultant billing 85-100 hours monthly.
-
-This PRD defines an MVP ticketing system purpose-built for billing documentation rather than task management. By reducing required fields at creation to just three essentials (client, contact, time) and enabling rich context capture at closure, the system meets consultants where they work and eliminates the barrier causing revenue leakage. The solution focuses exclusively on the billing workflow: capture time during work, review and adjust before month-end, and generate detailed Xero invoices with per-ticket line items.
+Solo IT consultants performing hourly billing work primarily through email face a critical friction problem: switching from Outlook to a separate ticketing system to log billable time introduces overhead that leads to forgotten tickets and lost revenue. Current third-party solutions are bloated with team-focused features (workflow management, assignments, priorities) that add complexity rather than solving the core problem of fast, frictionless billing documentation. This PRD addresses that gap by specifying an Outlook Web Add-in that brings ticket creation directly into the email environment through a persistent sidebar interface with intelligent contact/client matching, minimal required fields, and optional AI assistance. The solution meets consultants where they already work rather than forcing adoption of new tools.
 
 ## Change Log
 
 | Date | Version | Description | Author |
 |------|---------|-------------|--------|
-| 2025-09-30 | 1.0 | Initial PRD creation from Project Brief | John (PM Agent) |
+| 2025-10-08 | 1.0 | Initial PRD created from Project Brief | John (PM Agent) |
 
 ---
