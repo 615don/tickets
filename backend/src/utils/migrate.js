@@ -324,6 +324,53 @@ Respond with JSON format:
       COMMENT ON COLUMN tickets.contact_name_snapshot IS
         'Preserves the original contact name when a contact is deleted. Used to display historical information instead of "(Deleted Contact)".';
     `
+  },
+  {
+    name: '018_create_assets_table',
+    sql: `
+      -- Create assets table for Epic 15: Asset Management Integration
+      -- Stores hardware/device information linked to contacts
+      CREATE TABLE IF NOT EXISTS assets (
+        id SERIAL PRIMARY KEY,
+        hostname VARCHAR(255) NOT NULL,
+        contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL,
+        manufacturer VARCHAR(255),
+        model VARCHAR(255),
+        serial_number VARCHAR(255),
+        in_service_date DATE NOT NULL,
+        warranty_expiration_date DATE,
+        pdq_device_id VARCHAR(255),
+        screenconnect_session_id VARCHAR(255),
+        status VARCHAR(50) DEFAULT 'active' NOT NULL CHECK (status IN ('active', 'retired')),
+        retired_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+      );
+
+      -- Indexes for performance
+      CREATE INDEX IF NOT EXISTS idx_assets_contact_id ON assets(contact_id);
+      CREATE INDEX IF NOT EXISTS idx_assets_status ON assets(status);
+      CREATE INDEX IF NOT EXISTS idx_assets_warranty_expiration ON assets(warranty_expiration_date);
+      CREATE INDEX IF NOT EXISTS idx_assets_hostname ON assets(hostname);
+
+      -- Comments for documentation
+      COMMENT ON TABLE assets IS 'Stores client hardware/device inventory with warranty and support tool integration';
+      COMMENT ON COLUMN assets.contact_id IS 'Links asset to contact; set to NULL if contact is deleted (preserves asset record)';
+      COMMENT ON COLUMN assets.status IS 'Asset lifecycle state: active (in use) or retired (decommissioned)';
+      COMMENT ON COLUMN assets.pdq_device_id IS 'Integration ID for PDQ Inventory/Deploy';
+      COMMENT ON COLUMN assets.screenconnect_session_id IS 'Integration ID for ScreenConnect/ConnectWise Control';
+    `
+  },
+  {
+    name: '019_add_clients_notion_url',
+    sql: `
+      -- Add notion_url column to clients table for Epic 15: Asset Management Integration
+      -- Enables quick access to client documentation from ticket pages
+      ALTER TABLE clients ADD COLUMN IF NOT EXISTS notion_url VARCHAR(500);
+
+      -- Comment for documentation
+      COMMENT ON COLUMN clients.notion_url IS 'Link to client documentation in Notion (optional)';
+    `
   }
 ];
 
