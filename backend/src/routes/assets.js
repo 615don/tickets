@@ -3,6 +3,7 @@ import { Asset } from '../models/Asset.js';
 import { requireAuth } from '../middleware/auth.js';
 import { query } from '../config/database.js';
 import { lookupLenovoWarranty } from '../services/lenovoWarranty.js';
+import { invalidateCache, getAssetsByContactId, getCacheStats } from '../services/assetCache.js';
 
 const router = express.Router();
 
@@ -134,6 +135,10 @@ router.post('/', async (req, res) => {
         screenconnect_session_id || null
       ]
     );
+
+    // Invalidate asset cache after successful create
+    console.log(`[ASSET CACHE] Invalidated: asset_id=${result.rows[0].id}, action=create`);
+    await invalidateCache();
 
     // Return snake_case as per story requirements
     res.status(201).json(result.rows[0]);
@@ -544,6 +549,10 @@ router.put('/:id', async (req, res) => {
       ]
     );
 
+    // Invalidate asset cache after successful update
+    console.log(`[ASSET CACHE] Invalidated: asset_id=${id}, action=update`);
+    await invalidateCache();
+
     res.status(200).json(result.rows[0]);
   } catch (error) {
     console.error('Error updating asset:', error);
@@ -597,6 +606,10 @@ router.delete('/:id', async (req, res) => {
        RETURNING retired_at`,
       [id]
     );
+
+    // Invalidate asset cache after successful retire
+    console.log(`[ASSET CACHE] Invalidated: asset_id=${id}, action=retire`);
+    await invalidateCache();
 
     res.status(200).json({
       message: 'Asset retired successfully',
@@ -665,6 +678,10 @@ router.delete('/:id/permanent', async (req, res) => {
 
     // Permanent delete
     await query('DELETE FROM assets WHERE id = $1', [id]);
+
+    // Invalidate asset cache after successful permanent delete
+    console.log(`[ASSET CACHE] Invalidated: asset_id=${id}, action=permanent-delete`);
+    await invalidateCache();
 
     res.status(200).json({
       message: 'Asset permanently deleted',
@@ -853,6 +870,92 @@ router.post('/:id/warranty-lookup', async (req, res) => {
     res.status(500).json({
       error: 'InternalServerError',
       message: 'An error occurred while looking up warranty information'
+    });
+  }
+});
+
+// GET /api/assets/widget/:ticketId - Get assets for ticket's contact (optimized for widget)
+router.get('/widget/:ticketId', async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+
+    // Validate ticketId is numeric
+    if (isNaN(parseInt(ticketId))) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Invalid ticket ID'
+      });
+    }
+
+    // Get ticket's contact
+    const ticketResult = await query(
+      'SELECT contact_id FROM tickets WHERE id = $1',
+      [ticketId]
+    );
+
+    if (ticketResult.rows.length === 0) {
+      return res.status(404).json({
+        error: 'NotFoundError',
+        message: 'Ticket not found'
+      });
+    }
+
+    const contactId = ticketResult.rows[0].contact_id;
+
+    // If no contact associated with ticket, return empty response
+    if (!contactId) {
+      return res.status(200).json({
+        assets: [],
+        contact_name: null,
+        total_assets: 0
+      });
+    }
+
+    // Fetch assets from cache
+    const allAssets = getAssetsByContactId(contactId);
+    const limitedAssets = allAssets.slice(0, 2); // Max 2 for widget
+
+    // Get contact name
+    const contactResult = await query(
+      'SELECT name FROM contacts WHERE id = $1',
+      [contactId]
+    );
+
+    const contactName = contactResult.rows.length > 0
+      ? contactResult.rows[0].name
+      : 'Unknown Contact';
+
+    res.status(200).json({
+      assets: limitedAssets,
+      contact_name: contactName,
+      total_assets: allAssets.length
+    });
+  } catch (error) {
+    console.error('[ASSET CACHE] Widget endpoint error:', error);
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: 'Failed to fetch assets for widget'
+    });
+  }
+});
+
+// POST /api/assets/cache/refresh - Manually refresh asset cache
+router.post('/cache/refresh', async (req, res) => {
+  try {
+    console.log('[ASSET CACHE] Manual refresh triggered by user');
+    await invalidateCache();
+    const stats = getCacheStats();
+
+    res.status(200).json({
+      message: 'Asset cache refreshed successfully',
+      cache_size: stats.size,
+      total_assets: stats.total_assets
+    });
+  } catch (error) {
+    console.error('[ASSET CACHE] Manual refresh failed:', error);
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: 'Failed to refresh cache'
     });
   }
 });

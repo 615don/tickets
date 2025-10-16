@@ -22,6 +22,7 @@ import debugRoutes from './routes/debug.js';
 import assetRoutes from './routes/assets.js';
 import { sessionDebugMiddleware } from './middleware/sessionDebug.js';
 import { startScheduler } from './services/backupScheduler.js';
+import { warmCache } from './services/assetCache.js';
 
 // Load environment variables
 dotenv.config();
@@ -196,6 +197,17 @@ async function startServer() {
 
     // Test database connection with retry logic
     await testConnection();
+
+    // Warm asset cache
+    console.log('⚙️  Warming asset cache...');
+    try {
+      await warmCache();
+      console.log('✓ Asset cache warmed successfully');
+    } catch (error) {
+      console.warn('⚠️  Failed to warm asset cache:', error.message);
+      console.warn('   Asset cache will not be available until manually refreshed.');
+      // Don't fail startup - allow app to run without cache
+    }
 
     // Start backup scheduler
     console.log('⚙️  Initializing backup scheduler...');
