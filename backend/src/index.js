@@ -19,6 +19,7 @@ import settingsRoutes from './routes/settings.js';
 import backupRoutes from './routes/backup.js';
 import aiRoutes from './routes/ai.js';
 import debugRoutes from './routes/debug.js';
+import assetRoutes from './routes/assets.js';
 import { sessionDebugMiddleware } from './middleware/sessionDebug.js';
 import { startScheduler } from './services/backupScheduler.js';
 
@@ -163,6 +164,7 @@ app.use('/api/invoices', invoiceRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/assets', assetRoutes);
 
 // 404 handler
 app.use((req, res) => {
