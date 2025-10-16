@@ -16,12 +16,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Asset, AssetFormData } from '@tickets/shared';
 import { useContacts } from '@/hooks/useContacts';
 import { useClients } from '@/hooks/useClients';
 import { useCreateAsset, useUpdateAsset } from '@/hooks/useAssets';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { assetsApi } from '@/lib/api/assets';
 
 const assetSchema = z.object({
   hostname: z.string().min(1, 'Hostname is required').max(255, 'Hostname must be less than 255 characters'),
@@ -49,6 +56,10 @@ export const AssetForm = ({ mode, asset, onSuccess, onCancel }: AssetFormProps) 
   // Fetch contacts and clients for dropdown
   const { data: contacts = [], isLoading: contactsLoading } = useContacts();
   const { data: clients = [] } = useClients();
+
+  // Lenovo warranty lookup state
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupError, setLookupError] = useState<string | null>(null);
 
   // Determine initial client_id and contact_id from asset if in edit mode
   const { initialClientId, initialContactId } = useMemo(() => {
@@ -92,9 +103,60 @@ export const AssetForm = ({ mode, asset, onSuccess, onCancel }: AssetFormProps) 
 
   const clientId = watch('client_id');
   const contactId = watch('contact_id');
+  const manufacturer = watch('manufacturer');
+  const serialNumber = watch('serial_number');
 
   const createAsset = useCreateAsset();
   const updateAsset = useUpdateAsset();
+
+  // Check if manufacturer is Lenovo (case-insensitive)
+  const isLenovo = useMemo(() => {
+    return manufacturer?.toLowerCase().includes('lenovo') || false;
+  }, [manufacturer]);
+
+  // Handle Lenovo warranty lookup
+  const handleWarrantyLookup = async () => {
+    if (!serialNumber) return;
+
+    setLookupLoading(true);
+    setLookupError(null);
+
+    try {
+      // Use different endpoint based on mode (create vs edit)
+      const warrantyInfo = mode === 'create'
+        ? await assetsApi.lookupLenovoWarrantyBySerial(serialNumber)
+        : await assetsApi.lookupLenovoWarranty(asset!.id, serialNumber);
+
+      // Auto-populate fields with warranty data
+      if (warrantyInfo.warranty_expiration_date) {
+        setValue('warranty_expiration_date', warrantyInfo.warranty_expiration_date, { shouldValidate: true });
+      }
+      if (warrantyInfo.in_service_date) {
+        setValue('in_service_date', warrantyInfo.in_service_date, { shouldValidate: true });
+      }
+      // Optionally update model if empty and product name returned
+      if (warrantyInfo.product_name && !watch('model')) {
+        setValue('model', warrantyInfo.product_name, { shouldValidate: true });
+      }
+    } catch (error: any) {
+      // Handle error responses
+      const errorMessage = error?.message || 'Unknown error';
+
+      if (errorMessage.includes('Serial number not found') || errorMessage.includes('404')) {
+        setLookupError('Serial number not found in Lenovo database');
+      } else if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+        setLookupError('Lenovo API rate limit exceeded. Please try again later.');
+      } else if (errorMessage.includes('Unable to connect') || errorMessage.includes('503')) {
+        setLookupError('Unable to connect to Lenovo API. Please enter warranty information manually.');
+      } else if (errorMessage.includes('API key not configured')) {
+        setLookupError('Lenovo API key not configured');
+      } else {
+        setLookupError('Unable to lookup warranty information. Please try again later.');
+      }
+    } finally {
+      setLookupLoading(false);
+    }
+  };
 
   // Filter contacts by selected client
   const filteredContacts = useMemo(() => {
@@ -252,13 +314,50 @@ export const AssetForm = ({ mode, asset, onSuccess, onCancel }: AssetFormProps) 
       {/* Serial Number */}
       <div className="space-y-2">
         <Label htmlFor="serial_number">Serial Number</Label>
-        <Input
-          id="serial_number"
-          {...register('serial_number')}
-          placeholder="PF3ABCDE"
-        />
+        <div className="flex gap-2">
+          <Input
+            id="serial_number"
+            {...register('serial_number')}
+            placeholder="PF3ABCDE"
+            className="flex-1"
+          />
+          {/* Lenovo Warranty Lookup Button */}
+          {isLenovo && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleWarrantyLookup}
+                      disabled={!serialNumber || lookupLoading}
+                    >
+                      {lookupLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Looking up...
+                        </>
+                      ) : (
+                        'Lookup Warranty'
+                      )}
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {!serialNumber && (
+                  <TooltipContent>
+                    Enter serial number first
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
         {errors.serial_number && (
           <p className="text-sm text-destructive">{errors.serial_number.message}</p>
+        )}
+        {lookupError && (
+          <p className="text-sm text-destructive">{lookupError}</p>
         )}
       </div>
 

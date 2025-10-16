@@ -2,6 +2,7 @@ import express from 'express';
 import { Asset } from '../models/Asset.js';
 import { requireAuth } from '../middleware/auth.js';
 import { query } from '../config/database.js';
+import { lookupLenovoWarranty } from '../services/lenovoWarranty.js';
 
 const router = express.Router();
 
@@ -674,6 +675,184 @@ router.delete('/:id/permanent', async (req, res) => {
     res.status(500).json({
       error: 'InternalServerError',
       message: 'An error occurred while permanently deleting the asset'
+    });
+  }
+});
+
+// POST /api/assets/warranty-lookup - Lookup Lenovo warranty information (no asset ID required)
+router.post('/warranty-lookup', async (req, res) => {
+  try {
+    const { serial_number } = req.body;
+
+    // Validate serial_number is provided
+    if (!serial_number || serial_number.trim().length === 0) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Serial number is required'
+      });
+    }
+
+    // Call Lenovo warranty service
+    try {
+      const warrantyData = await lookupLenovoWarranty(serial_number);
+
+      // Format response according to story requirements
+      const response = {
+        warranty_expiration_date: warrantyData.warrantyEndDate
+          ? warrantyData.warrantyEndDate.toISOString().split('T')[0]
+          : null,
+        in_service_date: warrantyData.warrantyStartDate
+          ? warrantyData.warrantyStartDate.toISOString().split('T')[0]
+          : null,
+        service_level: warrantyData.serviceLevel || null,
+        product_name: warrantyData.productName || null
+      };
+
+      res.status(200).json(response);
+    } catch (warrantyError) {
+      // Handle specific warranty lookup errors
+      const errorMessage = warrantyError.message || 'Unknown error';
+
+      if (errorMessage.includes('Serial number not found')) {
+        return res.status(404).json({
+          error: 'NotFoundError',
+          message: 'Serial number not found in Lenovo database'
+        });
+      }
+
+      if (errorMessage.includes('rate limit')) {
+        return res.status(429).json({
+          error: 'RateLimitError',
+          message: 'API rate limit exceeded. Please try again later.'
+        });
+      }
+
+      if (errorMessage.includes('timed out') || errorMessage.includes('Unable to reach')) {
+        return res.status(503).json({
+          error: 'ServiceUnavailableError',
+          message: 'Unable to connect to Lenovo API. Please enter warranty information manually.'
+        });
+      }
+
+      if (errorMessage.includes('API key not configured')) {
+        return res.status(503).json({
+          error: 'ConfigurationError',
+          message: 'Lenovo API key not configured'
+        });
+      }
+
+      // Generic error for other cases
+      console.error('Lenovo warranty lookup error:', warrantyError);
+      return res.status(503).json({
+        error: 'ServiceUnavailableError',
+        message: 'Unable to lookup warranty information. Please try again later.'
+      });
+    }
+  } catch (error) {
+    console.error('Error in warranty lookup endpoint:', error);
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: 'An error occurred while looking up warranty information'
+    });
+  }
+});
+
+// POST /api/assets/:id/warranty-lookup - Lookup Lenovo warranty information (with asset ID)
+router.post('/:id/warranty-lookup', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { serial_number } = req.body;
+
+    // Validate id is numeric
+    if (isNaN(parseInt(id))) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Invalid asset ID'
+      });
+    }
+
+    // Validate serial_number is provided
+    if (!serial_number || serial_number.trim().length === 0) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Serial number is required'
+      });
+    }
+
+    // Check if asset exists
+    const assetResult = await query(
+      'SELECT id, manufacturer, serial_number FROM assets WHERE id = $1',
+      [id]
+    );
+
+    if (assetResult.rows.length === 0) {
+      return res.status(404).json({
+        error: 'NotFoundError',
+        message: 'Asset not found'
+      });
+    }
+
+    // Call Lenovo warranty service
+    try {
+      const warrantyData = await lookupLenovoWarranty(serial_number);
+
+      // Format response according to story requirements
+      const response = {
+        warranty_expiration_date: warrantyData.warrantyEndDate
+          ? warrantyData.warrantyEndDate.toISOString().split('T')[0]
+          : null,
+        in_service_date: warrantyData.warrantyStartDate
+          ? warrantyData.warrantyStartDate.toISOString().split('T')[0]
+          : null,
+        service_level: warrantyData.serviceLevel || null,
+        product_name: warrantyData.productName || null
+      };
+
+      res.status(200).json(response);
+    } catch (warrantyError) {
+      // Handle specific warranty lookup errors
+      const errorMessage = warrantyError.message || 'Unknown error';
+
+      if (errorMessage.includes('Serial number not found')) {
+        return res.status(404).json({
+          error: 'NotFoundError',
+          message: 'Serial number not found in Lenovo database'
+        });
+      }
+
+      if (errorMessage.includes('rate limit')) {
+        return res.status(429).json({
+          error: 'RateLimitError',
+          message: 'API rate limit exceeded. Please try again later.'
+        });
+      }
+
+      if (errorMessage.includes('timed out') || errorMessage.includes('Unable to reach')) {
+        return res.status(503).json({
+          error: 'ServiceUnavailableError',
+          message: 'Unable to connect to Lenovo API. Please enter warranty information manually.'
+        });
+      }
+
+      if (errorMessage.includes('API key not configured')) {
+        return res.status(503).json({
+          error: 'ConfigurationError',
+          message: 'Lenovo API key not configured'
+        });
+      }
+
+      // Generic error for other cases
+      console.error('Lenovo warranty lookup error:', warrantyError);
+      return res.status(503).json({
+        error: 'ServiceUnavailableError',
+        message: 'Unable to lookup warranty information. Please try again later.'
+      });
+    }
+  } catch (error) {
+    console.error('Error in warranty lookup endpoint:', error);
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: 'An error occurred while looking up warranty information'
     });
   }
 });

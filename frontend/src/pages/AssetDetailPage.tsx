@@ -290,15 +290,18 @@ export function AssetDetailPage() {
               <label className="text-sm font-medium text-muted-foreground">
                 Warranty Expiration
               </label>
-              <div className="mt-1">
-                <WarrantyBadge
-                  warrantyExpirationDate={
-                    asset.warranty_expiration_date
-                      ? new Date(asset.warranty_expiration_date)
-                      : null
-                  }
-                />
-              </div>
+              {asset.warranty_expiration_date ? (
+                <div className="space-y-1">
+                  <p className="text-base">
+                    {format(new Date(asset.warranty_expiration_date), 'MMMM do, yyyy')}
+                  </p>
+                  <WarrantyBadge
+                    warrantyExpirationDate={new Date(asset.warranty_expiration_date)}
+                  />
+                </div>
+              ) : (
+                <p className="text-base">—</p>
+              )}
             </div>
 
             <div>

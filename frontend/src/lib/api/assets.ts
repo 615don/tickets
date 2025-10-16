@@ -57,6 +57,16 @@ export interface AssetWithRelationsResponse extends AssetResponse {
 }
 
 /**
+ * Warranty information response from Lenovo API
+ */
+export interface WarrantyInfo {
+  warranty_expiration_date: string | null;
+  in_service_date: string | null;
+  service_level: string | null;
+  product_name: string | null;
+}
+
+/**
  * Transform backend snake_case response to frontend Asset type
  */
 function transformAsset(data: AssetResponse | AssetWithRelationsResponse): Asset & {
@@ -176,5 +186,27 @@ export const assetsApi = {
    */
   permanentDelete: async (id: number): Promise<void> => {
     await apiClient.delete<{ message: string }>(`/api/assets/${id}/permanent`);
+  },
+
+  /**
+   * Lookup Lenovo warranty information (requires asset ID)
+   */
+  lookupLenovoWarranty: async (assetId: number, serialNumber: string): Promise<WarrantyInfo> => {
+    const data = await apiClient.post<WarrantyInfo>(
+      `/api/assets/${assetId}/warranty-lookup`,
+      { serial_number: serialNumber }
+    );
+    return data;
+  },
+
+  /**
+   * Lookup Lenovo warranty information by serial number only (no asset ID required)
+   */
+  lookupLenovoWarrantyBySerial: async (serialNumber: string): Promise<WarrantyInfo> => {
+    const data = await apiClient.post<WarrantyInfo>(
+      '/api/assets/warranty-lookup',
+      { serial_number: serialNumber }
+    );
+    return data;
   },
 };

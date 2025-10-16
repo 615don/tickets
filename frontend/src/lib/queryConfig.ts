@@ -12,13 +12,13 @@ export const queryConfig = {
     refetchOnWindowFocus: false, // Don't refetch on tab focus
   },
 
-  // Contact data changes rarely
+  // Contact data changes rarely but needs to refresh when new contacts added
   contacts: {
     all: ['contacts'] as const,
     byClient: (clientId: number) => ['contacts', 'client', clientId] as const,
     detail: (id: number) => ['contacts', id] as const,
     staleTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true, // Refetch when user switches tabs (picks up new contacts)
   },
 
   // Ticket data is more dynamic (user actively working with tickets)
