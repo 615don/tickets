@@ -219,10 +219,11 @@ This document supplements the existing project architecture (documented in [docs
 **Purpose:** Track IT assets (computers, devices) with warranty information and external tool integration (ScreenConnect, PDQ)
 
 **Integration with Existing Models:**
-- Assets belong to **one Contact** (many-to-one relationship)
-- Assets transitively belong to **one Client** through Contact's client assignment
-- Assets can be **unassigned** (contact_id = null) when ownership unclear
-- When Contact deleted, assets become unassigned (ON DELETE SET NULL) - preserves asset records for audit trail
+- Assets belong **directly** to **one Client** (many-to-one relationship, **required**)
+- Assets **optionally** belong to **one Contact** within that Client (many-to-one relationship, **nullable**)
+- Assets can be **unassigned from contact** (contact_id = null) when ownership unclear or contact deleted
+- When Contact deleted, assets become unassigned (ON DELETE SET NULL) but **remain linked to Client**
+- When Client deleted, assets are cascade deleted (business rule: client owns assets)
 
 **Key Attributes:**
 
@@ -230,7 +231,8 @@ This document supplements the existing project architecture (documented in [docs
 interface Asset {
   id: number;                           // Primary key
   hostname: string;                     // Required - primary identifier
-  contact_id: number | null;            // FK to contacts.id (nullable)
+  client_id: number;                    // FK to clients.id (required - NOT NULL)
+  contact_id: number | null;            // FK to contacts.id (nullable - optional)
   manufacturer: string | null;          // e.g., "Lenovo", "Dell", "HP"
   model: string | null;                 // e.g., "ThinkPad X1 Carbon Gen 9"
   serial_number: string | null;         // Used for warranty lookups
@@ -247,16 +249,20 @@ interface Asset {
 
 **Relationships:**
 - **With Existing Models:**
-  - `assets.contact_id` → `contacts.id` (many-to-one, optional)
-  - Transitive: assets → contacts → clients (for client-level asset reporting)
+  - `assets.client_id` → `clients.id` (many-to-one, **required** - NOT NULL)
+  - `assets.contact_id` → `contacts.id` (many-to-one, **optional** - nullable)
+  - Contact must belong to the same client as the asset (enforced in application logic)
 - **With New Models:** None (Asset is standalone entity)
 
 **Business Rules:**
+- **Client assignment is required** - every asset must have a client_id (enforced by DB: NOT NULL)
+- **Contact assignment is optional** - contact_id can be null (unassigned)
 - Hostname must be unique per client (enforced in application logic, not DB constraint)
 - Status defaults to 'active' on creation
 - Retired assets (status='retired') excluded from widget and active lists
 - Permanent delete allowed only if retired_at > 2 years ago
-- Contact assignment can be changed (including set to null/unassigned)
+- Contact assignment can be changed (including set to null/unassigned), but client cannot be null
+- If contact is selected, it must belong to the asset's client (validated on create/update)
 
 ---
 
@@ -270,6 +276,7 @@ interface Asset {
 CREATE TABLE assets (
   id SERIAL PRIMARY KEY,
   hostname VARCHAR(255) NOT NULL,
+  client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
   contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL,
   manufacturer VARCHAR(255),
   model VARCHAR(255),
@@ -285,6 +292,7 @@ CREATE TABLE assets (
 );
 
 -- Indexes for performance
+CREATE INDEX idx_assets_client_id ON assets(client_id);
 CREATE INDEX idx_assets_contact_id ON assets(contact_id);
 CREATE INDEX idx_assets_status ON assets(status);
 CREATE INDEX idx_assets_warranty_expiration ON assets(warranty_expiration_date);
@@ -305,6 +313,7 @@ ALTER TABLE clients ADD COLUMN notion_url VARCHAR(500);
 ```
 
 **Indexes Rationale:**
+- `idx_assets_client_id`: Fast lookup for client-level asset queries (required relationship)
 - `idx_assets_contact_id`: Fast lookup for widget query (get assets by ticket's contact)
 - `idx_assets_status`: Filter active vs. retired assets
 - `idx_assets_warranty_expiration`: Warranty expiration reports, color-coding queries
@@ -330,7 +339,8 @@ ALTER TABLE clients ADD COLUMN notion_url VARCHAR(500);
 
 #### Backward Compatibility
 
-- **Contacts Deletion Behavior:** ON DELETE SET NULL ensures assets persist (not cascade deleted)
+- **Contacts Deletion Behavior:** ON DELETE SET NULL ensures assets persist (not cascade deleted), remain linked to client
+- **Clients Deletion Behavior:** ON DELETE CASCADE removes assets when client deleted (client owns assets)
 - **Client Records:** notion_url nullable, existing clients unaffected
 - **Existing Queries:** No changes to contacts/clients/tickets queries (assets table isolated)
 - **API Responses:** No changes to existing endpoint responses (asset data not included unless explicitly requested)
@@ -351,7 +361,7 @@ ALTER TABLE clients ADD COLUMN notion_url VARCHAR(500);
 - Async load (React.lazy or useEffect) - non-blocking to ticket page render
 
 **Key Interfaces:**
-- Props: `ticketId: number`, `contactId: number | null`
+- Props: `ticketId: number`, `contactId: number | null`, `clientId: number` (required)
 - State: `assets: Asset[]`, `loading: boolean`, `error: Error | null`
 
 **Dependencies:**

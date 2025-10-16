@@ -81,20 +81,46 @@ function validateStatus(status) {
 }
 
 /**
+ * Validates that a client exists
+ * @param {number} clientId - Client ID to validate
+ * @throws {Error} If client does not exist or clientId is missing
+ */
+async function validateClientExists(clientId) {
+  if (!clientId) {
+    throw new Error('Client ID is required');
+  }
+
+  const result = await query(
+    'SELECT id FROM clients WHERE id = $1',
+    [clientId]
+  );
+
+  if (result.rows.length === 0) {
+    throw new Error(`Client with ID ${clientId} not found`);
+  }
+}
+
+/**
  * Validates that a contact exists if contact_id provided
  * @param {number|null} contactId - Contact ID to validate
- * @throws {Error} If contact does not exist
+ * @param {number} clientId - Client ID that contact must belong to
+ * @throws {Error} If contact does not exist or doesn't belong to client
  */
-async function validateContactExists(contactId) {
+async function validateContactExists(contactId, clientId) {
   if (!contactId) return; // null is valid (unassigned asset)
 
   const result = await query(
-    'SELECT id FROM contacts WHERE id = $1 AND deleted_at IS NULL',
+    'SELECT id, client_id FROM contacts WHERE id = $1 AND deleted_at IS NULL',
     [contactId]
   );
 
   if (result.rows.length === 0) {
     throw new Error(`Contact with ID ${contactId} not found`);
+  }
+
+  // Ensure contact belongs to the specified client
+  if (result.rows[0].client_id !== clientId) {
+    throw new Error(`Contact ${contactId} does not belong to client ${clientId}`);
   }
 }
 
@@ -109,6 +135,7 @@ function convertToCamelCase(row) {
   return {
     id: row.id,
     hostname: row.hostname,
+    clientId: row.client_id,
     contactId: row.contact_id,
     manufacturer: row.manufacturer,
     model: row.model,
@@ -126,7 +153,7 @@ function convertToCamelCase(row) {
       id: row.contact_id,
       name: row.contact_name,
       email: row.contact_email,
-      clientId: row.client_id
+      clientId: row.contact_client_id || row.client_id
     } : undefined
   };
 }
@@ -139,6 +166,7 @@ export const Asset = {
    */
   async create({
     hostname,
+    clientId,
     contactId = null,
     manufacturer = null,
     model = null,
@@ -152,11 +180,13 @@ export const Asset = {
     validateHostname(hostname);
     validateInServiceDate(inServiceDate);
     validateOptionalDate(warrantyExpirationDate);
-    await validateContactExists(contactId);
+    await validateClientExists(clientId);
+    await validateContactExists(contactId, clientId);
 
     const result = await query(
       `INSERT INTO assets (
         hostname,
+        client_id,
         contact_id,
         manufacturer,
         model,
@@ -169,10 +199,11 @@ export const Asset = {
         created_at,
         updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'active', NOW(), NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'active', NOW(), NOW())
       RETURNING *`,
       [
         hostname,
+        clientId,
         contactId,
         manufacturer,
         model,
@@ -214,9 +245,9 @@ export const Asset = {
       paramCount++;
     }
 
-    // Filter by client (via contact)
+    // Filter by client (direct client_id relationship)
     if (filters.clientId) {
-      sql += ` AND c.client_id = $${paramCount}`;
+      sql += ` AND a.client_id = $${paramCount}`;
       params.push(filters.clientId);
       paramCount++;
     }
@@ -275,6 +306,7 @@ export const Asset = {
    */
   async update(id, {
     hostname,
+    clientId,
     contactId,
     manufacturer,
     model,
@@ -288,24 +320,27 @@ export const Asset = {
     validateHostname(hostname);
     validateInServiceDate(inServiceDate);
     validateOptionalDate(warrantyExpirationDate);
-    await validateContactExists(contactId);
+    await validateClientExists(clientId);
+    await validateContactExists(contactId, clientId);
 
     const result = await query(
       `UPDATE assets
        SET hostname = $1,
-           contact_id = $2,
-           manufacturer = $3,
-           model = $4,
-           serial_number = $5,
-           in_service_date = $6,
-           warranty_expiration_date = $7,
-           pdq_device_id = $8,
-           screenconnect_session_id = $9,
+           client_id = $2,
+           contact_id = $3,
+           manufacturer = $4,
+           model = $5,
+           serial_number = $6,
+           in_service_date = $7,
+           warranty_expiration_date = $8,
+           pdq_device_id = $9,
+           screenconnect_session_id = $10,
            updated_at = NOW()
-       WHERE id = $10
+       WHERE id = $11
        RETURNING *`,
       [
         hostname,
+        clientId,
         contactId,
         manufacturer,
         model,

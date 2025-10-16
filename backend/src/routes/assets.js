@@ -13,6 +13,7 @@ router.post('/', async (req, res) => {
   try {
     const {
       hostname,
+      client_id,
       contact_id,
       manufacturer,
       model,
@@ -28,6 +29,13 @@ router.post('/', async (req, res) => {
       return res.status(400).json({
         error: 'ValidationError',
         message: 'Hostname is required'
+      });
+    }
+
+    if (!client_id) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Client ID is required'
       });
     }
 
@@ -58,10 +66,23 @@ router.post('/', async (req, res) => {
       }
     }
 
-    // Validate contact exists if contact_id provided
+    // Validate client exists
+    const clientCheck = await query(
+      'SELECT id FROM clients WHERE id = $1',
+      [client_id]
+    );
+
+    if (clientCheck.rows.length === 0) {
+      return res.status(404).json({
+        error: 'NotFoundError',
+        message: 'Client not found'
+      });
+    }
+
+    // Validate contact exists and belongs to client if contact_id provided
     if (contact_id !== null && contact_id !== undefined) {
       const contactCheck = await query(
-        'SELECT id FROM contacts WHERE id = $1 AND deleted_at IS NULL',
+        'SELECT id, client_id FROM contacts WHERE id = $1 AND deleted_at IS NULL',
         [contact_id]
       );
 
@@ -71,12 +92,20 @@ router.post('/', async (req, res) => {
           message: 'Contact not found'
         });
       }
+
+      if (contactCheck.rows[0].client_id !== client_id) {
+        return res.status(400).json({
+          error: 'ValidationError',
+          message: 'Contact does not belong to the specified client'
+        });
+      }
     }
 
     // Create asset
     const result = await query(
       `INSERT INTO assets (
         hostname,
+        client_id,
         contact_id,
         manufacturer,
         model,
@@ -89,10 +118,11 @@ router.post('/', async (req, res) => {
         created_at,
         updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'active', NOW(), NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'active', NOW(), NOW())
       RETURNING *`,
       [
         hostname,
+        client_id,
         contact_id || null,
         manufacturer || null,
         model || null,
@@ -132,11 +162,10 @@ router.get('/', async (req, res) => {
         a.*,
         c.name as contact_name,
         c.email as contact_email,
-        c.client_id,
         cl.company_name as client_company_name
       FROM assets a
       LEFT JOIN contacts c ON a.contact_id = c.id AND c.deleted_at IS NULL
-      LEFT JOIN clients cl ON c.client_id = cl.id
+      LEFT JOIN clients cl ON a.client_id = cl.id
       WHERE 1=1
     `;
 
@@ -150,9 +179,9 @@ router.get('/', async (req, res) => {
       paramCount++;
     }
 
-    // Filter by client (via contact)
+    // Filter by client (direct client_id relationship)
     if (client_id) {
-      sql += ` AND c.client_id = $${paramCount}`;
+      sql += ` AND a.client_id = $${paramCount}`;
       params.push(client_id);
       paramCount++;
     }
@@ -203,7 +232,7 @@ router.get('/', async (req, res) => {
     }
 
     if (client_id) {
-      countSql += ` AND c.client_id = $${countParamCount}`;
+      countSql += ` AND a.client_id = $${countParamCount}`;
       countParams.push(client_id);
       countParamCount++;
     }
@@ -228,8 +257,49 @@ router.get('/', async (req, res) => {
     const countResult = await query(countSql, countParams);
     const total = parseInt(countResult.rows[0].total);
 
+    // Format each asset with nested contact and client objects
+    const formattedAssets = result.rows.map(asset => {
+      const response = {
+        id: asset.id,
+        hostname: asset.hostname,
+        client_id: asset.client_id,
+        contact_id: asset.contact_id,
+        manufacturer: asset.manufacturer,
+        model: asset.model,
+        serial_number: asset.serial_number,
+        in_service_date: asset.in_service_date,
+        warranty_expiration_date: asset.warranty_expiration_date,
+        pdq_device_id: asset.pdq_device_id,
+        screenconnect_session_id: asset.screenconnect_session_id,
+        status: asset.status,
+        retired_at: asset.retired_at,
+        created_at: asset.created_at,
+        updated_at: asset.updated_at
+      };
+
+      // Add nested contact info if exists
+      if (asset.contact_name) {
+        response.contact = {
+          id: asset.contact_id,
+          name: asset.contact_name,
+          email: asset.contact_email,
+          client_id: asset.client_id
+        };
+      }
+
+      // Add nested client info if exists
+      if (asset.client_company_name) {
+        response.client = {
+          id: asset.client_id,
+          company_name: asset.client_company_name
+        };
+      }
+
+      return response;
+    });
+
     res.status(200).json({
-      assets: result.rows,
+      assets: formattedAssets,
       pagination: {
         total,
         page: parseInt(page),
@@ -265,12 +335,12 @@ router.get('/:id', async (req, res) => {
         c.id as contact_id,
         c.name as contact_name,
         c.email as contact_email,
-        c.client_id,
+        c.client_id as contact_client_id,
         cl.id as client_id,
         cl.company_name as client_company_name
       FROM assets a
       LEFT JOIN contacts c ON a.contact_id = c.id AND c.deleted_at IS NULL
-      LEFT JOIN clients cl ON c.client_id = cl.id
+      LEFT JOIN clients cl ON a.client_id = cl.id
       WHERE a.id = $1`,
       [id]
     );
@@ -288,6 +358,7 @@ router.get('/:id', async (req, res) => {
     const response = {
       id: asset.id,
       hostname: asset.hostname,
+      client_id: asset.client_id,
       contact_id: asset.contact_id,
       manufacturer: asset.manufacturer,
       model: asset.model,
@@ -308,7 +379,7 @@ router.get('/:id', async (req, res) => {
         id: asset.contact_id,
         name: asset.contact_name,
         email: asset.contact_email,
-        client_id: asset.client_id
+        client_id: asset.contact_client_id
       };
     }
 
@@ -336,6 +407,7 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const {
       hostname,
+      client_id,
       contact_id,
       manufacturer,
       model,
@@ -371,6 +443,13 @@ router.put('/:id', async (req, res) => {
       });
     }
 
+    if (!client_id) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Client ID is required'
+      });
+    }
+
     if (!in_service_date) {
       return res.status(400).json({
         error: 'ValidationError',
@@ -398,10 +477,23 @@ router.put('/:id', async (req, res) => {
       }
     }
 
-    // Validate contact exists if contact_id provided (allow null to unassign)
+    // Validate client exists
+    const clientCheck = await query(
+      'SELECT id FROM clients WHERE id = $1',
+      [client_id]
+    );
+
+    if (clientCheck.rows.length === 0) {
+      return res.status(404).json({
+        error: 'NotFoundError',
+        message: 'Client not found'
+      });
+    }
+
+    // Validate contact exists and belongs to client if contact_id provided
     if (contact_id !== null && contact_id !== undefined) {
       const contactCheck = await query(
-        'SELECT id FROM contacts WHERE id = $1 AND deleted_at IS NULL',
+        'SELECT id, client_id FROM contacts WHERE id = $1 AND deleted_at IS NULL',
         [contact_id]
       );
 
@@ -411,25 +503,34 @@ router.put('/:id', async (req, res) => {
           message: 'Contact not found'
         });
       }
+
+      if (contactCheck.rows[0].client_id !== client_id) {
+        return res.status(400).json({
+          error: 'ValidationError',
+          message: 'Contact does not belong to the specified client'
+        });
+      }
     }
 
     // Update asset
     const result = await query(
       `UPDATE assets
        SET hostname = $1,
-           contact_id = $2,
-           manufacturer = $3,
-           model = $4,
-           serial_number = $5,
-           in_service_date = $6,
-           warranty_expiration_date = $7,
-           pdq_device_id = $8,
-           screenconnect_session_id = $9,
+           client_id = $2,
+           contact_id = $3,
+           manufacturer = $4,
+           model = $5,
+           serial_number = $6,
+           in_service_date = $7,
+           warranty_expiration_date = $8,
+           pdq_device_id = $9,
+           screenconnect_session_id = $10,
            updated_at = NOW()
-       WHERE id = $10
+       WHERE id = $11
        RETURNING *`,
       [
         hostname,
+        client_id,
         contact_id !== undefined ? contact_id : null,
         manufacturer || null,
         model || null,

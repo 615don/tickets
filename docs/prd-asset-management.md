@@ -93,9 +93,11 @@ The AssetFlow project previously built a standalone asset management system with
 
 ### Functional Requirements
 
-**FR1:** The system shall support creating assets with required fields: hostname, contact assignment (nullable - assets may be unassigned), in-service date, and optional fields: manufacturer, model, serial number, warranty expiration, PDQ device ID, ScreenConnect session ID. In-service date may be auto-populated from Lenovo Warranty API when available or manually entered.
+**FR1:** The system shall support creating assets with required fields: hostname, client assignment (required - every asset must belong to a client), in-service date, and optional fields: contact assignment (nullable - assets may be unassigned), manufacturer, model, serial number, warranty expiration, PDQ device ID, ScreenConnect session ID. In-service date may be auto-populated from Lenovo Warranty API when available or manually entered.
 
-**FR2:** The system shall maintain assets associated with a single Contact (one-to-many: Contact → Assets), which are transitively associated with a Client through the Contact's client assignment. Assets may be unassigned (contact_id = null) when contact ownership is unclear.
+**FR2:** The system shall maintain assets directly associated with a single Client (one-to-many: Client → Assets, required relationship). Assets MAY optionally be associated with a Contact within that Client (contact_id nullable). When a Contact is deleted, assets become unassigned (contact_id = null) but remain associated with the Client.
+
+**FR2a:** The system shall require a Client assignment for all assets (client_id NOT NULL). Contact assignment is optional - assets can exist without an assigned contact when ownership is unclear or contact has been deleted.
 
 **FR3:** The system shall display assets on ticket detail pages when a contact is assigned to the ticket, showing up to 2 most relevant assets with hostname, warranty expiration date (color-coded), ScreenConnect link, and PDQ Connect link.
 
@@ -358,7 +360,8 @@ Based on document-project analysis, the enhancement must align with:
 CREATE TABLE assets (
   id SERIAL PRIMARY KEY,
   hostname VARCHAR(255) NOT NULL,
-  contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL, -- nullable
+  client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE, -- required
+  contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL, -- nullable (optional)
   manufacturer VARCHAR(255),
   model VARCHAR(255),
   serial_number VARCHAR(255),
@@ -372,6 +375,7 @@ CREATE TABLE assets (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE INDEX idx_assets_client_id ON assets(client_id);
 CREATE INDEX idx_assets_contact_id ON assets(contact_id);
 CREATE INDEX idx_assets_status ON assets(status);
 CREATE INDEX idx_assets_warranty_expiration ON assets(warranty_expiration_date);

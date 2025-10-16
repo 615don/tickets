@@ -17,6 +17,9 @@ export interface Asset {
   /** Device hostname or computer name (required) */
   hostname: string;
 
+  /** Associated client ID (required - every asset must belong to a client) */
+  client_id: number;
+
   /** Associated contact ID (nullable - asset can be unassigned or contact deleted) */
   contact_id: number | null;
 
@@ -63,6 +66,9 @@ export interface AssetFormData {
   /** Device hostname or computer name (required) */
   hostname: string;
 
+  /** Associated client ID (required - every asset must belong to a client) */
+  client_id: number;
+
   /** Associated contact ID (optional - can be unassigned) */
   contact_id?: number | null;
 
@@ -93,7 +99,7 @@ export interface AssetFormData {
  * Used for querying and filtering assets in list views
  */
 export interface AssetFilters {
-  /** Filter assets by client (via contact relationship) */
+  /** Filter assets by client (direct client_id relationship) */
   client_id?: number;
 
   /** Filter assets by specific contact */

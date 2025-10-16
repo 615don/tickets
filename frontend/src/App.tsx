@@ -13,6 +13,8 @@ import TicketDetailPage from "./pages/TicketDetailPage";
 import CreateTicketPage from "./pages/CreateTicketPage";
 import ClientsPage from "./pages/ClientsPage";
 import ContactsPage from "./pages/ContactsPage";
+import AssetsPage from "./pages/AssetsPage";
+import { AssetDetailPage } from "./pages/AssetDetailPage";
 import { InvoiceReview } from "./components/InvoiceReview";
 import { InvoicePreview } from "./pages/InvoicePreview";
 import { Settings } from "./components/Settings";
@@ -117,6 +119,32 @@ const App = () => (
                   <Navbar />
                   <main className="pt-16">
                     <ContactsPage />
+                  </main>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/assets"
+            element={
+              <ProtectedRoute>
+                <div className="min-h-screen bg-background">
+                  <Navbar />
+                  <main className="pt-16">
+                    <AssetsPage />
+                  </main>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/assets/:id"
+            element={
+              <ProtectedRoute>
+                <div className="min-h-screen bg-background">
+                  <Navbar />
+                  <main className="pt-16">
+                    <AssetDetailPage />
                   </main>
                 </div>
               </ProtectedRoute>

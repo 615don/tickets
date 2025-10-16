@@ -371,6 +371,44 @@ Respond with JSON format:
       -- Comment for documentation
       COMMENT ON COLUMN clients.notion_url IS 'Link to client documentation in Notion (optional)';
     `
+  },
+  {
+    name: '020_add_client_id_to_assets',
+    sql: `
+      -- Add client_id to assets table (Epic 15: Asset Management Integration)
+      -- Makes client required and contact optional for assets
+      -- This allows assets to be associated with a client without a specific contact
+
+      -- Step 1: Add client_id column (nullable temporarily)
+      ALTER TABLE assets ADD COLUMN IF NOT EXISTS client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE;
+
+      -- Step 2: Backfill client_id from existing contact associations (only for assets with contacts)
+      UPDATE assets
+      SET client_id = contacts.client_id
+      FROM contacts
+      WHERE assets.contact_id = contacts.id AND assets.client_id IS NULL;
+
+      -- Step 3: For assets without a contact, we cannot automatically determine the client
+      -- Check if there are any assets without client_id still
+      DO $$
+      DECLARE
+        orphaned_count INTEGER;
+      BEGIN
+        SELECT COUNT(*) INTO orphaned_count FROM assets WHERE client_id IS NULL;
+        IF orphaned_count > 0 THEN
+          RAISE EXCEPTION 'Found % assets without a client_id. These assets have no contact assigned. Please manually assign a client to these assets before running this migration.', orphaned_count;
+        END IF;
+      END $$;
+
+      -- Step 4: Make client_id required (NOT NULL)
+      ALTER TABLE assets ALTER COLUMN client_id SET NOT NULL;
+
+      -- Step 5: Add index for performance
+      CREATE INDEX IF NOT EXISTS idx_assets_client_id ON assets(client_id);
+
+      -- Step 6: Add comment for documentation
+      COMMENT ON COLUMN assets.client_id IS 'Required client association; contact_id is optional';
+    `
   }
 ];
 
