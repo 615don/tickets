@@ -1,420 +1,587 @@
-# Project Brief: Lean IT Consulting Ticketing System
+# Project Brief: Asset Management Integration
 
 ## Executive Summary
 
-This project will create a friction-free ticketing system purpose-built for hourly IT consulting billing. The system replaces complex task management tools with a streamlined solution focused solely on capturing billable time accurately and generating client invoices through Xero integration.
+The **Asset Management Integration** project integrates asset tracking capabilities from AssetFlow into the existing ticketing system, creating a unified workflow that eliminates system switching and enables rapid access to critical IT asset information during support operations.
 
-**Core Problem:** Current ticketing systems require too many fields and slow-loading dropdowns, creating friction that causes deferred logging and forgotten billable hours, resulting in direct revenue loss.
+**Primary Problem:** Technicians currently switch between multiple systems (Tickets → Notion → ScreenConnect → PDQ Connect) to access asset information during support calls, creating friction that discourages inventory maintenance and slows active troubleshooting workflows.
 
-**Target Market:** Solo IT consultants and small IT consulting firms billing clients hourly for support work, particularly those managing multiple clients with varied support requests via email.
+**Target Market:** Internal use by Zero One LLC support technicians managing approximately 300 client assets across existing Client/Contact relationships.
 
-**Key Value Proposition:** Reduce ticket creation from minutes to 5 seconds by minimizing required fields (client, contact, time), enabling real-time logging during work instead of error-prone deferred entry. Outlook Web extension captures client/contact automatically from email context, and automated monthly maintenance ticket generation eliminates repetitive data entry.
+**Key Value Proposition:** One-click access to remote support tools (ScreenConnect) and deployment systems (PDQ Connect) directly from ticket and asset pages, while maintaining zero performance impact on ticket creation workflows. The integration creates a positive feedback loop where easy asset access incentivizes inventory maintenance, which in turn improves support efficiency and billing accuracy.
+
+---
 
 ## Problem Statement
 
 **Current State and Pain Points:**
 
-IT consultants billing hourly need to capture every work engagement as a ticket for accurate invoicing. However, existing ticketing systems (designed for task management and team collaboration) impose significant friction through:
+Support technicians managing client IT assets currently operate across fragmented systems:
+- **Ticketing System** for work logging and time tracking
+- **Notion documentation** for asset inventory spreadsheets
+- **ScreenConnect** for remote desktop access
+- **PDQ Connect** for deployment and device management
 
-- Slow-loading company and client contact dropdowns
-- Forced fields at creation time (description, categories, resolution types, status)
-- Email notification prompts (rarely used but always presented)
-- Multi-step workflows and status tracking (irrelevant for billing documentation)
+Each support interaction requires manual context switching between these systems. When a technician receives a call from a client about a computer issue, they must:
+1. Create or open a ticket in the ticketing system
+2. Navigate to Notion to find the client's asset inventory sheet
+3. Identify which computer the client is referencing (by name or description)
+4. Manually search ScreenConnect's interface to find the matching computer
+5. Optionally check PDQ Connect for device details or deployment history
 
-This complexity transforms what should be a 5-second data capture into a multi-minute process requiring full attention.
+This multi-system workflow adds 30-60 seconds of friction to every support interaction and creates a negative feedback loop: the difficulty of accessing asset information discourages technicians from keeping the inventory updated, which makes the inventory less useful, which further reduces motivation to maintain it.
 
 **Impact of the Problem:**
 
-The friction creates a destructive pattern: consultants defer ticket creation until "later," intending to batch-create tickets from memory. This results in:
+The fragmented workflow creates several measurable impacts:
 
-- **Direct revenue loss** from forgotten billable work (small tickets that slip through)
-- **Time waste** trying to reconstruct work details from memory at month-end
-- **Billing disputes** when incomplete notes fail to justify charges
-- **Cash flow delays** when month-end ticket catch-up postpones invoicing
-- **Mental overhead** maintaining a mental list of un-logged work throughout the month
+- **Time waste during active support:** 30-60 seconds per ticket searching for computers in ScreenConnect, compounding across 10-15 daily support interactions (5-15 minutes/day lost)
+- **Deferred inventory maintenance:** Friction discourages real-time asset updates, causing inventory drift and reducing system value
+- **Revenue leakage:** Poor asset tracking makes time-to-asset attribution difficult, reducing accuracy of billable maintenance reporting
+- **Reduced service quality:** Inability to quickly access warranty status or asset age limits proactive client communication about hardware refresh needs
+- **Mental overhead:** Technicians maintain mental maps of which clients have which computers rather than trusting the system
 
-For a consultant billing 85-100 hours monthly at $180/hour, even 2-3 forgotten hours per month represents $5,000-10,000 annual revenue loss.
+For a 300-asset environment with 10-15 daily support interactions, the cumulative time loss is approximately 20-60 hours annually—time that could be spent on billable work or proactive client services.
 
 **Why Existing Solutions Fall Short:**
 
-Traditional ticketing systems (Jira, Zendesk, Freshdesk, ConnectWise) are built for team collaboration and task management, not solo billing documentation. They assume:
+Current tools were built for different purposes:
+- **AssetFlow** was designed as a standalone asset management system with excellent data model and Lenovo warranty integration, but lacks ticketing integration
+- **Ticketing System** focuses on time tracking and billing but has no asset context
+- **Notion** provides flexible documentation but requires manual searching and offers no API integration with support tools
+- **ScreenConnect** and **PDQ Connect** are powerful remote tools but require manual device lookup by name/hostname
 
-- Tickets are created *before* work begins (work request tracking)
-- Multiple people need status visibility and workflow coordination
-- Detailed categorization aids reporting and resource allocation
-- Rich communication features replace email
-
-These assumptions don't match the reality of solo IT consulting where work happens reactively via email, tickets serve as billing artifacts created *during or after* work, and the consultant already knows the context without status tracking.
+No existing solution bridges the gap between ticketing workflows and asset information with the required performance characteristics (instant access without slowing ticket creation).
 
 **Urgency and Importance:**
 
-Every day of continued friction means continued revenue loss. With monthly billing cycles, the problem compounds—a consultant who forgets to log 30 minutes per day loses 10+ billable hours ($1,800) per month. The solution must be implemented quickly to stop this revenue leakage.
+The Outlook Add-in integration is scheduled for deployment soon, making this the optimal time to introduce asset integration:
+- **Brownfield advantage:** Existing Client/Contact structure provides foundation for asset relationships
+- **Performance requirement:** Ticket creation speed is already optimized; asset integration must not degrade it
+- **Positive timing:** Adding value (asset access) alongside new feature (Outlook Add-in) improves adoption
+- **Business case:** Better asset tracking enables better billing attribution for maintenance work, creating measurable ROI
+
+Every week of delay means continued time waste and missed opportunities for proactive client service (warranty expiration alerts, lifecycle management).
+
+---
 
 ## Proposed Solution
 
 **Core Concept and Approach:**
 
-Build a lightweight web-based ticketing system optimized for speed of entry and accurate billing documentation. The system eliminates all non-essential fields and workflows, focusing exclusively on capturing three critical data points at ticket creation: **Client, Contact, and Time**.
+Integrate asset management directly into the ticketing system by building on the AssetFlow foundation, adding API integrations with PDQ Connect and ScreenConnect, and creating asset displays within the ticketing interface. The solution operates through three architectural layers:
 
-The solution operates on two key principles:
+1. **Asset Management Core** - Database schema for assets, clients, and contacts with cached warranty data from Lenovo API
+2. **External Tool Integration** - Stored device identifiers enable instant URL construction for PDQ Connect and ScreenConnect (no runtime API calls)
+3. **Unified Interface** - Asset detail pages and ticket detail widgets provide contextual access to asset information and external tools
 
-1. **Minimal friction at creation** - Create tickets in 5 seconds with only essential fields, enabling real-time logging during work
-2. **Rich context at closure** - Add detailed notes and descriptions when full context is available, producing complete billing documentation
+The solution prioritizes **asset detail pages as the foundation**, then extends asset visibility into **ticket detail pages as a convenience feature**—inverting the original request but matching actual workflow priorities discovered during brainstorming.
 
 **Key Differentiators from Existing Solutions:**
 
-- **Email-centric integration**: Outlook Web extension enables ticket creation directly from email threads, auto-populating client and contact from email metadata (sender domain and email address). Your requested feature of capturing the email chain as the notes field eliminates manual note entry entirely for email-based work.
+- **Performance-first architecture:** Asset data fully cached (300 assets enable aggressive caching), warranty data treated as static, external tool IDs stored at creation time—resulting in zero API latency during ticket workflows
 
-- **Billing-first architecture**: No status tracking, no workflow stages, no assignment fields—only data needed for invoice generation (time entries, descriptions, billable flags)
+- **Simplified UI optimized for speed:** Minimal data display (hostname, color-coded warranty date, PDQ link, ScreenConnect link) eliminates cognitive load and enables instant visual scanning
 
-- **Flexible time management**: Time entries are date-stamped by work date (not ticket creation date), can be adjusted across months before invoicing, and lock automatically only after Xero invoice push
+- **Positive feedback loop design:** Easy asset access from tickets incentivizes inventory maintenance → updated inventory increases system value → increased value drives more usage
 
-- **Proactive verification**: Real-time monthly hours dashboard and daily recap emails catch forgotten tickets before month-end, preventing revenue loss
+- **Semi-automated asset onboarding:** PDQ Connect API + Lenovo Warranty API integration auto-populates 90% of asset data from serial number, reducing data entry friction that discourages inventory maintenance
 
-- **Automation for repetitive work**: Recurring maintenance tickets auto-generate monthly with pre-populated descriptions for designated clients, eliminating batch data entry
+- **Context-aware integration points:** Asset widgets appear in web interface only (Outlook Add-in remains unchanged), preserving add-in performance and simplicity
 
 **Why This Solution Will Succeed:**
 
-Current tools fail because they add friction consultants don't need (team features, workflows) while missing features consultants desperately need (instant entry, email integration, billing flexibility). By ruthlessly focusing on the billing documentation use case and eliminating everything else, this solution removes the barrier that causes revenue loss.
+The brainstorming session identified **ScreenConnect quick access as the killer feature**—eliminating manual device search in ScreenConnect's interface saves 30-60 seconds per active support call. By focusing on this high-value use case and maintaining strict performance requirements (ticket creation cannot slow down), the solution delivers immediate measurable value without risk of rejection due to performance degradation.
 
-The Outlook extension in particular addresses the root cause: most work happens in email, so forcing consultants to leave email to log tickets guarantees deferred logging. Meeting consultants where they work (in their inbox) makes real-time logging natural instead of disruptive.
+The small dataset (300 assets) and simple data relationships (1-2 assets per contact typically) enable aggressive optimization strategies that wouldn't scale to enterprise systems but are perfect for this use case.
 
 **High-Level Vision:**
 
-A consultant receives an email from a client, performs work to resolve the issue, and clicks a single button in their Outlook sidebar. The system captures the client, contact, and email thread automatically. The consultant enters time (e.g., "45m") and clicks save—total time: 5 seconds. At end of day, they receive a recap email showing all tickets logged. At month-end, they review hours (dashboard shows 92 hours—within expected range), adjust any entries if needed, and click "Generate Xero Invoice." Done.
+A technician receives a call from a client about their computer. They open the ticket detail page, see the contact's assets displayed with warranty status instantly visible via color coding. One click launches ScreenConnect remote session—no hunting through ScreenConnect's interface. Another click opens PDQ Connect deploy page for that specific device. The technician resolves the issue, logs time, and closes the ticket—all without leaving the ticketing system.
+
+Over time, the inventory stays current because accessing assets is easier than working around their absence. Warranty expiration reports enable proactive client communication about hardware refresh cycles, adding service value and creating upsell opportunities.
+
+---
 
 ## Target Users
 
-### Primary User Segment: Solo IT Consultants
+### Primary User Segment: Support Technicians (Active Troubleshooting)
 
 **Demographic/Firmographic Profile:**
-- Independent IT consultants or single-person IT consulting businesses
+- IT support technicians at Zero One LLC
 - Managing 10-30 active client accounts simultaneously
-- Providing hourly support services (not project-based or retainer)
-- Billing $150-250/hour for technical support and maintenance
-- Expected monthly billable hours: 85-100 hours
-- Operating in managed services provider (MSP) capacity for some clients, ad-hoc support for others
+- Handling 10-15 support interactions daily (mix of phone calls, email requests, proactive maintenance)
+- Working primarily from web-based ticketing interface during active support calls
+- Using Outlook Add-in for post-work time logging
 
 **Current Behaviors and Workflows:**
-- Work happens reactively—clients send requests via email, text, or phone call
-- Most work (80%+) originates from email communication
-- Tickets created during or after work is performed, not as work requests
-- Monthly invoicing cycle with manual review of all billable time
-- Uses Xero for accounting and invoice generation
-- Manages some clients' Microsoft 365 environments (relevant for contact data integration)
-- Performs recurring monthly maintenance work (updates, monitoring, backups) for designated clients
+- **Active support workflow:** Receive client call → create/open ticket → search for computer in ScreenConnect → perform remote work → log time → close ticket
+- **Passive logging workflow:** Complete work in person or via phone guidance → use Outlook Add-in to log time from email thread
+- Currently maintain mental maps of which clients have which computers (e.g., "John at ABC Corp has the ThinkPad")
+- Frequently need to interrupt support calls to search Notion sheets for asset information
+- Manually search ScreenConnect interface by computer name when remote access needed
 
 **Specific Needs and Pain Points:**
-- Need ultra-fast ticket creation to avoid deferred logging and revenue loss
-- Cannot afford slow-loading interfaces that interrupt workflow
-- Strongly prefer working in native email client (Outlook Web) rather than switching between apps
-- Need to track both billable and non-billable time (to show goodwill work)
-- Must be able to adjust time entries for previous months before finalizing invoices
-- Require per-ticket invoice line items so clients can identify which issues cost what
-- Want proactive reminders about potentially forgotten billable time
-- Need automated handling of recurring maintenance tickets to eliminate month-end data entry burden
+- Need instant access to ScreenConnect without manual searching (biggest time waste)
+- Cannot afford any slowdown in ticket creation speed (performance-critical)
+- Need to see warranty status at a glance to set client expectations about hardware support
+- Want to maintain asset inventory but current friction makes updates feel burdensome
+- Need to associate time entries with specific assets for maintenance billing accuracy
+- Require quick access to PDQ Connect for deployment and device management tasks
 
 **Goals They're Trying to Achieve:**
-- Capture 100% of billable time accurately without administrative burden
-- Generate monthly invoices quickly with full confidence in accuracy
-- Maintain detailed notes for billing dispute protection
-- Provide transparent invoicing that clients understand and accept
-- Minimize time spent on administrative tasks vs. billable work
-- Avoid cash flow delays from late or incomplete invoicing
+- Minimize time spent on administrative tasks during active support calls
+- Provide faster response times to clients (reduce "hold on, let me find your computer" moments)
+- Maintain accurate asset inventory without significant time investment
+- Improve billing accuracy for maintenance work through better asset-to-ticket association
+- Deliver proactive service by knowing warranty status and asset age
+
+---
 
 ## Goals & Success Metrics
 
 ### Business Objectives
 
-- **Eliminate revenue leakage from forgotten tickets**: Increase billable time capture from estimated ~90% to 98%+ within 3 months of deployment
-- **Reduce administrative overhead**: Decrease time spent on ticket creation and monthly invoicing from ~4 hours/month to <1 hour/month
-- **Accelerate billing cycle**: Enable same-day or next-day invoice generation at month-end (vs. current 3-5 day delay)
-- **Improve billing transparency**: Achieve zero billing disputes related to missing documentation within 6 months
+- **Eliminate ScreenConnect search time waste:** Reduce time spent searching for computers in ScreenConnect from 30-60 seconds to <5 seconds (one-click access), saving 5-15 minutes per day (20-60 hours annually)
+- **Increase inventory maintenance adoption:** Achieve 80%+ asset coverage for active client contacts within 3 months of deployment through reduced friction
+- **Improve maintenance billing attribution:** Enable asset-specific time tracking for 60%+ of maintenance tickets within 6 months, improving billing accuracy and client transparency
+- **Enable proactive service delivery:** Generate quarterly warranty expiration reports for clients, creating upsell opportunities for hardware refresh planning
 
 ### User Success Metrics
 
-- **Ticket creation speed**: Average ticket creation time <10 seconds (target: 5 seconds for email-based tickets with Outlook extension)
-- **Real-time logging adoption**: 80%+ of tickets created same-day as work performed (vs. current estimated 40%)
-- **Monthly hours accuracy**: Actual monthly billable hours consistently within expected range (85-100 hours) with <5% variance
-- **System adoption**: 100% of billable work logged in new system within 2 weeks of launch (complete migration from old system)
-- **Proactive correction rate**: 60%+ of forgotten tickets caught and added via daily recap email prompts
+- **ScreenConnect access speed:** Average time from ticket detail page to ScreenConnect session launch <5 seconds (vs. current 30-60 seconds)
+- **Asset widget load performance:** Asset data displays on ticket detail page with <500ms latency (no impact on perceived page load time)
+- **Inventory completeness:** 80%+ of active contacts have at least one asset assigned within 3 months
+- **System adoption:** 90%+ of technicians use asset widgets regularly (defined as clicking ScreenConnect/PDQ links at least 3x per week)
+- **Positive feedback loop indicator:** Month-over-month increase in asset updates/additions (indicates growing system value)
 
 ### Key Performance Indicators (KPIs)
 
-- **Revenue capture rate**: (Logged billable hours / Estimated actual billable hours) × 100 — Target: 98%+
-- **Average ticket creation time**: Measured from ticket open to save — Target: <10 seconds
-- **Invoice generation time**: Time from month-end to Xero invoice push — Target: <30 minutes
-- **Forgotten ticket recovery**: Number of tickets added via daily recap quick-add form — Track monthly trends
-- **Time entry adjustments**: Number of time entries modified before invoice lock — Monitor for billing accuracy patterns
-- **Non-billable work visibility**: Percentage of $0 line items on invoices — Target: 5-10% to demonstrate goodwill
+- **ScreenConnect link click rate:** (ScreenConnect clicks / Total tickets) × 100 — Target: 40%+ (indicates feature utility)
+- **Asset widget engagement:** (Tickets with asset widget interaction / Total tickets with contact assignment) × 100 — Target: 50%+
+- **Average asset onboarding time:** Time from asset creation start to save — Target: <3 minutes with semi-automated PDQ/Lenovo integration
+- **Warranty data freshness:** Percentage of assets with warranty data <12 months old — Target: 90%+
+- **Cache performance:** Asset data cache hit rate — Target: 95%+ (validates caching strategy)
+- **Zero performance degradation:** Ticket creation speed remains <10 seconds (asset integration must not slow core workflow)
+
+---
 
 ## MVP Scope
 
 ### Core Features (Must Have)
 
-- **Ticket Management**: Basic CRUD operations for tickets with minimal required fields at creation (client, contact, time), optional fields for description and notes that can be added later. Tickets support open/closed states and can be re-opened within 7 days of closure.
+- **Asset Detail Page with External Tool Integration:**
+  - CRUD operations for assets (hostname, manufacturer, model, serial number, warranty expiration, contact assignment, PDQ device ID, ScreenConnect session ID)
+  - Color-coded warranty expiration display (red: expired, yellow/amber: expiring soon <90 days, green: valid)
+  - ScreenConnect link with one-click launch to remote session
+  - PDQ Connect link with one-click access to device deploy page
+  - Manual refresh button for warranty data (static display, manual update only)
+  - **Rationale:** This is the foundation—everything builds on asset detail pages (brainstorming idea #9)
 
-- **Client & Contact Management**: Simple database for clients (company name, domain name(s) for email auto-detection, Xero customer ID, maintenance contract type) and contacts (name, email address). Support for multiple domains per client (one-to-many relationship) for accurate email-based client identification.
+- **Asset Caching Strategy:**
+  - Full cache of all asset data (300 assets) loaded on application startup
+  - Cache invalidation on asset create/update/delete operations
+  - Cache warmup on application restart
+  - **Rationale:** Small dataset enables aggressive caching for zero-latency access (brainstorming idea #1)
 
-- **Time Entry System**: Date-stamped time entries (by work date, not ticket date). Support for multiple time entries per ticket for multi-day work. Ability to add, edit, or delete time entries for any month until invoice is locked. Billable/non-billable flag per time entry. System accepts time in any format (hours, minutes, decimal) without imposing rounding logic.
+- **Simple Asset Widget on Ticket Detail Page:**
+  - Display up to 2 most relevant contact assets (by warranty expiration or creation date)
+  - Show hostname, color-coded warranty date, PDQ link, ScreenConnect link for each asset
+  - "View all assets" link if contact has >2 assets
+  - Graceful "No assets tracked for this contact" message when contact has no assets
+  - Asynchronous loading (doesn't block ticket page render)
+  - **Rationale:** Enables ScreenConnect quick access from tickets (killer feature per brainstorming idea #13)
 
-- **Ticket Views & Navigation**:
-  - Open tickets view (all currently open tickets)
-  - Recently closed tickets view (last 7 days)
-  - Re-open capability for tickets within 7-day window
-  - Basic search for historical closed tickets (for billing disputes)
+- **Client Notion Documentation Link:**
+  - Add `notion_url` field to Client model
+  - Display Notion documentation link in ticket detail header (near client information)
+  - Simple one-time setup at client onboarding
+  - **Rationale:** Quick win that expands client context integration (brainstorming idea #12, #24)
 
-- **Xero Integration**: Manual invoice generation trigger that pushes monthly invoices to Xero with per-ticket line items formatted as "Ticket #1234 - Description". Non-billable tickets appear as $0 line items. Time entries lock after successful invoice push to prevent accidental modifications. Pre-invoice review screen showing total hours and per-client breakdown.
-
-- **Basic Authentication**: Simple login system (username/password) sufficient for single-user MVP. More sophisticated authentication (Microsoft 365) can be added later.
+- **Manual Asset Creation Workflow:**
+  - Form-based asset creation with manual field entry
+  - Contact assignment (select from existing contacts)
+  - PDQ device ID field (manual entry)
+  - ScreenConnect session ID field (manual entry)
+  - Warranty expiration field (manual entry for MVP)
+  - **Rationale:** Establishes foundation; automation comes in Phase 2
 
 ### Out of Scope for MVP
 
-- Outlook Web extension (Phase 2 priority feature)
-- Automated recurring maintenance ticket generation
-- Real-time monthly hours dashboard
-- Daily recap email system
-- Microsoft 365/CIPP contact import integration
-- AI-assisted ticket description generation
-- Status tracking and workflow management
-- Assignment/team collaboration features
-- Email notifications of any kind
-- In-system email communication
-- Mobile native apps (responsive web sufficient for MVP)
-- Advanced reporting beyond Xero invoices
-- Timer-based time entry (manual entry only for MVP)
+- **Semi-automated asset onboarding via PDQ/Lenovo APIs** (Priority #1 for Phase 2)
+- **Intelligent asset discovery from PDQ** (suggest matching devices for contacts)
+- **Lenovo Warranty API integration** (manual warranty entry for MVP)
+- **"Create Ticket from Asset" workflow** (reverse workflow)
+- **Asset age reporting and 5-year replacement planning**
+- **Asset lifecycle management via PDQ "last seen" data**
+- **Context-aware asset widget display** (different prominence based on ticket source)
+- **Asset maintenance labor tracking and analytics**
+- **Client-facing asset health dashboard**
+- **Bulk asset operations**
+- **Advanced asset search and filtering**
+- **Asset history/audit trail**
+- **Asset-to-ticket time association tracking** (beyond manual workflow)
 
 ### MVP Success Criteria
 
 The MVP succeeds when:
-1. A complete monthly billing cycle (ticket creation through Xero invoice push) can be executed using only the new system
-2. Average ticket creation time is demonstrably faster than current system (<30 seconds vs. multiple minutes)
-3. All time entries for a month can be reviewed, adjusted, and finalized with confidence
-4. Generated Xero invoices accurately reflect all billable work with proper line item formatting
-5. User can find and reference historical tickets when needed for billing disputes
+1. A technician can create an asset with external tool IDs and see ScreenConnect/PDQ links functional on asset detail page in <3 minutes
+2. Asset widget loads on ticket detail page with <500ms latency (no perceived slowdown)
+3. ScreenConnect link from ticket detail successfully launches remote session (one-click access validated)
+4. Contacts with no assets display gracefully without errors or broken UI
+5. Asset data cache maintains 95%+ hit rate and invalidates correctly on updates
+6. Ticket creation speed remains unchanged (<10 seconds) with asset widget present
+7. Technicians report ScreenConnect search time reduced from 30-60 seconds to <5 seconds
+
+---
 
 ## Post-MVP Vision
 
 ### Phase 2 Features
 
-**Outlook Web Extension (Priority #1)**
-- Creates tickets directly from email context without leaving Outlook
-- Auto-detects client from sender's email domain (mapped to client records)
-- Auto-populates contact from sender's email address
-- Captures email thread as notes field automatically, eliminating manual note entry
-- Reduces ticket creation to entering time and clicking save (~5 seconds)
-- Timeline: 2-3 months post-MVP
+**Semi-Automated Asset Onboarding (Priority #1)**
+- **Timeline:** 2-3 weeks post-MVP
+- **Description:** Transform asset creation from manual form entry to guided automation
+- **Workflow:**
+  1. Technician selects contact
+  2. System queries PDQ Connect API for devices, displays matches
+  3. Technician selects device from list
+  4. System auto-populates: manufacturer, model, serial number, hostname, PDQ device ID
+  5. If Lenovo device, system queries Lenovo Warranty API for warranty expiration and in-service date
+  6. System parses SKU field to extract model name
+  7. Technician reviews pre-filled data, adds ScreenConnect session ID, confirms
+- **Value:** Reduces asset onboarding from manual entry to <90 seconds; eliminates data entry friction that discourages inventory maintenance (addresses brainstorming idea #34, #35)
 
-**Real-Time Monthly Hours Dashboard (Priority #2)**
-- Always-visible widget showing current month's billable hours total
-- Visual indicator showing if hours are within expected range (85-100)
-- Helps catch missing tickets proactively before month-end
-- Timeline: 2-4 weeks post-MVP
+**Intelligent Asset Discovery from PDQ (Priority #2)**
+- **Timeline:** 1-2 weeks post-MVP
+- **Description:** When contact has no assets, suggest matching devices from PDQ Connect
+- **Workflow:** System queries PDQ for devices matching contact name patterns (FirstName LastName, firstnamelastname, first-initial-lastname), presents matches for technician confirmation
+- **Value:** Proactively discovers existing assets, reducing manual searching and improving inventory completeness
 
-**Daily Recap Email System (Priority #3)**
-- End-of-day automated email summarizing tickets logged that day
-- Includes direct link to day view in ticket system
-- Features quick-add form for forgotten items (embedded or linked)
-- Single-day focus prevents overwhelming information
-- Timeline: 3-4 weeks post-MVP
+**"Create Ticket from Asset" Workflow (Priority #3)**
+- **Timeline:** 3-5 days post-MVP
+- **Description:** Add "Create Ticket" button to asset detail and asset list pages
+- **Workflow:** Pre-populates ticket form with contact information from asset assignment
+- **Value:** Enables reverse workflow (asset → ticket) to complement ticket → asset workflow
 
-**Automated Recurring Maintenance Tickets (Priority #4)**
-- Auto-generates monthly or bi-weekly maintenance tickets for designated clients
-- Pre-populates with standard maintenance description templates
-- Supports two maintenance types: standard and with after-hours updates/reboots
-- Eliminates month-end batch entry burden
-- Timeline: 1-2 months post-MVP
+**Asset Age Reporting (Priority #4)**
+- **Timeline:** 1 week post-MVP
+- **Description:** Report showing assets approaching 5-year lifecycle threshold
+- **Workflow:** Calculate approximate asset age from warranty expiration (expiration - 1 year or - 3 years depending on warranty length), generate quarterly reports of aging assets
+- **Value:** Enables proactive client communication about hardware refresh planning, creates upsell opportunities
 
 ### Long-Term Vision
 
-Within 12-18 months, the system becomes an invisible part of the workflow. A consultant works in their inbox responding to client emails. When they finish helping a client, they click one button in the Outlook sidebar, enter the time, and continue working. At day's end, they glance at a recap email and add any missing items via quick-add. At month-end, they open the dashboard, see their hours total is within range, review the pre-invoice summary, and push to Xero—all in under 15 minutes.
+Within 12-18 months, asset management becomes seamlessly integrated into daily support workflows. Technicians no longer think about "accessing the asset system"—asset information is simply there when needed. ScreenConnect launches happen instinctively with one click. Warranty status is visible at a glance via color coding. Asset inventory stays current because updating it is easier than working around missing data.
 
-The system essentially "disappears" through automation and integration, capturing billing data as a natural byproduct of doing the work rather than as a separate administrative task.
+The positive feedback loop is fully established: easy access drives usage → usage reveals value → value motivates maintenance → maintenance increases value.
+
+Quarterly reports to clients about aging hardware demonstrate proactive service, differentiate Zero One LLC from reactive competitors, and create natural opportunities for hardware refresh projects.
 
 ### Expansion Opportunities
 
-**Microsoft 365 / CIPP Integration**
-- Auto-import contacts from managed client M365 environments
-- Automatically sync contact data for clients under MSP management
-- Eliminates manual contact creation and keeps data current
-- Addresses: Only managed clients benefit; requires API complexity research
+**Asset Lifecycle Management via PDQ Integration**
+- Automated detection of decommissioned assets via PDQ "last seen" data
+- Flag stale assets (not seen in PDQ for >90 days) for review
+- Maintain inventory hygiene automatically
+- **Timeline:** 3-4 months post-MVP
 
-**AI-Assisted Features**
-- Generate client-appropriate ticket descriptions from detailed work notes
-- Smart suggestions in quick-add form based on time-of-day and recent patterns
-- Predictive client/contact suggestions based on usage patterns
+**Asset Maintenance Labor Tracking**
+- Automatically associate ticket time entries with assets
+- Generate per-asset labor reports showing maintenance costs
+- Enable billing clients for asset-specific maintenance contracts
+- Show ROI of asset tracking through improved billing capture
+- **Timeline:** 6-9 months post-MVP (requires data model design)
 
-**Enhanced Authentication & Security**
-- Microsoft 365 OAuth/SAML for enterprise-grade authentication
-- Multi-factor authentication support
-- Audit logging for compliance needs
+**Proactive Client Asset Health Dashboard**
+- Client-facing view showing their asset fleet status
+- Warranty expiration calendar
+- Recommended replacement timeline
+- Maintenance history per asset
+- Positions Zero One LLC as strategic IT partner vs. reactive support
+- **Timeline:** 12-18 months post-MVP (requires client portal development)
 
-**Multi-User Support**
-- Expand from single-user to small team collaboration
-- Per-user time tracking and reporting
-- Client assignment and workload distribution
+**Context-Aware Asset Widget Display**
+- Adjust asset widget prominence based on ticket source (Outlook vs. Web)
+- Minimize in Outlook Add-in tickets (post-work logging)
+- Emphasize in web interface tickets (active support)
+- **Timeline:** 2-3 months post-MVP
 
-**Advanced Reporting**
-- Client profitability analysis (time spent vs. revenue)
-- Monthly trend reports (hours by client, service type patterns)
-- Export capabilities for external analysis
+---
 
 ## Technical Considerations
 
 ### Platform Requirements
 
-- **Target Platforms:** Web-based application (primary interface), responsive design for mobile browsers
-- **Browser/OS Support:** Modern browsers (Chrome, Edge, Safari, Firefox - last 2 versions), no IE11 requirement
+- **Target Platforms:** Web-based application integrated into existing ticketing system (brownfield integration)
+- **Browser/OS Support:** Modern browsers (Chrome, Edge, Safari, Firefox - last 2 versions); matches existing ticketing system requirements
 - **Performance Requirements:**
-  - Page load time <2 seconds
-  - Ticket creation form submission <500ms
-  - Search/filter operations <1 second
-  - Fast, responsive dropdowns (unlike current system's slow-loading dropdowns)
+  - Asset widget load time <500ms (imperceptible to user)
+  - Ticket creation page load time unchanged (<2 seconds total)
+  - Asset detail page load time <1 second
+  - Cache lookup time <10ms (in-memory or Redis)
+  - ScreenConnect/PDQ link construction <5ms (simple string concatenation)
+  - **Critical:** Zero degradation to ticket creation speed
 
 ### Technology Preferences
 
-- **Frontend:** Modern JavaScript framework (React, Vue, or Svelte) with minimal dependencies for speed; consider lightweight options to optimize load times
-- **Backend:** Language/framework with strong Xero API support and rapid development capability (Node.js, Python/Django, Ruby/Rails, or similar)
-- **Database:** PostgreSQL or MySQL for relational data (clients, contacts, tickets, time entries); straightforward schema with good performance for small-to-medium datasets
-- **Hosting/Infrastructure:** Cloud hosting (AWS, Azure, DigitalOcean, Heroku, or similar) with simple deployment pipeline; single-user workload requires minimal resources
+- **Frontend:**
+  - Extend existing ticketing system frontend (likely React-based given modern stack)
+  - Lightweight asset widget component with async data loading
+  - CSS for warranty color-coding (red/yellow/green)
+  - Minimize bundle size impact (<50KB additional JavaScript)
+
+- **Backend:**
+  - Extend existing ticketing system backend (Node.js/Express based on project context)
+  - RESTful API endpoints for asset CRUD operations
+  - Cache middleware layer (Redis or in-memory for MVP)
+  - Future: PDQ Connect API integration library
+  - Future: Lenovo Warranty API integration library
+
+- **Database:**
+  - Extend existing PostgreSQL database (assumed from ticketing system)
+  - New tables: `assets`, potentially extend `clients` table with `notion_url` field
+  - Foreign key relationships: assets → contacts (one-to-many)
+  - Indexed fields: contact_id, pdq_device_id, warranty_expiration for fast queries
+
+- **Caching:**
+  - Redis for production (persistent, shared across instances if needed)
+  - In-memory caching acceptable for MVP (single instance deployment)
+  - Cache strategy: full asset dataset cached, TTL=indefinite (invalidate on mutations only)
 
 ### Architecture Considerations
 
-- **Repository Structure:** Monorepo acceptable for MVP (frontend + backend in single repo); can separate later if needed
-- **Service Architecture:** Simple monolithic architecture sufficient for MVP; microservices unnecessary for single-user system
+- **Repository Structure:**
+  - Integrate into existing ticketing system monorepo
+  - Asset management as new feature module within existing codebase
+  - Shared authentication and authorization with ticketing system
+
+- **Service Architecture:**
+  - Extend existing monolithic architecture (matches ticketing system)
+  - Asset service layer for business logic
+  - Cache service layer for performance optimization
+  - No microservices needed (300 assets, single-team development)
+
 - **Integration Requirements:**
-  - Xero API integration (OAuth 2.0 authentication, invoice creation endpoints)
-  - Future: Microsoft Graph API for Outlook Web extension (Phase 2)
-  - Future: Microsoft 365 Partner Center / CIPP API (expansion opportunity)
+  - **ScreenConnect URL Construction:**
+    - Pattern: `https://zollc.screenconnect.com/Host#Access///{sessionID}/Join`
+    - No API required—pure client-side URL construction from stored `screenconnect_session_id`
+  - **PDQ Connect URL Construction (MVP):**
+    - Pattern: `https://app.pdq.com/zero-one-llc/devices/{pdq_device_id}/info`
+    - No API required for MVP—URL construction from stored `pdq_device_id`
+  - **PDQ Connect API (Phase 2):**
+    - REST API authentication (API key or OAuth)
+    - Endpoints: device search, device details retrieval
+    - Rate limiting considerations
+  - **Lenovo Warranty API (Phase 2):**
+    - REST API with serial number lookup
+    - Response parsing for warranty expiration, in-service date, SKU details
+    - Error handling for non-Lenovo devices
+
 - **Security/Compliance:**
-  - HTTPS required for all communication
-  - Secure credential storage for Xero API tokens
-  - Data backup strategy (automated daily backups)
-  - No special compliance requirements (HIPAA, SOC2, etc.) for MVP
-  - Consider data export capability for business continuity
+  - Leverage existing ticketing system authentication (session-based or JWT)
+  - Asset data access control matches contact access control (technicians see all)
+  - Secure storage of API credentials (Phase 2: PDQ/Lenovo API keys in environment variables)
+  - HTTPS required (already implemented in ticketing system)
+  - No PII beyond existing contact data (assets are business equipment)
+  - Data backup strategy matches existing ticketing system backups
+
+### Data Model
+
+**Assets Table (New)**
+```
+- id (primary key)
+- hostname (string, required)
+- manufacturer (string, nullable)
+- model (string, nullable)
+- serial_number (string, nullable)
+- warranty_expiration (date, nullable)
+- contact_id (foreign key → contacts.id, required)
+- pdq_device_id (string, nullable)
+- screenconnect_session_id (string, nullable)
+- created_at (timestamp)
+- updated_at (timestamp)
+```
+
+**Clients Table (Extended)**
+```
++ notion_url (string, nullable)
+```
+
+**Indexes:**
+- `assets.contact_id` (for fast contact → assets lookup)
+- `assets.warranty_expiration` (for aging/expiration reports)
+
+---
 
 ## Constraints & Assumptions
 
 ### Constraints
 
-- **Budget:** Self-funded project; costs should be minimized where possible (favor cost-effective hosting, open-source technologies)
-- **Timeline:** Target MVP deployment within 4-6 weeks; immediate need to stop revenue leakage justifies focused development effort
-- **Resources:** Solo development or small development team; single user (consultant) for testing and feedback; no dedicated QA or design resources assumed
-- **Technical:** Must integrate with Xero API (non-negotiable); must work reliably in Outlook Web for future extension phase; limited to modern browsers (no legacy browser support)
+- **Budget:** Internal project with development time as primary cost; minimize external service costs (favor open-source, existing infrastructure)
+- **Timeline:** MVP target within 2-3 weeks to capitalize on Outlook Add-in deployment timing; Phase 2 automation within 4-6 weeks post-MVP
+- **Resources:** Single developer or small team; existing ticketing system codebase as foundation; no dedicated QA resources (developer testing + user acceptance testing)
+- **Technical:**
+  - Must integrate with existing ticketing system architecture (brownfield constraints)
+  - Must maintain existing ticket creation performance (non-negotiable)
+  - Outlook Add-in explicitly excluded from asset integration scope
+  - ScreenConnect session IDs must be manually obtained (no automation API discovered yet)
+  - PDQ Connect API access requires API key (pending availability confirmation)
+  - Lenovo Warranty API access requires investigation (availability unknown)
 
 ### Key Assumptions
 
-- Monthly billing cycle remains standard practice (not moving to weekly or project-based billing)
-- All clients billed at same hourly rate ($180); no client-specific or service-specific rate variations needed for MVP
-- Email (specifically Outlook) will continue as primary work communication channel
-- Current monthly billable hours range (85-100 hours) is representative and stable
-- User has access to Xero account with API credentials
-- User manages 10-30 active client accounts (dataset remains relatively small)
-- Most recurring maintenance work follows predictable monthly/bi-weekly patterns
-- Domain-to-client mapping will be sufficient for auto-detecting clients from email (no complex multi-tenant scenarios)
-- User willing to manually set up initial client/contact data during migration
-- 7-day recently closed ticket window is sufficient for re-open needs
-- Time entry flexibility (edit before invoice lock) is critical; no need for time approval workflows
-- User trusts their own time entries (no audit trail or approval process needed for MVP)
+- **Dataset Size:** Asset count will remain <1000 for foreseeable future (enables aggressive caching strategy)
+- **Client/Contact Structure:** Existing ticketing system has robust Client and Contact models suitable for asset relationships
+- **Performance Baseline:** Current ticket creation speed is <10 seconds and must not degrade
+- **User Acceptance:** Technicians will naturally adopt features that demonstrably save time (no forced adoption needed)
+- **Asset Relationships:** Typical contact has 1-2 assets (simple display logic sufficient); edge cases (>2 assets) are rare
+- **Warranty Data Stability:** Warranty information changes infrequently (manual updates acceptable; no real-time sync needed)
+- **External Tool Stability:** ScreenConnect and PDQ Connect URL patterns remain stable over time
+- **PDQ Device ID Availability:** PDQ Connect provides consistent device identifiers that can be stored and referenced
+- **ScreenConnect Session ID Stability:** Session IDs don't change once established (or changes are infrequent enough for manual updates)
+- **Access Patterns:** Asset access primarily happens from ticket detail pages during active support (validates widget placement)
+- **Deployment Environment:** Single-instance application deployment for MVP (multi-instance scaling not immediately needed)
+- **Browser Compatibility:** Users operate on modern browsers (no IE11 or legacy browser support required)
+- **Authentication Model:** Existing ticketing system authentication is sufficient (no separate asset system login needed)
+- **Data Migration:** AssetFlow data can be exported and imported into new system (migration path exists)
+- **Business Continuity:** Asset data backup strategy matches existing ticketing system practices (no special requirements)
+
+---
 
 ## Risks & Open Questions
 
 ### Key Risks
 
-- **Xero API limitations or rate limits**: Xero API may have restrictions on invoice line item counts, character limits on descriptions, or rate limiting that affects monthly batch invoice generation. *Impact: Could prevent invoicing or require workarounds. Mitigation: Research Xero API documentation thoroughly during technical spike; test with representative data volume.*
+- **Performance degradation during asset widget loading:** Asset widget could slow ticket detail page rendering if not implemented with proper async loading. *Impact: Would violate core requirement and cause feature rejection. Mitigation: Implement lazy loading with skeleton UI, measure page load metrics, use React.lazy or similar code-splitting for widget component.*
 
-- **Outlook Web extension development complexity**: Building Outlook add-ins may involve unexpected technical hurdles, security restrictions, or limited access to email content/metadata. *Impact: Could delay Phase 2 priority feature or require alternative approach. Mitigation: Conduct time-boxed technical spike early in Phase 2 planning; have fallback of browser bookmarklet or simplified web form.*
+- **Cache invalidation bugs:** Stale cached data could display outdated asset information if cache invalidation logic has bugs. *Impact: Technicians see wrong warranty dates or obsolete asset assignments. Mitigation: Implement comprehensive cache invalidation tests, add cache version tracking, provide manual "refresh" capability.*
 
-- **User adoption friction during migration**: Transitioning from current system to new MVP requires data migration, habit change, and learning new workflows. *Impact: Could delay full adoption or cause parallel system usage. Mitigation: Plan focused migration period; provide simple data import tools; ensure MVP is demonstrably faster than current system from day one.*
+- **ScreenConnect/PDQ URL pattern changes:** External tools could change their URL structures, breaking stored links. *Impact: One-click access feature becomes non-functional. Mitigation: Document URL patterns, monitor for 404 errors, implement fallback messaging if links break, maintain flexibility to update URL construction logic.*
 
-- **Domain-based client detection edge cases**: Some clients may use personal email domains, shared email addresses, or multiple unrelated domains that complicate auto-detection. *Impact: Could reduce effectiveness of Outlook extension or require frequent manual overrides. Mitigation: Design manual override capability; track edge cases during MVP usage to inform Phase 2 implementation.*
+- **Manual data entry friction during MVP:** Manual asset creation could be so tedious that technicians avoid using the system. *Impact: Low adoption rate, inventory remains incomplete, positive feedback loop doesn't establish. Mitigation: Time-box MVP validation to 2 weeks, accelerate Phase 2 automation if adoption is low, gather user feedback early.*
 
-- **Time entry data loss before invoice lock**: Accidental deletion or modification of time entries before invoicing could cause billing errors. *Impact: Revenue loss or billing disputes. Mitigation: Implement soft deletes; add confirmation dialogs for destructive actions; consider audit log even for MVP.*
+- **PDQ Connect API unavailability or restrictions:** API may not exist, require expensive licensing, or have prohibitive rate limits. *Impact: Phase 2 automation delayed or redesigned. Mitigation: Research API availability during MVP development, have fallback plan (continue manual entry or explore alternative automation).*
+
+- **Lenovo Warranty API access barriers:** API may require business partnership, have costs, or lack coverage for warranty data. *Impact: Semi-automated onboarding provides less value than planned. Mitigation: Research API during MVP, accept manual warranty entry as fallback, prioritize PDQ automation over Lenovo automation.*
+
+- **Asset-to-contact assignment complexity:** Edge cases (shared devices, transfer between contacts, retired contacts) could create data integrity issues. *Impact: Orphaned assets, incorrect contact associations, confusion. Mitigation: Design clear transfer workflows, implement soft delete for contacts with assets, add asset search/filter capabilities.*
 
 ### Open Questions
 
-- What happens if email domain doesn't match any client in system? (Suggested: error message with manual client selection and option to add domain to client)
-- Should system send ANY notifications at all, or remain completely notification-free until daily recap feature? (Clarify notification philosophy)
-- How should multiple time entries on one ticket be displayed in ticket view? (List chronologically? Sum total? Show breakdown?)
-- What reports/exports beyond Xero invoices might be useful? (Monthly summaries? Client-specific reports? CSV exports?)
-- Should clients be able to see their own tickets somehow, or remain purely internal tool? (Client portal consideration for future)
-- What backup/export capabilities needed for business continuity? (Database backups? CSV export? Full data dump?)
-- How should time be entered—text field accepting flexible formats ("45m", "1.5h", "90") or separate hour/minute inputs? (UX decision affects speed)
-- Should description field support markdown or rich text, or plain text only? (Plain text simplest but may limit invoice clarity)
+- **How should asset transfer between contacts be handled?** (E.g., contact leaves company, asset reassigned to replacement)
+- **Should decommissioned/retired assets be deleted or archived?** (Soft delete with "archived" status? Separate table?)
+- **What warranty expiration threshold defines "expiring soon" for yellow color-coding?** (30 days? 60 days? 90 days? User preference?)
+- **Should assets have a "primary" designation when contacts have multiple devices?** (To prioritize display in 2-asset widget limit)
+- **How to handle shared devices (e.g., conference room equipment)?** (Assign to special "shared" contact? Client-level assets?)
+- **Should there be asset categories beyond implied type (laptop/desktop/server)?** (Printers, network equipment, phones?)
+- **What happens when PDQ device ID or ScreenConnect session ID becomes invalid?** (Display error? Hide link? Show warning?)
+- **Should asset widget show on ticket creation page or only ticket detail page?** (Original brainstorming suggested detail only, but worth confirming)
+- **How many AssetFlow records need to be migrated?** (Initial dataset size for planning import scripts)
+- **Should there be a bulk import capability for initial AssetFlow migration?** (CSV import? API endpoint? Manual entry acceptable?)
+- **What reports beyond warranty expiration are immediately valuable?** (Assets by client? Assets by age? Assets without warranty data?)
+- **Should asset detail page show related tickets (tickets for this contact)?** (Provides context but adds complexity)
 
 ### Areas Needing Further Research
 
-- Xero API invoice line item limits and character restrictions
-- Xero API authentication flow and token refresh requirements
-- Xero API error handling and retry strategies
-- Outlook Web Add-in development requirements and security model
-- Microsoft Graph API capabilities for email metadata access
-- Microsoft 365 Partner Center / CIPP API authentication and data structure
-- Cost comparison for hosting options at expected scale
-- Performance characteristics of candidate web frameworks for fast form submissions
-- Data migration strategy from current ticketing system (if applicable)
+- **PDQ Connect API documentation and authentication:** Determine endpoints available, authentication method (API key, OAuth), rate limits, data structure
+- **Lenovo Warranty API access process:** Investigate registration requirements, costs (if any), data coverage, response format, error handling
+- **ScreenConnect session ID automation possibilities:** Research if ScreenConnect provides API for session ID lookup (low priority)
+- **AssetFlow data export format:** Understand export structure to plan migration scripts
+- **Existing ticketing system caching implementation:** Review current cache strategy to align asset caching approach
+- **React component architecture in ticketing system:** Understand existing patterns to maintain consistency in asset widget development
+- **Database migration strategy:** Review existing migration tooling (Sequelize, Knex, raw SQL) for asset table creation
+- **Performance testing approach:** Identify tools and methodology for measuring ticket page load time impact
+
+---
 
 ## Appendices
 
 ### A. Research Summary
 
-This Project Brief is informed by a comprehensive brainstorming session conducted on 2025-09-29 using the BMAD-METHOD™ framework. Key findings:
+This Project Brief is informed by a comprehensive brainstorming session conducted on 2025-10-16 using the BMAD-METHOD™ framework. The session employed four structured brainstorming techniques to explore asset management integration comprehensively.
 
 **Brainstorming Session Insights:**
-- 10 different brainstorming techniques applied (First Principles Thinking, Assumption Reversal, SCAMPER, Time Shifting, Five Whys, What If Scenarios, Role Playing, Morphological Analysis, Forced Relationships, Question Storming)
-- 35+ distinct features and workflow elements identified
-- Core insight: Friction in ticket creation directly causes revenue loss through forgotten billable hours
-- Key discovery: Tickets are billing documentation artifacts created during/after work, not task management items created before work
-- Email-centric workflow validated: 80%+ of work originates from email communication
-- Monthly hours sanity check (85-100 hours) used as proactive verification rather than detailed audit
+- **Techniques Applied:** What If Scenarios, First Principles Thinking, Role Playing (multi-perspective), SCAMPER Method
+- **Total Ideas Generated:** 35 distinct ideas across integration approaches, features, and workflows
+- **Session Duration:** Approximately 60 minutes with structured technique rotation
+- **Key Discovery:** Asset detail page identified as foundation priority (inverting original request focus on ticket integration)
+
+**Core Findings:**
+- **Performance is binary:** Ticket creation speed cannot degrade—any slowdown means feature failure (idea #14)
+- **ScreenConnect quick access is killer feature:** Eliminating manual search saves 30-60 seconds per active support call (idea #13)
+- **Positive feedback loop critical:** Easy access drives maintenance → maintenance increases value → value drives usage (idea #6)
+- **Small dataset enables optimization:** 300 assets allows aggressive caching without infrastructure concerns (idea #1)
+- **API integration timing:** Store external IDs at creation, eliminate runtime API calls (idea #8)
+- **Automation reduces friction:** Semi-automated onboarding via PDQ/Lenovo APIs addresses maintenance barrier (ideas #34, #35)
 
 **Priority Validation:**
-- MVP prioritization: Core ticketing system with Xero integration established as highest priority
-- Phase 2 priorities validated: Outlook extension (#1), Dashboard/Daily recap (#2/#3), Maintenance automation (#4)
-- Deferred features identified: M365/CIPP integration, AI assistance, advanced reporting
+- **Immediate Opportunities (5 items):** Asset detail page, Notion link, graceful no-assets handling, caching, ticket widget
+- **Future Innovations (6 items):** Semi-automated onboarding, intelligent discovery, age reporting, lifecycle management, reverse workflow, labor tracking
+- **Moonshots (2 items):** Full labor tracking analytics, client-facing health dashboard
 
 ### B. Stakeholder Input
 
-**Primary Stakeholder:** IT Consultant (end user)
-- Confirmed pain points: Slow dropdowns, forced fields, deferred logging leading to forgotten tickets
-- Validated solution approach: Minimal fields at creation, rich context at closure
-- Requested feature: Email chain capture as notes field (incorporated in Outlook extension design)
-- Usage patterns confirmed: Monthly billing cycle, single hourly rate, 10-30 active clients
-- Edge cases identified: Multiple domains per client, re-opening tickets within 7 days, non-billable work visibility
+**Primary Stakeholder:** Support Technicians at Zero One LLC (end users)
+
+**Pain Points Validated:**
+- Manually searching ScreenConnect interface wastes 30-60 seconds per active support call
+- Context switching between Tickets → Notion → ScreenConnect → PDQ creates cognitive overhead
+- Friction in accessing asset data discourages inventory maintenance (negative feedback loop)
+- Inability to quickly see warranty status limits proactive client communication
+
+**Solution Preferences Expressed:**
+- ScreenConnect quick access highest priority (active support workflow)
+- Performance non-negotiable: ticket creation cannot slow down
+- Simple UI preferred: hostname, warranty date, quick links only
+- Manual workflow acceptable for MVP if automation comes quickly (Phase 2)
+- Outlook Add-in should remain unchanged (explicit constraint)
+
+**Workflow Patterns Identified:**
+- Two distinct ticket creation patterns: Outlook (passive logging) vs. Web (active support)
+- Web interface tickets need asset integration; Outlook Add-in tickets do not
+- Typical contact has 1-2 assets (simple relationships)
+- Asset assignments maintained mentally currently (indicates value once friction removed)
 
 ### C. References
 
-- Brainstorming Session Results: `docs/brainstorming-session-results.md`
-- Xero Developer Documentation: https://developer.xero.com/
-- Microsoft Graph API Documentation: https://docs.microsoft.com/en-us/graph/
-- Outlook Add-ins Overview: https://docs.microsoft.com/en-us/office/dev/add-ins/outlook/
+- **Brainstorming Session Results:** [docs/brainstorming-session-results.md](docs/brainstorming-session-results.md)
+- **AssetFlow Project:** Previous asset management system (data model reference)
+- **PDQ Connect:** https://www.pdq.com/pdq-connect/
+- **ScreenConnect (ConnectWise Control):** https://www.connectwise.com/platform/unified-management/control
+- **Lenovo Warranty Lookup:** https://support.lenovo.com/us/en/warrantylookup (research Lenovo API availability)
+
+---
 
 ## Next Steps
 
 ### Immediate Actions
 
-1. **Review and finalize Project Brief** - Share this document with any additional stakeholders; address open questions identified in Section 10
-2. **Conduct Xero API technical spike** - Spend 2-3 hours exploring Xero API documentation, authentication flow, invoice creation capabilities, and limitations
-3. **Select technology stack** - Choose frontend framework, backend language/framework, database, and hosting platform based on technical preferences and MVP timeline
-4. **Design database schema** - Map out tables for clients, contacts, tickets, time entries with relationships and constraints
-5. **Set up development environment** - Initialize repository, configure development tooling, establish CI/CD pipeline basics
-6. **Build MVP in iterative phases**:
-   - Phase 1: Authentication + Client/Contact CRUD (Week 1)
-   - Phase 2: Ticket CRUD + Time Entry System (Week 2-3)
-   - Phase 3: Xero Integration + Invoice Generation (Week 3-4)
-   - Phase 4: Views/Navigation + Historical Search (Week 4-5)
-   - Phase 5: Testing + Bug Fixes + Migration Tools (Week 5-6)
-7. **Plan migration from current system** - Identify data to migrate, create import scripts if needed, schedule cutover date
-8. **Deploy MVP and begin using** - Go live with MVP, completely transition from old system, begin measuring success metrics
+1. **Review and finalize Project Brief** - Share with stakeholders for validation; address open questions from Section 10
+2. **Confirm technical assumptions** - Verify existing ticketing system uses React + Node.js + PostgreSQL as assumed
+3. **Research API availability** - Investigate PDQ Connect API and Lenovo Warranty API access during MVP development (parallel track)
+4. **Design database schema** - Create migration for `assets` table and `clients.notion_url` field extension
+5. **Plan AssetFlow data migration** - Export existing AssetFlow data, design import scripts or manual migration process
+6. **Set up development environment** - Create feature branch, configure local development with cache layer (Redis or in-memory)
+7. **Build MVP iteratively**:
+   - **Week 1:** Asset CRUD (backend API + database), Asset detail page UI, URL construction logic
+   - **Week 2:** Asset caching implementation, Asset widget component, Ticket detail integration
+   - **Week 3:** Client Notion link, Graceful empty states, Performance testing, Bug fixes
+8. **Conduct user acceptance testing** - Deploy to staging, gather technician feedback on performance and usability
+9. **Deploy MVP to production** - Launch asset management integration, monitor performance metrics
+10. **Begin Phase 2 planning** - Based on MVP feedback, prioritize semi-automated onboarding or other Phase 2 features
 
 ### PM Handoff
 
-This Project Brief provides the full context for the Lean IT Consulting Ticketing System. The next phase is detailed product specification and development planning.
+This Project Brief provides the full context for the **Asset Management Integration** project. The next phase is detailed product specification and development planning.
 
 **Recommended next activities:**
-- Create PRD (Product Requirements Document) with detailed feature specifications, user stories, and acceptance criteria
-- Develop wireframes/mockups for key screens (ticket creation, ticket list, pre-invoice review, client/contact management)
-- Build technical architecture document detailing database schema, API structure, integration patterns
-- Create development roadmap with sprint planning for 4-6 week MVP timeline
+- **Create PRD (Product Requirements Document)** with detailed user stories, acceptance criteria, and wireframes
+- **Design technical architecture document** detailing database schema, API endpoints, caching strategy, component structure
+- **Create development roadmap** with sprint planning for 2-3 week MVP timeline
+- **Plan Phase 2 automation** based on API research findings (PDQ Connect, Lenovo Warranty)
 
-Please start in **PRD Generation Mode**, review this brief thoroughly to work with the user to create the PRD section by section as the template indicates, asking for any necessary clarification or suggesting improvements.
+Please start in **PRD Generation Mode** or **Development Mode**, review this brief thoroughly to work with the user to create detailed specifications, asking for any necessary clarification or suggesting improvements.
+
+---
+
