@@ -67,6 +67,16 @@ export interface WarrantyInfo {
 }
 
 /**
+ * Asset widget response for ticket detail page
+ */
+export interface AssetWidgetResponse {
+  assets: AssetResponse[];
+  contact_name: string | null;
+  contact_id: number | null;
+  total_assets: number;
+}
+
+/**
  * Transform backend snake_case response to frontend Asset type
  */
 function transformAsset(data: AssetResponse | AssetWithRelationsResponse): Asset & {
@@ -208,5 +218,24 @@ export const assetsApi = {
       { serial_number: serialNumber }
     );
     return data;
+  },
+
+  /**
+   * Get asset widget data for ticket detail page
+   * Returns up to 2 assets for the ticket's contact with total count
+   */
+  getAssetWidget: async (ticketId: number): Promise<{
+    assets: Asset[];
+    contact_name: string | null;
+    contact_id: number | null;
+    total_assets: number;
+  }> => {
+    const data = await apiClient.get<AssetWidgetResponse>(`/api/assets/widget/${ticketId}`);
+    return {
+      assets: data.assets.map(transformAsset),
+      contact_name: data.contact_name,
+      contact_id: data.contact_id,
+      total_assets: data.total_assets,
+    };
   },
 };

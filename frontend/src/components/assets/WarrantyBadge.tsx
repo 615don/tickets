@@ -49,12 +49,12 @@ function getWarrantyText(date: Date | null): string {
     return `${daysRemaining} days left`;
   }
 
-  // Format date as "Valid until MMM DD, YYYY"
-  return `Valid until ${date.toLocaleDateString('en-US', {
+  // Format date as "MMM DD, YYYY"
+  return date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric'
-  })}`;
+  });
 }
 
 /**

@@ -11,6 +11,7 @@ import { TimeEntryRow } from './TimeEntryRow';
 import { TimeEntryForm } from './TimeEntryForm';
 import { TicketActions } from './TicketActions';
 import { ConfirmDialog } from './ConfirmDialog';
+import { AssetWidget } from './assets/AssetWidget';
 import { TicketDetail as TicketDetailType, TimeEntryFormData, TimeEntryRequest } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useUpdateTicket, useCloseTicket, useReopenTicket, useDeleteTicket } from '@/hooks/useTickets';
@@ -240,6 +241,9 @@ export const TicketDetail = ({ ticket }: TicketDetailProps) => {
             </div>
           </div>
         </Card>
+
+        {/* Asset Widget - Only shown if ticket has assigned contact */}
+        {ticket.contactId && <AssetWidget ticketId={ticket.id} />}
 
         {/* Description & Notes */}
         <Card className="p-6 space-y-6">
