@@ -44,6 +44,7 @@ export interface TimeEntryResponse {
  */
 export interface TicketDetailResponse extends TicketResponse {
   contactEmail?: string;
+  clientNotionUrl?: string | null;
   timeEntries: TimeEntryResponse[];
 }
 

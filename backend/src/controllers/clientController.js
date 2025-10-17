@@ -60,13 +60,14 @@ export const getClientById = async (req, res) => {
 // POST /api/clients - Create new client
 export const createClient = async (req, res) => {
   try {
-    const { companyName, xeroCustomerId, maintenanceContractType, domains } = req.body;
+    const { companyName, xeroCustomerId, maintenanceContractType, domains, notionUrl } = req.body;
 
     const client = await Client.create({
       companyName,
       xeroCustomerId,
       maintenanceContractType,
-      domains
+      domains,
+      notionUrl
     });
 
     // Invalidate cache after mutation
@@ -95,13 +96,14 @@ export const createClient = async (req, res) => {
 export const updateClient = async (req, res) => {
   try {
     const { id } = req.params;
-    const { companyName, xeroCustomerId, maintenanceContractType, domains } = req.body;
+    const { companyName, xeroCustomerId, maintenanceContractType, domains, notionUrl } = req.body;
 
     const client = await Client.update(id, {
       companyName,
       xeroCustomerId,
       maintenanceContractType,
-      domains
+      domains,
+      notionUrl
     });
 
     // Invalidate cache after mutation

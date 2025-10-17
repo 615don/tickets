@@ -11,6 +11,7 @@ export interface CreateClientRequest {
   xeroCustomerId?: string;
   maintenanceContractType: 'On Demand' | 'Regular Maintenance';
   domains: string[];
+  notionUrl?: string;
 }
 
 export interface UpdateClientRequest extends CreateClientRequest {
@@ -24,6 +25,7 @@ export interface ClientResponse {
   maintenance_contract_type: 'On Demand' | 'Regular Maintenance';
   domains: string[];
   contact_count: number;
+  notion_url?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -56,6 +58,7 @@ function transformClient(data: ClientResponse): Client {
     maintenanceContractType: data.maintenance_contract_type,
     domains: data.domains,
     contactCount: data.contact_count,
+    notionUrl: data.notion_url,
     createdAt: data.created_at,
   };
 }
@@ -69,6 +72,7 @@ function transformClientRequest(data: CreateClientRequest) {
     xeroCustomerId: data.xeroCustomerId || null,
     maintenanceContractType: data.maintenanceContractType,
     domains: data.domains.filter(d => d.trim() !== ''),
+    notionUrl: data.notionUrl || null,
   };
 }
 

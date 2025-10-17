@@ -23,7 +23,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Client, DeleteClientData } from '@/types';
-import { Building2, ArrowUpDown, Loader2 } from 'lucide-react';
+import { Building2, ArrowUpDown, Loader2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useClients, useCreateClient, useUpdateClient, useDeleteClient } from '@/hooks/useClients';
@@ -123,7 +123,7 @@ export const ClientList = () => {
     }
   };
 
-  const handleFormSubmit = async (data: { companyName: string; xeroCustomerId?: string; maintenanceContractType: string; domains: Array<{ value: string }> }) => {
+  const handleFormSubmit = async (data: { companyName: string; xeroCustomerId?: string; maintenanceContractType: string; domains: Array<{ value: string }>; notionUrl?: string }) => {
     // Extract, filter, and deduplicate domains
     const domains = data.domains
       .map((d) => d.value)
@@ -135,6 +135,7 @@ export const ClientList = () => {
       xeroCustomerId: data.xeroCustomerId,
       maintenanceContractType: data.maintenanceContractType,
       domains: uniqueDomains,
+      notionUrl: data.notionUrl && data.notionUrl.trim() !== '' ? data.notionUrl : undefined,
     };
 
     try {
@@ -239,6 +240,7 @@ export const ClientList = () => {
                   <TableHead>Domains</TableHead>
                   <TableHead>Xero ID</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Docs</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -267,6 +269,19 @@ export const ClientList = () => {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">{client.maintenanceContractType}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {client.notionUrl && (
+                        <a
+                          href={client.notionUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-muted-foreground hover:text-blue-600 transition-colors"
+                          title="View Notion Docs"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <ActionButtons
@@ -305,6 +320,19 @@ export const ClientList = () => {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Xero ID:</span>
                       <span className="font-medium">{client.xeroCustomerId}</span>
+                    </div>
+                  )}
+                  {client.notionUrl && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Docs:</span>
+                      <a
+                        href={client.notionUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-blue-600 hover:underline text-sm"
+                      >
+                        View Notion <ExternalLink className="h-3 w-3" />
+                      </a>
                     </div>
                   )}
                 </div>

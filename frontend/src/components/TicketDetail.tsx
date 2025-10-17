@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, formatDistanceToNow } from 'date-fns';
-import { ArrowLeft, Building2, User, Mail, Plus, Lock } from 'lucide-react';
+import { ArrowLeft, Building2, User, Mail, Plus, Lock, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -219,7 +219,21 @@ export const TicketDetail = ({ ticket }: TicketDetailProps) => {
                 <Building2 className="h-4 w-4" />
                 <span>Client</span>
               </div>
-              <p className="font-medium">{ticket.clientName}</p>
+              <div className="flex items-center gap-2">
+                <p className="font-medium">{ticket.clientName}</p>
+                {ticket.clientNotionUrl && (
+                  <a
+                    href={ticket.clientNotionUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-blue-600 transition-colors"
+                    title="View Notion Docs"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    <span>Docs</span>
+                  </a>
+                )}
+              </div>
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -368,6 +382,7 @@ export const TicketDetail = ({ ticket }: TicketDetailProps) => {
                       onEdit={setEditingEntryId}
                       onDelete={setDeleteDialogEntry}
                       isLocked={entry.isLocked}
+                      variant="card"
                     />
                   )
                 )}

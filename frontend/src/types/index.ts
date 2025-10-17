@@ -21,6 +21,7 @@ export interface Client {
   maintenanceContractType: 'On Demand' | 'Regular Maintenance';
   domains: string[];
   contactCount: number;
+  notionUrl?: string | null;
   createdAt: string;
 }
 
@@ -39,6 +40,7 @@ export interface ClientFormData {
   xeroCustomerId?: string;
   maintenanceContractType: string;
   domains: string[];
+  notionUrl?: string;
 }
 
 export interface ContactFormData {
@@ -101,6 +103,7 @@ export interface TicketDetail {
   id: number;
   clientId: number;
   clientName: string;
+  clientNotionUrl?: string | null;
   contactId: number;
   contactName: string;
   contactEmail?: string;

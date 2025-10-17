@@ -22,7 +22,14 @@ const clientSchema = z.object({
   maintenanceContractType: z.enum(['On Demand', 'Regular Maintenance']),
   domains: z.array(z.object({
     value: z.string().regex(domainRegex, 'Invalid domain format (e.g., example.com)').optional().or(z.literal(''))
-  }))
+  })),
+  notionUrl: z.string().optional().refine(
+    (val) => !val || val === '' || (val.startsWith('http://') || val.startsWith('https://')),
+    { message: 'Must be a valid URL starting with http:// or https://' }
+  ).refine(
+    (val) => !val || val.length <= 500,
+    { message: 'URL must be less than 500 characters' }
+  )
 });
 
 type ClientFormData = z.infer<typeof clientSchema>;
@@ -54,6 +61,7 @@ export const ClientForm = ({ client, onSubmit, onCancel }: ClientFormProps) => {
       xeroCustomerId: client?.xeroCustomerId || '',
       maintenanceContractType: client?.maintenanceContractType || 'On Demand',
       domains: uniqueDomains,
+      notionUrl: client?.notionUrl || '',
     },
   });
 
@@ -155,6 +163,22 @@ export const ClientForm = ({ client, onSubmit, onCancel }: ClientFormProps) => {
           <Plus className="h-4 w-4 mr-2" />
           Add Another Domain
         </Button>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="notionUrl">Notion Documentation URL (Optional)</Label>
+        <Input
+          id="notionUrl"
+          type="url"
+          {...register('notionUrl')}
+          placeholder="https://notion.so/..."
+        />
+        <p className="text-xs text-muted-foreground">
+          Link to client documentation in Notion
+        </p>
+        {errors.notionUrl && (
+          <p className="text-sm text-destructive">{errors.notionUrl.message}</p>
+        )}
       </div>
 
       <div className="flex gap-2 pt-4">

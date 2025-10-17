@@ -3,6 +3,9 @@ import { query, getClient } from '../config/database.js';
 // Domain format validation regex
 const DOMAIN_REGEX = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
+// URL format validation regex (http:// or https://)
+const URL_REGEX = /^https?:\/\/.+/i;
+
 // Valid maintenance contract types
 const VALID_CONTRACT_TYPES = ['On Demand', 'Regular Maintenance'];
 
@@ -17,6 +20,26 @@ function validateDomain(domain) {
   }
   if (!DOMAIN_REGEX.test(domain)) {
     throw new Error(`Invalid domain format: ${domain}. Expected format: example.com`);
+  }
+}
+
+/**
+ * Validates Notion URL format
+ * @param {string} url - URL to validate
+ * @throws {Error} If URL format is invalid
+ */
+function validateNotionUrl(url) {
+  if (!url || url.trim().length === 0) {
+    return; // Empty is valid (optional field)
+  }
+  if (typeof url !== 'string') {
+    throw new Error('Notion URL must be a string');
+  }
+  if (!URL_REGEX.test(url)) {
+    throw new Error('Notion URL must be a valid URL starting with http:// or https://');
+  }
+  if (url.length > 500) {
+    throw new Error('Notion URL must be less than 500 characters');
   }
 }
 
@@ -37,9 +60,10 @@ function validateClientInput(companyName, maintenanceContractType) {
 
 export const Client = {
   // Create a new client with domains
-  async create({ companyName, xeroCustomerId, maintenanceContractType, domains = [] }) {
+  async create({ companyName, xeroCustomerId, maintenanceContractType, domains = [], notionUrl }) {
     // Validate input
     validateClientInput(companyName, maintenanceContractType);
+    validateNotionUrl(notionUrl);
 
     // Validate all domains before starting transaction
     if (domains && domains.length > 0) {
@@ -53,10 +77,10 @@ export const Client = {
 
       // Insert client
       const clientResult = await client.query(
-        `INSERT INTO clients (company_name, xero_customer_id, maintenance_contract_type, created_at, updated_at)
-         VALUES ($1, $2, $3, NOW(), NOW())
-         RETURNING id, company_name, xero_customer_id, maintenance_contract_type, created_at, updated_at`,
-        [companyName, xeroCustomerId || null, maintenanceContractType]
+        `INSERT INTO clients (company_name, xero_customer_id, maintenance_contract_type, notion_url, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, NOW(), NOW())
+         RETURNING id, company_name, xero_customer_id, maintenance_contract_type, notion_url, created_at, updated_at`,
+        [companyName, xeroCustomerId || null, maintenanceContractType, notionUrl || null]
       );
 
       const newClient = clientResult.rows[0];
@@ -91,6 +115,7 @@ export const Client = {
         c.company_name,
         c.xero_customer_id,
         c.maintenance_contract_type,
+        c.notion_url,
         c.created_at,
         c.updated_at,
         COALESCE(json_agg(DISTINCT cd.domain ORDER BY cd.domain) FILTER (WHERE cd.domain IS NOT NULL), '[]') as domains,
@@ -113,6 +138,7 @@ export const Client = {
         c.company_name,
         c.xero_customer_id,
         c.maintenance_contract_type,
+        c.notion_url,
         c.created_at,
         c.updated_at,
         COALESCE(json_agg(DISTINCT cd.domain ORDER BY cd.domain) FILTER (WHERE cd.domain IS NOT NULL), '[]') as domains,
@@ -128,9 +154,10 @@ export const Client = {
   },
 
   // Update client and replace domains
-  async update(id, { companyName, xeroCustomerId, maintenanceContractType, domains }) {
+  async update(id, { companyName, xeroCustomerId, maintenanceContractType, domains, notionUrl }) {
     // Validate input
     validateClientInput(companyName, maintenanceContractType);
+    validateNotionUrl(notionUrl);
 
     // Validate all domains before starting transaction
     if (domains && domains.length > 0) {
@@ -148,10 +175,11 @@ export const Client = {
          SET company_name = $1,
              xero_customer_id = $2,
              maintenance_contract_type = $3,
+             notion_url = $4,
              updated_at = NOW()
-         WHERE id = $4
+         WHERE id = $5
          RETURNING id`,
-        [companyName, xeroCustomerId || null, maintenanceContractType, id]
+        [companyName, xeroCustomerId || null, maintenanceContractType, notionUrl || null, id]
       );
 
       if (updateResult.rows.length === 0) {
@@ -273,6 +301,7 @@ export const Client = {
         c.company_name,
         c.xero_customer_id,
         c.maintenance_contract_type,
+        c.notion_url,
         c.created_at,
         COALESCE(json_agg(DISTINCT cd.domain ORDER BY cd.domain) FILTER (WHERE cd.domain IS NOT NULL), '[]') as domains,
         COUNT(DISTINCT contacts.id) as contact_count

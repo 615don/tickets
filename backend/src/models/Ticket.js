@@ -56,6 +56,7 @@ function convertToCamelCase(row) {
     id: row.id,
     clientId: row.client_id,
     clientName: row.client_name,
+    clientNotionUrl: row.client_notion_url || null,
     contactId: row.contact_id,
     contactName: displayName,
     contactEmail: row.contact_email || null,
@@ -201,6 +202,7 @@ export const Ticket = {
         t.created_at,
         t.updated_at,
         c.company_name as client_name,
+        c.notion_url as client_notion_url,
         co.name as contact_name,
         co.email as contact_email,
         co.is_system_contact,
@@ -210,7 +212,7 @@ export const Ticket = {
       JOIN contacts co ON t.contact_id = co.id
       LEFT JOIN time_entries te ON t.id = te.ticket_id
       WHERE t.id = $1
-      GROUP BY t.id, c.company_name, co.name, co.email, co.is_system_contact
+      GROUP BY t.id, c.company_name, c.notion_url, co.name, co.email, co.is_system_contact
     `, [id]);
 
     return convertToCamelCase(result.rows[0]);

@@ -38,7 +38,14 @@ const clientValidation = [
   body('domains.*')
     .optional()
     .matches(/^[a-z0-9-]+\.[a-z]{2,}$/i)
-    .withMessage('Invalid domain format')
+    .withMessage('Invalid domain format'),
+  body('notionUrl')
+    .optional({ checkFalsy: true })
+    .trim()
+    .isURL({ protocols: ['http', 'https'], require_protocol: true })
+    .withMessage('Notion URL must be a valid URL starting with http:// or https://')
+    .isLength({ max: 500 })
+    .withMessage('Notion URL must be less than 500 characters')
 ];
 
 // GET /api/clients - List all clients (with optional search)

@@ -29,7 +29,6 @@ export const MobileMenu = ({ isOpen, onClose, navItems, userEmail, onLogout }: M
   // Close menu on route change
   useEffect(() => {
     if (isOpen) {
-      console.log('Route changed, closing menu');
       onClose();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -51,8 +50,6 @@ export const MobileMenu = ({ isOpen, onClose, navItems, userEmail, onLogout }: M
       document.body.style.overflow = 'unset';
     };
   }, [isOpen, onClose]);
-
-  console.log('MobileMenu render - isOpen:', isOpen);
 
   return (
     <>
