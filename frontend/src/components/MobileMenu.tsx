@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { X, Users, ChevronRight, ChevronDown } from 'lucide-react';
 import { Button } from './ui/button';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface NavItem {
   path: string;
@@ -13,13 +13,15 @@ interface NavItem {
 interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  navItems: NavItem[];
+  primaryNavItems: NavItem[];
+  manageNavItems: NavItem[];
   userEmail: string;
   onLogout: () => void;
 }
 
-export const MobileMenu = ({ isOpen, onClose, navItems, userEmail, onLogout }: MobileMenuProps) => {
+export const MobileMenu = ({ isOpen, onClose, primaryNavItems, manageNavItems, userEmail, onLogout }: MobileMenuProps) => {
   const location = useLocation();
+  const [isManageExpanded, setIsManageExpanded] = useState(false);
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
@@ -79,7 +81,8 @@ export const MobileMenu = ({ isOpen, onClose, navItems, userEmail, onLogout }: M
 
           {/* Navigation Links */}
           <div className="flex-1 overflow-y-auto py-4">
-            {navItems.map((item) => (
+            {/* Primary Navigation Items */}
+            {primaryNavItems.map((item) => (
               item.disabled ? (
                 <div
                   key={item.path}
@@ -102,6 +105,32 @@ export const MobileMenu = ({ isOpen, onClose, navItems, userEmail, onLogout }: M
                   <span>{item.label}</span>
                 </Link>
               )
+            ))}
+
+            {/* Manage Section - Expandable */}
+            <button
+              onClick={() => setIsManageExpanded(!isManageExpanded)}
+              className="flex items-center space-x-3 px-6 py-3 w-full text-left transition-colors text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            >
+              <Users size={18} />
+              <span className="flex-1">Manage</span>
+              {isManageExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </button>
+
+            {/* Manage Sub-items - Shown when expanded */}
+            {isManageExpanded && manageNavItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center space-x-3 pl-10 pr-6 py-3 transition-colors ${
+                  isActive(item.path)
+                    ? 'bg-accent text-primary font-medium border-l-4 border-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                }`}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </Link>
             ))}
           </div>
 

@@ -1,8 +1,14 @@
 import { useState, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Plus, Users, User, FileText, Settings, Menu, Ticket, Monitor } from 'lucide-react';
+import { Home, Plus, Users, User, FileText, Settings, Menu, Ticket, Monitor, ChevronDown } from 'lucide-react';
 import { MobileMenu } from './MobileMenu';
 import { Button } from './ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
 
 interface NavItem {
@@ -12,14 +18,20 @@ interface NavItem {
   disabled?: boolean;
 }
 
-const navItems: NavItem[] = [
+// Primary navigation items shown at top level (Epic 15.9: Navigation refactoring)
+const primaryNavItems: NavItem[] = [
   { path: '/', label: 'Dashboard', icon: <Home size={18} /> },
   { path: '/tickets', label: 'Tickets', icon: <Ticket size={18} /> },
   { path: '/tickets/create', label: 'Create Ticket', icon: <Plus size={18} /> },
+  { path: '/invoices', label: 'Invoices', icon: <FileText size={18} /> },
+];
+
+// Management navigation items grouped under "Manage" dropdown (Epic 15.9: Reduces navbar crowding)
+// Desktop: Shown in dropdown menu | Mobile: Shown as expandable section
+const manageNavItems: NavItem[] = [
   { path: '/clients', label: 'Clients', icon: <Users size={18} /> },
   { path: '/contacts', label: 'Contacts', icon: <User size={18} /> },
   { path: '/assets', label: 'Assets', icon: <Monitor size={18} /> },
-  { path: '/invoices', label: 'Invoices', icon: <FileText size={18} /> },
   { path: '/settings', label: 'Settings', icon: <Settings size={18} /> },
 ];
 
@@ -36,6 +48,12 @@ export const Navbar = () => {
     // e.g., /tickets should not match /tickets/create
     // e.g., /invoices should not match /invoices/preview
     return false;
+  };
+
+  // Helper function to check if current route matches any managed item
+  // Used to highlight "Manage" dropdown when user is on Clients/Contacts/Assets/Settings pages
+  const isManageRouteActive = () => {
+    return manageNavItems.some(item => isActive(item.path));
   };
 
   const handleLogout = async () => {
@@ -61,7 +79,8 @@ export const Navbar = () => {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-1">
-              {navItems.map((item) => (
+              {/* Primary Navigation Items */}
+              {primaryNavItems.map((item) => (
                 item.disabled ? (
                   <span
                     key={item.path}
@@ -87,6 +106,34 @@ export const Navbar = () => {
                   </Link>
                 )
               ))}
+
+              {/* Manage Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={`flex items-center space-x-2 px-2 lg:px-3 py-2 rounded-md transition-colors text-sm ${
+                      isManageRouteActive()
+                        ? 'text-primary font-medium border-b-2 border-primary'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                    }`}
+                    title="Manage"
+                  >
+                    <Users size={18} />
+                    <span className="hidden lg:inline">Manage</span>
+                    <ChevronDown size={14} className="hidden lg:inline" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {manageNavItems.map((item) => (
+                    <DropdownMenuItem key={item.path} asChild>
+                      <Link to={item.path} className="flex items-center space-x-2">
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* User Section - Desktop */}
@@ -115,7 +162,8 @@ export const Navbar = () => {
       <MobileMenu
         isOpen={isMobileMenuOpen}
         onClose={handleCloseMobileMenu}
-        navItems={navItems}
+        primaryNavItems={primaryNavItems}
+        manageNavItems={manageNavItems}
         userEmail={user?.email || 'Loading...'}
         onLogout={handleLogout}
       />
