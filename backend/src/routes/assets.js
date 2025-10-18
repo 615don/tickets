@@ -949,6 +949,7 @@ router.get('/widget/:ticketId', async (req, res) => {
       return res.status(200).json({
         assets: [],
         contact_name: null,
+        contact_id: null,
         total_assets: 0
       });
     }
@@ -970,6 +971,7 @@ router.get('/widget/:ticketId', async (req, res) => {
     res.status(200).json({
       assets: limitedAssets,
       contact_name: contactName,
+      contact_id: contactId,
       total_assets: allAssets.length
     });
   } catch (error) {
