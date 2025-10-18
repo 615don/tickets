@@ -67,6 +67,13 @@ export interface WarrantyInfo {
 }
 
 /**
+ * PDQ device lookup response
+ */
+export interface PDQDeviceInfo {
+  pdq_device_id: string;
+}
+
+/**
  * Asset widget response for ticket detail page
  */
 export interface AssetWidgetResponse {
@@ -228,6 +235,17 @@ export const assetsApi = {
   lookupLenovoWarrantyBySerial: async (serialNumber: string): Promise<WarrantyInfo> => {
     const data = await apiClient.post<WarrantyInfo>(
       '/api/assets/warranty-lookup',
+      { serial_number: serialNumber }
+    );
+    return data;
+  },
+
+  /**
+   * Lookup PDQ device ID by serial number
+   */
+  lookupPDQDeviceBySerial: async (serialNumber: string): Promise<PDQDeviceInfo> => {
+    const data = await apiClient.post<PDQDeviceInfo>(
+      '/api/assets/lookup-pdq-device',
       { serial_number: serialNumber }
     );
     return data;

@@ -62,6 +62,10 @@ export const AssetForm = ({ mode, asset, initialContactId: prefilledContactId, o
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
 
+  // PDQ device lookup state
+  const [pdqLookupLoading, setPdqLookupLoading] = useState(false);
+  const [pdqLookupError, setPdqLookupError] = useState<string | null>(null);
+
   // Determine initial client_id and contact_id from asset if in edit mode, or from prefilled contact if in create mode
   const { initialClientId, initialContactId } = useMemo(() => {
     if (asset) {
@@ -165,6 +169,40 @@ export const AssetForm = ({ mode, asset, initialContactId: prefilledContactId, o
       }
     } finally {
       setLookupLoading(false);
+    }
+  };
+
+  // Handle PDQ device lookup
+  const handlePDQLookup = async () => {
+    if (!serialNumber) return;
+
+    setPdqLookupLoading(true);
+    setPdqLookupError(null);
+
+    try {
+      const pdqInfo = await assetsApi.lookupPDQDeviceBySerial(serialNumber);
+
+      // Auto-populate PDQ Device ID field
+      if (pdqInfo.pdq_device_id) {
+        setValue('pdq_device_id', pdqInfo.pdq_device_id, { shouldValidate: true });
+      }
+    } catch (error) {
+      // Handle error responses
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      if (errorMessage.includes('not found in PDQ') || errorMessage.includes('404')) {
+        setPdqLookupError('Serial number not found in PDQ. Please enter manually if known.');
+      } else if (errorMessage.includes('API key not configured') || errorMessage.includes('ConfigurationError')) {
+        setPdqLookupError('PDQ API key not configured or invalid');
+      } else if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+        setPdqLookupError('PDQ API rate limit exceeded. Please try again later.');
+      } else if (errorMessage.includes('Unable to connect') || errorMessage.includes('503') || errorMessage.includes('timed out')) {
+        setPdqLookupError('Unable to connect to PDQ API. Please enter manually.');
+      } else {
+        setPdqLookupError('Unable to connect to PDQ API. Please enter manually.');
+      }
+    } finally {
+      setPdqLookupLoading(false);
     }
   };
 
@@ -402,13 +440,48 @@ export const AssetForm = ({ mode, asset, initialContactId: prefilledContactId, o
       {/* PDQ Device ID */}
       <div className="space-y-2">
         <Label htmlFor="pdq_device_id">PDQ Device ID</Label>
-        <Input
-          id="pdq_device_id"
-          {...register('pdq_device_id')}
-          placeholder="device-uuid"
-        />
+        <div className="flex gap-2">
+          <Input
+            id="pdq_device_id"
+            {...register('pdq_device_id')}
+            placeholder="dvc_abc123def456"
+            className="flex-1"
+          />
+          {/* PDQ Device Lookup Button */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handlePDQLookup}
+                    disabled={!serialNumber || pdqLookupLoading}
+                  >
+                    {pdqLookupLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Looking up...
+                      </>
+                    ) : (
+                      'Lookup PDQ Device'
+                    )}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {!serialNumber && (
+                <TooltipContent>
+                  Enter serial number first
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         {errors.pdq_device_id && (
           <p className="text-sm text-destructive">{errors.pdq_device_id.message}</p>
+        )}
+        {pdqLookupError && (
+          <p className="text-sm text-destructive">{pdqLookupError}</p>
         )}
       </div>
 

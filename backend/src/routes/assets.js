@@ -3,6 +3,7 @@ import { Asset } from '../models/Asset.js';
 import { requireAuth } from '../middleware/auth.js';
 import { query } from '../config/database.js';
 import { lookupLenovoWarranty } from '../services/lenovoWarranty.js';
+import { lookupPDQDeviceBySerial } from '../services/pdqConnect.js';
 import { invalidateCache, getAssetsByContactId, getCacheStats } from '../services/assetCache.js';
 
 const router = express.Router();
@@ -1019,6 +1020,81 @@ router.post('/cache/refresh', async (req, res) => {
     res.status(500).json({
       error: 'InternalServerError',
       message: 'Failed to refresh cache'
+    });
+  }
+});
+
+// POST /api/assets/lookup-pdq-device - Lookup PDQ device ID by serial number
+router.post('/lookup-pdq-device', async (req, res) => {
+  try {
+    const { serial_number } = req.body;
+
+    // Validate serial_number is provided
+    if (!serial_number || serial_number.trim().length === 0) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Serial number is required'
+      });
+    }
+
+    // Call PDQ Connect service
+    const result = await lookupPDQDeviceBySerial(serial_number);
+
+    // Handle based on success/failure
+    if (result.success) {
+      return res.status(200).json({
+        pdq_device_id: result.pdqDeviceId
+      });
+    }
+
+    // Handle specific error cases with appropriate HTTP codes
+    const errorMessage = result.error || 'Unknown error';
+
+    if (errorMessage.includes('not configured or invalid')) {
+      return res.status(503).json({
+        error: 'ConfigurationError',
+        message: errorMessage
+      });
+    }
+
+    if (errorMessage.includes('not found in PDQ')) {
+      return res.status(404).json({
+        error: 'NotFoundError',
+        message: errorMessage
+      });
+    }
+
+    if (errorMessage.includes('rate limit')) {
+      return res.status(429).json({
+        error: 'RateLimitError',
+        message: errorMessage
+      });
+    }
+
+    if (errorMessage.includes('Unable to connect') || errorMessage.includes('timed out')) {
+      return res.status(503).json({
+        error: 'ServiceUnavailableError',
+        message: errorMessage
+      });
+    }
+
+    if (errorMessage.includes('invalid characters')) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: errorMessage
+      });
+    }
+
+    // Generic error for other cases
+    return res.status(503).json({
+      error: 'ServiceUnavailableError',
+      message: errorMessage
+    });
+  } catch (error) {
+    console.error('Error in PDQ device lookup endpoint:', error);
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: 'An error occurred while looking up PDQ device information'
     });
   }
 });
