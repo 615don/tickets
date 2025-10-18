@@ -116,6 +116,35 @@ Following the PRD epic structure:
    - Ticket search functionality
    - Historical ticket access
 
+## Asset Management
+
+Track hardware assets linked to clients and contacts with integrated warranty monitoring and remote access tools.
+
+### Features
+- **Asset Tracking**: Link assets to clients and contacts with comprehensive device information
+- **One-Click Remote Access**: Direct integration with ScreenConnect and PDQ Connect
+- **Lenovo Warranty API Integration**: Automatic warranty lookup and expiration tracking
+- **Color-Coded Warranty Status**:
+  - 🔴 Red: Expired
+  - 🟡 Yellow: Expiring soon (within 30 days)
+  - 🟢 Green: Active warranty
+  - ⚪ Gray: Unknown/Not set
+- **Asset Lifecycle Management**:
+  - Active assets appear in ticket widgets
+  - Retired assets hidden from active lists but preserved
+  - Permanent delete after 2+ years retired
+- **Client Documentation Links**: Notion URL field for quick access to client documentation
+
+### Navigation
+Access asset management via **Manage → Assets** in the navigation menu.
+
+### Asset Widget
+Assets appear automatically on ticket detail pages below contact information, showing:
+- Up to 2 assets with hostname, warranty status, and remote tool access buttons
+- "View all X assets" link when contact has more than 2 assets
+- Empty state with "Add Asset" button when no assets exist
+- Mobile responsive: Hidden by default with "View Assets" toggle button
+
 ## Technology Stack
 
 ### Frontend
@@ -165,7 +194,15 @@ FRONTEND_URL=http://localhost:5173
 
 # Timezone
 TZ=America/Chicago
+
+# Asset Management (Optional)
+LENOVO_API_KEY=your_lenovo_api_key_here  # Optional: For automatic warranty lookups
+ASSET_CACHE_TTL=                          # Optional: Cache TTL in seconds (default: indefinite)
 ```
+
+**Asset Management Variables:**
+- `LENOVO_API_KEY` (optional): API key from Lenovo Support API portal. If not set, warranty lookup button will be disabled with graceful degradation - manual warranty entry still available.
+- `ASSET_CACHE_TTL` (optional): Time-to-live for asset cache in seconds. Default is indefinite (cache only cleared on asset updates).
 
 ### Setting up PostgreSQL
 
@@ -202,13 +239,37 @@ CREATE DATABASE ticketing_system;
 
 ### Database Schema
 - **users**: Authentication
-- **clients**: Companies being billed
+- **clients**: Companies being billed (includes notion_url for documentation links)
 - **client_domains**: Email domains for client auto-detection
 - **contacts**: People at client companies
 - **tickets**: Billable work items
 - **time_entries**: Time logged per ticket (with soft deletes)
 - **invoice_locks**: Month locks after Xero push
 - **xero_connections**: OAuth tokens (encrypted)
+- **assets**: Hardware asset tracking with warranty and lifecycle management
+
+### Database Migrations
+
+**Asset Management Migrations (Epic 15):**
+
+1. **Create Assets Table** - Adds the `assets` table with full asset lifecycle support:
+   - Fields: hostname, manufacturer, model, serial_number, warranty dates, external tool IDs
+   - Relationships: Links to clients (required) and contacts (optional)
+   - Status tracking: active, retired, permanently deleted after 2+ years
+   - Indexes for performance: client_id, contact_id, status
+
+2. **Add Client Notion URL** - Adds `notion_url` column to `clients` table:
+   - Stores Notion workspace URLs for quick documentation access
+   - Optional field with URL validation
+
+**Rollback Commands (if needed):**
+```sql
+-- Rollback assets table
+DROP TABLE IF EXISTS assets CASCADE;
+
+-- Rollback clients.notion_url column
+ALTER TABLE clients DROP COLUMN IF EXISTS notion_url;
+```
 
 ### Key Features
 - **Ultra-fast ticket creation**: <10 second goal (3 required fields)

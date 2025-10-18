@@ -138,9 +138,9 @@ export const AssetForm = ({ mode, asset, onSuccess, onCancel }: AssetFormProps) 
       if (warrantyInfo.product_name && !watch('model')) {
         setValue('model', warrantyInfo.product_name, { shouldValidate: true });
       }
-    } catch (error: any) {
+    } catch (error) {
       // Handle error responses
-      const errorMessage = error?.message || 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
       if (errorMessage.includes('Serial number not found') || errorMessage.includes('404')) {
         setLookupError('Serial number not found in Lenovo database');
