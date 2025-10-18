@@ -69,11 +69,15 @@ export const AssetList = () => {
   const { toast } = useToast();
 
   // Check URL parameters to auto-open create modal with prefilled contact
+  // or apply filters for assign mode
   useEffect(() => {
     const contactIdParam = searchParams.get('contact_id');
     const createParam = searchParams.get('create');
+    const assignToParam = searchParams.get('assign_to');
+    const clientIdParam = searchParams.get('client_id');
 
-    if (createParam === 'true' && contactIdParam) {
+    // Handle create mode
+    if (createParam === 'true' && contactIdParam && contactIdParam !== 'null') {
       const contactId = parseInt(contactIdParam);
       if (!isNaN(contactId)) {
         setPrefilledContactId(contactId);
@@ -84,7 +88,19 @@ export const AssetList = () => {
         setSearchParams(searchParams, { replace: true });
       }
     }
-  }, [searchParams, setSearchParams]);
+    // Handle assign mode - filter to unassigned assets for client
+    else if (assignToParam && clientIdParam && contactIdParam === 'null') {
+      const clientId = parseInt(clientIdParam);
+      if (!isNaN(clientId)) {
+        setClientFilter(clientIdParam);
+        setStatusFilter('active');
+        // Clean up assign_to parameter but keep filters
+        searchParams.delete('assign_to');
+        searchParams.delete('contact_id');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, []); // Only run on mount
 
   // Fetch assets with current filters
   const assetFilters = useMemo(() => {

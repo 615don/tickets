@@ -929,9 +929,9 @@ router.get('/widget/:ticketId', async (req, res) => {
       });
     }
 
-    // Get ticket's contact
+    // Get ticket's contact and client
     const ticketResult = await query(
-      'SELECT contact_id FROM tickets WHERE id = $1',
+      'SELECT contact_id, client_id FROM tickets WHERE id = $1',
       [ticketId]
     );
 
@@ -943,14 +943,24 @@ router.get('/widget/:ticketId', async (req, res) => {
     }
 
     const contactId = ticketResult.rows[0].contact_id;
+    const clientId = ticketResult.rows[0].client_id;
 
-    // If no contact associated with ticket, return empty response
+    // If no contact associated with ticket, return empty response with client info
     if (!contactId) {
+      // Still provide unassigned assets count for the client
+      const unassignedResult = await query(
+        'SELECT COUNT(*) as count FROM assets WHERE client_id = $1 AND contact_id IS NULL AND status = $2',
+        [clientId, 'active']
+      );
+      const unassignedCount = parseInt(unassignedResult.rows[0].count);
+
       return res.status(200).json({
         assets: [],
         contact_name: null,
         contact_id: null,
-        total_assets: 0
+        client_id: clientId,
+        total_assets: 0,
+        unassigned_assets_count: unassignedCount
       });
     }
 
@@ -968,11 +978,20 @@ router.get('/widget/:ticketId', async (req, res) => {
       ? contactResult.rows[0].name
       : 'Unknown Contact';
 
+    // Get count of unassigned assets for this client
+    const unassignedResult = await query(
+      'SELECT COUNT(*) as count FROM assets WHERE client_id = $1 AND contact_id IS NULL AND status = $2',
+      [clientId, 'active']
+    );
+    const unassignedCount = parseInt(unassignedResult.rows[0].count);
+
     res.status(200).json({
       assets: limitedAssets,
       contact_name: contactName,
       contact_id: contactId,
-      total_assets: allAssets.length
+      client_id: clientId,
+      total_assets: allAssets.length,
+      unassigned_assets_count: unassignedCount
     });
   } catch (error) {
     console.error('[ASSET CACHE] Widget endpoint error:', error);

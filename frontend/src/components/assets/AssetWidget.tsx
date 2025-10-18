@@ -26,7 +26,9 @@ export function AssetWidget({ ticketId }: AssetWidgetProps) {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [contactName, setContactName] = useState<string | null>(null);
   const [contactId, setContactId] = useState<number | null>(null);
+  const [clientId, setClientId] = useState<number | null>(null);
   const [totalAssets, setTotalAssets] = useState(0);
+  const [unassignedAssetsCount, setUnassignedAssetsCount] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileExpanded, setMobileExpanded] = useState(false);
 
@@ -38,7 +40,9 @@ export function AssetWidget({ ticketId }: AssetWidgetProps) {
       setAssets(data.assets);
       setContactName(data.contact_name);
       setContactId(data.contact_id);
+      setClientId(data.client_id);
       setTotalAssets(data.total_assets);
+      setUnassignedAssetsCount(data.unassigned_assets_count || 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load assets');
     } finally {
@@ -85,12 +89,23 @@ export function AssetWidget({ ticketId }: AssetWidgetProps) {
             No assets tracked for {contactName || 'this contact'}
           </p>
           {contactId && (
-            <Button asChild variant="outline">
-              <Link to={`/assets?create=true&contact_id=${contactId}`}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Asset
-              </Link>
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              {/* Show "Assign Existing" button if there are unassigned assets for this client */}
+              {unassignedAssetsCount > 0 && clientId && (
+                <Button asChild variant="default">
+                  <Link to={`/assets?client_id=${clientId}&status=active&contact_id=null&assign_to=${contactId}`}>
+                    Assign Existing ({unassignedAssetsCount})
+                  </Link>
+                </Button>
+              )}
+              {/* Always show "Add New Asset" button */}
+              <Button asChild variant={unassignedAssetsCount > 0 ? "outline" : "default"}>
+                <Link to={`/assets?create=true&contact_id=${contactId}`}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add New Asset
+                </Link>
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>

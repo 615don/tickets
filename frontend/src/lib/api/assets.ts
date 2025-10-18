@@ -73,7 +73,9 @@ export interface AssetWidgetResponse {
   assets: AssetResponse[];
   contact_name: string | null;
   contact_id: number | null;
+  client_id: number;
   total_assets: number;
+  unassigned_assets_count: number;
 }
 
 /**
@@ -233,20 +235,24 @@ export const assetsApi = {
 
   /**
    * Get asset widget data for ticket detail page
-   * Returns up to 2 assets for the ticket's contact with total count
+   * Returns up to 2 assets for the ticket's contact with total count and unassigned assets info
    */
   getAssetWidget: async (ticketId: number): Promise<{
     assets: Asset[];
     contact_name: string | null;
     contact_id: number | null;
+    client_id: number;
     total_assets: number;
+    unassigned_assets_count: number;
   }> => {
     const data = await apiClient.get<AssetWidgetResponse>(`/api/assets/widget/${ticketId}`);
     return {
       assets: data.assets.map(transformAsset),
       contact_name: data.contact_name,
       contact_id: data.contact_id,
+      client_id: data.client_id,
       total_assets: data.total_assets,
+      unassigned_assets_count: data.unassigned_assets_count,
     };
   },
 };
