@@ -52,6 +52,7 @@ import { useClients } from '@/hooks/useClients';
 import { Asset } from '@tickets/shared';
 import { Monitor, Loader2 } from 'lucide-react';
 import { ApiError } from '@/lib/api-client';
+import { calculateAssetAge } from '@/lib/utils/assetHelpers';
 
 export const AssetList = () => {
   const navigate = useNavigate();
@@ -262,6 +263,7 @@ export const AssetList = () => {
                   <TableHead>Contact Name</TableHead>
                   <TableHead>Client Name</TableHead>
                   <TableHead>Warranty Expiration</TableHead>
+                  <TableHead>Age</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -285,6 +287,11 @@ export const AssetList = () => {
                       </TableCell>
                       <TableCell onClick={() => handleViewAsset(asset)}>
                         <WarrantyBadge warrantyExpirationDate={asset.warranty_expiration_date} />
+                      </TableCell>
+                      <TableCell onClick={() => handleViewAsset(asset)}>
+                        <span className="text-sm text-muted-foreground">
+                          {calculateAssetAge(asset.in_service_date)} yrs
+                        </span>
                       </TableCell>
                       <TableCell onClick={() => handleViewAsset(asset)}>
                         <Badge variant={asset.status === 'active' ? 'default' : 'secondary'}>
@@ -346,6 +353,12 @@ export const AssetList = () => {
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Warranty:</span>
                       <WarrantyBadge warrantyExpirationDate={asset.warranty_expiration_date} />
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Age:</span>
+                      <span className="font-medium text-muted-foreground">
+                        {calculateAssetAge(asset.in_service_date)} yrs
+                      </span>
                     </div>
                     {asset.model && (
                       <div className="flex justify-between">

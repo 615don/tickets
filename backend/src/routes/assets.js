@@ -651,32 +651,13 @@ router.delete('/:id/permanent', async (req, res) => {
 
     // Check if asset is retired
     if (asset.status !== 'retired') {
-      return res.status(403).json({
-        error: 'ForbiddenError',
+      return res.status(400).json({
+        error: 'ValidationError',
         message: 'Asset must be retired before permanent deletion'
       });
     }
 
-    // Check if retired for at least 2 years (730 days)
-    if (!asset.retired_at) {
-      return res.status(403).json({
-        error: 'ForbiddenError',
-        message: 'Asset must have a retirement date'
-      });
-    }
-
-    const retiredDate = new Date(asset.retired_at);
-    const now = new Date();
-    const daysSinceRetirement = Math.floor((now - retiredDate) / (1000 * 60 * 60 * 24));
-
-    if (daysSinceRetirement < 730) {
-      return res.status(403).json({
-        error: 'ForbiddenError',
-        message: `Asset must be retired for at least 2 years before permanent deletion (retired ${daysSinceRetirement} days ago)`
-      });
-    }
-
-    // Permanent delete
+    // Permanent delete (no time restriction - allows immediate deletion of lost/stolen assets)
     await query('DELETE FROM assets WHERE id = $1', [id]);
 
     // Invalidate asset cache after successful permanent delete
@@ -692,6 +673,67 @@ router.delete('/:id/permanent', async (req, res) => {
     res.status(500).json({
       error: 'InternalServerError',
       message: 'An error occurred while permanently deleting the asset'
+    });
+  }
+});
+
+// POST /api/assets/:id/reactivate - Reactivate retired asset
+router.post('/:id/reactivate', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate id is numeric
+    if (isNaN(parseInt(id))) {
+      return res.status(400).json({
+        error: 'ValidationError',
+        message: 'Invalid asset ID'
+      });
+    }
+
+    // Check if asset exists
+    const assetCheck = await query('SELECT id, hostname, status, retired_at FROM assets WHERE id = $1', [id]);
+    if (assetCheck.rows.length === 0) {
+      return res.status(404).json({
+        error: 'NotFoundError',
+        message: 'Asset not found'
+      });
+    }
+
+    const asset = assetCheck.rows[0];
+
+    // Check if asset is already active
+    if (asset.status === 'active') {
+      return res.status(200).json({
+        message: 'Asset is already active',
+        asset_id: parseInt(id)
+      });
+    }
+
+    // Reactivate asset
+    const result = await query(
+      `UPDATE assets
+       SET status = 'active',
+           retired_at = NULL,
+           updated_at = NOW()
+       WHERE id = $1
+       RETURNING id, hostname, status, retired_at, updated_at`,
+      [id]
+    );
+
+    // Invalidate asset cache after successful reactivation
+    console.log(`[ASSET CACHE] Invalidated: asset_id=${id}, action=reactivate, hostname=${asset.hostname}`);
+    await invalidateCache();
+
+    res.status(200).json({
+      message: 'Asset reactivated successfully',
+      asset_id: parseInt(id),
+      asset: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Error reactivating asset:', error);
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: 'An error occurred while reactivating the asset'
     });
   }
 });

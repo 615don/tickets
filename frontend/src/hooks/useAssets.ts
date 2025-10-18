@@ -92,8 +92,11 @@ export function useRetireAsset() {
   return useMutation({
     mutationFn: (id: number) => assetsApi.retire(id),
     onSuccess: (_, retiredId) => {
-      // Invalidate lists to refresh the view
-      queryClient.invalidateQueries({ queryKey: assetKeys.lists() });
+      // Invalidate lists to refresh the view - refetch option forces immediate refetch
+      queryClient.invalidateQueries({
+        queryKey: assetKeys.lists(),
+        refetchType: 'active'
+      });
 
       // Remove from detail cache
       queryClient.removeQueries({ queryKey: assetKeys.detail(retiredId) });
@@ -113,14 +116,41 @@ export function usePermanentDeleteAsset() {
   return useMutation({
     mutationFn: (id: number) => assetsApi.permanentDelete(id),
     onSuccess: (_, deletedId) => {
-      // Invalidate lists
-      queryClient.invalidateQueries({ queryKey: assetKeys.lists() });
+      // Invalidate lists - force immediate refetch
+      queryClient.invalidateQueries({
+        queryKey: assetKeys.lists(),
+        refetchType: 'active'
+      });
 
       // Remove from cache
       queryClient.removeQueries({ queryKey: assetKeys.detail(deletedId) });
     },
     onError: (error: ApiError) => {
       console.error('Permanent delete asset failed:', error.message);
+    },
+  });
+}
+
+/**
+ * Reactivate retired asset
+ */
+export function useReactivateAsset() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => assetsApi.reactivate(id),
+    onSuccess: (updatedAsset) => {
+      // Invalidate lists to refresh the view - force immediate refetch
+      queryClient.invalidateQueries({
+        queryKey: assetKeys.lists(),
+        refetchType: 'active'
+      });
+
+      // Update specific asset in cache
+      queryClient.setQueryData(assetKeys.detail(updatedAsset.id), updatedAsset);
+    },
+    onError: (error: ApiError) => {
+      console.error('Reactivate asset failed:', error.message);
     },
   });
 }

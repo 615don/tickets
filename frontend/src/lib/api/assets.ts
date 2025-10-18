@@ -199,6 +199,17 @@ export const assetsApi = {
   },
 
   /**
+   * Reactivate retired asset
+   */
+  reactivate: async (id: number): Promise<Asset> => {
+    const data = await apiClient.post<{ message: string; asset_id: number; asset: AssetResponse }>(
+      `/api/assets/${id}/reactivate`,
+      {}
+    );
+    return transformAsset(data.asset);
+  },
+
+  /**
    * Lookup Lenovo warranty information (requires asset ID)
    */
   lookupLenovoWarranty: async (assetId: number, serialNumber: string): Promise<WarrantyInfo> => {

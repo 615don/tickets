@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useAsset, useRetireAsset, usePermanentDeleteAsset } from '@/hooks/useAssets';
+import { useAsset, useRetireAsset, usePermanentDeleteAsset, useReactivateAsset } from '@/hooks/useAssets';
 import { useQueryClient } from '@tanstack/react-query';
 import { assetKeys } from '@/hooks/useAssets';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +34,7 @@ import { WarrantyBadge } from '@/components/assets/WarrantyBadge';
 import { ExternalToolLinks } from '@/components/assets/ExternalToolLinks';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { calculateAssetAge } from '@/lib/utils/assetHelpers';
 
 export function AssetDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -46,6 +47,7 @@ export function AssetDetailPage() {
 
   const retireAsset = useRetireAsset();
   const permanentDeleteAsset = usePermanentDeleteAsset();
+  const reactivateAsset = useReactivateAsset();
 
   // Modal and dialog states
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -80,11 +82,11 @@ export function AssetDetailPage() {
     );
   }
 
-  // Calculate if asset is eligible for permanent deletion (retired >2 years ago)
-  const isPermanentDeleteEligible =
-    asset.status === 'retired' &&
-    asset.retired_at &&
-    Date.now() - new Date(asset.retired_at).getTime() > 2 * 365 * 24 * 60 * 60 * 1000;
+  // Calculate asset age
+  const assetAge = calculateAssetAge(asset.in_service_date);
+
+  // Permanent delete available for any retired asset (no time restriction)
+  const isPermanentDeleteEligible = asset.status === 'retired';
 
   // Handle retire asset
   const handleRetire = async () => {
@@ -95,8 +97,11 @@ export function AssetDetailPage() {
         description: `${asset.hostname} has been retired successfully.`,
       });
       setIsRetireDialogOpen(false);
-      // Invalidate cache to refresh data
-      queryClient.invalidateQueries({ queryKey: assetKeys.detail(assetId) });
+      // Invalidate cache to refresh data - force immediate refetch
+      await queryClient.invalidateQueries({
+        queryKey: assetKeys.detail(assetId),
+        refetchType: 'active'
+      });
     } catch (err) {
       toast({
         variant: 'destructive',
@@ -127,15 +132,40 @@ export function AssetDetailPage() {
     }
   };
 
+  // Handle reactivate asset
+  const handleReactivate = async () => {
+    try {
+      await reactivateAsset.mutateAsync(assetId);
+      toast({
+        title: 'Asset Reactivated',
+        description: `${asset.hostname} has been reactivated.`,
+      });
+      // Invalidate cache to refresh data - force immediate refetch
+      await queryClient.invalidateQueries({
+        queryKey: assetKeys.detail(assetId),
+        refetchType: 'active'
+      });
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to reactivate asset. Please try again.',
+      });
+    }
+  };
+
   // Handle edit success
-  const handleEditSuccess = () => {
+  const handleEditSuccess = async () => {
     setIsEditModalOpen(false);
     toast({
       title: 'Asset Updated',
       description: `${asset.hostname} has been updated successfully.`,
     });
-    // Invalidate cache to refresh data
-    queryClient.invalidateQueries({ queryKey: assetKeys.detail(assetId) });
+    // Invalidate cache to refresh data - force immediate refetch
+    await queryClient.invalidateQueries({
+      queryKey: assetKeys.detail(assetId),
+      refetchType: 'active'
+    });
   };
 
   return (
@@ -187,6 +217,13 @@ export function AssetDetailPage() {
               >
                 <AlertTriangle className="mr-2 h-4 w-4" />
                 Retire
+              </Button>
+            )}
+            {asset.status === 'retired' && (
+              <Button
+                onClick={handleReactivate}
+              >
+                Reactivate
               </Button>
             )}
             {isPermanentDeleteEligible && (
@@ -283,6 +320,15 @@ export function AssetDetailPage() {
               </label>
               <p className="text-base">
                 {format(new Date(asset.in_service_date), 'PPP')}
+              </p>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">
+                Age
+              </label>
+              <p className="text-base text-muted-foreground">
+                {assetAge === 0 ? 'Less than 1 year old' : `${assetAge} year${assetAge === 1 ? '' : 's'} old`}
               </p>
             </div>
 
