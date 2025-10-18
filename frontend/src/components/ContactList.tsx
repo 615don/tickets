@@ -97,11 +97,24 @@ export const ContactList = () => {
     try {
       const result = await deleteContact.mutateAsync(contactToDelete.id);
       const ticketsReassigned = result?.ticketsReassigned || 0;
+      const assetsReassigned = result?.assetsReassigned || 0;
+      const totalReassigned = ticketsReassigned + assetsReassigned;
+
+      let description = `${contactToDelete.name} has been removed.`;
+      if (totalReassigned > 0) {
+        const parts: string[] = [];
+        if (ticketsReassigned > 0) {
+          parts.push(`${ticketsReassigned} ticket${ticketsReassigned === 1 ? '' : 's'}`);
+        }
+        if (assetsReassigned > 0) {
+          parts.push(`${assetsReassigned} asset${assetsReassigned === 1 ? '' : 's'}`);
+        }
+        description = `${contactToDelete.name} has been removed. ${parts.join(' and ')} reassigned to "Deleted Contact".`;
+      }
+
       toast({
         title: 'Contact deleted',
-        description: ticketsReassigned > 0
-          ? `${contactToDelete.name} has been removed. ${ticketsReassigned} ticket${ticketsReassigned === 1 ? '' : 's'} reassigned to "Deleted Contact".`
-          : `${contactToDelete.name} has been removed.`,
+        description,
       });
       setDeleteDialogOpen(false);
       setContactToDelete(null);

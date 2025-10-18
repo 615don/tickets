@@ -232,6 +232,12 @@ export const Contact = {
         [deletedContactId, id]
       );
 
+      // Reassign all assets to deleted contact
+      const assetUpdate = await client.query(
+        'UPDATE assets SET contact_id = $1 WHERE contact_id = $2',
+        [deletedContactId, id]
+      );
+
       // Soft delete the contact
       await client.query(
         'UPDATE contacts SET deleted_at = NOW() WHERE id = $1',
@@ -243,7 +249,8 @@ export const Contact = {
       return {
         deletedContactId: id,
         deletedContactName: contact.name,
-        ticketsReassigned: ticketUpdate.rowCount
+        ticketsReassigned: ticketUpdate.rowCount,
+        assetsReassigned: assetUpdate.rowCount
       };
     } catch (error) {
       await client.query('ROLLBACK');

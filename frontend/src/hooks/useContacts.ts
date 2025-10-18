@@ -8,6 +8,7 @@ import { contactsApi, CreateContactRequest } from '@/lib/api/contacts';
 import { Contact } from '@/types';
 import { ApiError } from '@/lib/api-client';
 import { clientKeys } from './useClients';
+import { assetKeys } from './useAssets';
 import { queryConfig } from '@/lib/queryConfig';
 
 // Query keys for cache management
@@ -115,6 +116,11 @@ export function useDeleteContact() {
       // Update client contact counts
       queryClient.invalidateQueries({
         queryKey: clientKeys.lists()
+      });
+
+      // Invalidate asset lists since assets may have been reassigned
+      queryClient.invalidateQueries({
+        queryKey: assetKeys.lists()
       });
     },
     onError: (error: ApiError) => {

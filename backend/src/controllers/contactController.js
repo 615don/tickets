@@ -1,5 +1,6 @@
 import { Contact } from '../models/Contact.js';
 import { getCache, setCache, CacheKeys, invalidateContactCache } from '../utils/cache.js';
+import { invalidateCache as invalidateAssetCache } from '../services/assetCache.js';
 
 // GET /api/contacts - Get all contacts
 export const getAllContacts = async (req, res) => {
@@ -169,6 +170,8 @@ export const deleteContact = async (req, res) => {
 
     // Invalidate cache after mutation
     invalidateContactCache();
+    // Also invalidate asset cache since assets were reassigned
+    invalidateAssetCache();
 
     res.json({
       message: 'Contact deleted successfully',
