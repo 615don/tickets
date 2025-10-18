@@ -86,7 +86,7 @@ export function AssetWidget({ ticketId }: AssetWidgetProps) {
           </p>
           {contactId && (
             <Button asChild variant="outline">
-              <Link to={`/assets/new?contact_id=${contactId}`}>
+              <Link to={`/assets?create=true&contact_id=${contactId}`}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Asset
               </Link>

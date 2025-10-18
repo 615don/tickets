@@ -48,11 +48,12 @@ type AssetFormInputs = z.infer<typeof assetSchema>;
 interface AssetFormProps {
   mode: 'create' | 'edit';
   asset?: Asset;
+  initialContactId?: number | null; // Prefill contact when creating from ticket/contact context
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export const AssetForm = ({ mode, asset, onSuccess, onCancel }: AssetFormProps) => {
+export const AssetForm = ({ mode, asset, initialContactId: prefilledContactId, onSuccess, onCancel }: AssetFormProps) => {
   // Fetch contacts and clients for dropdown
   const { data: contacts = [], isLoading: contactsLoading } = useContacts();
   const { data: clients = [] } = useClients();
@@ -61,18 +62,27 @@ export const AssetForm = ({ mode, asset, onSuccess, onCancel }: AssetFormProps) 
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
 
-  // Determine initial client_id and contact_id from asset if in edit mode
+  // Determine initial client_id and contact_id from asset if in edit mode, or from prefilled contact if in create mode
   const { initialClientId, initialContactId } = useMemo(() => {
     if (asset) {
-      // Asset always has client_id (required field)
+      // Edit mode: Asset always has client_id (required field)
       // Contact_id may be null (optional field)
       return {
         initialClientId: asset.client_id || 0,
         initialContactId: asset.contact_id || null
       };
     }
+    // Create mode: Use prefilled contact if provided
+    if (prefilledContactId) {
+      // Find the contact to get its client_id
+      const prefilledContact = contacts.find(c => c.id === prefilledContactId);
+      return {
+        initialClientId: prefilledContact?.clientId || 0,
+        initialContactId: prefilledContactId
+      };
+    }
     return { initialClientId: 0, initialContactId: null };
-  }, [asset, contacts]);
+  }, [asset, prefilledContactId, contacts]);
 
   const {
     register,

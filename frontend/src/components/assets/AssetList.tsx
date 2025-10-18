@@ -3,8 +3,8 @@
  * Displays all assets with filtering, search, and bulk operations
  */
 
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../PageHeader';
 import { SearchBar } from '../SearchBar';
 import { ActionButtons } from '../ActionButtons';
@@ -56,6 +56,7 @@ import { calculateAssetAge } from '@/lib/utils/assetHelpers';
 
 export const AssetList = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [clientFilter, setClientFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'active' | 'retired' | 'all'>('active');
@@ -64,7 +65,26 @@ export const AssetList = () => {
   const [assetToEdit, setAssetToEdit] = useState<Asset | null>(null);
   const [retireDialogOpen, setRetireDialogOpen] = useState(false);
   const [assetToRetire, setAssetToRetire] = useState<Asset | null>(null);
+  const [prefilledContactId, setPrefilledContactId] = useState<number | null>(null);
   const { toast } = useToast();
+
+  // Check URL parameters to auto-open create modal with prefilled contact
+  useEffect(() => {
+    const contactIdParam = searchParams.get('contact_id');
+    const createParam = searchParams.get('create');
+
+    if (createParam === 'true' && contactIdParam) {
+      const contactId = parseInt(contactIdParam);
+      if (!isNaN(contactId)) {
+        setPrefilledContactId(contactId);
+        setIsFormOpen(true);
+        // Clean up URL parameters after opening modal
+        searchParams.delete('create');
+        searchParams.delete('contact_id');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [searchParams, setSearchParams]);
 
   // Fetch assets with current filters
   const assetFilters = useMemo(() => {
@@ -129,6 +149,7 @@ export const AssetList = () => {
 
   const handleFormSuccess = () => {
     setIsFormOpen(false);
+    setPrefilledContactId(null); // Clear prefilled contact after successful creation
     toast({
       title: 'Asset created',
       description: 'The asset has been added successfully.',
@@ -402,7 +423,16 @@ export const AssetList = () => {
       )}
 
       {/* Create Asset Form Modal */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      <Dialog
+        open={isFormOpen}
+        onOpenChange={(open) => {
+          setIsFormOpen(open);
+          if (!open) {
+            // Clear prefilled contact when dialog is closed
+            setPrefilledContactId(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Asset</DialogTitle>
@@ -412,8 +442,12 @@ export const AssetList = () => {
           </DialogHeader>
           <AssetForm
             mode="create"
+            initialContactId={prefilledContactId}
             onSuccess={handleFormSuccess}
-            onCancel={() => setIsFormOpen(false)}
+            onCancel={() => {
+              setIsFormOpen(false);
+              setPrefilledContactId(null);
+            }}
           />
         </DialogContent>
       </Dialog>
